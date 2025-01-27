@@ -36,7 +36,7 @@ def concat_and_sort(dfs: list[pd.DataFrame]) -> pd.DataFrame:
 def process_directory(
     input_dir: Path,
     bsc_lead_party_id: str,
-    bm_regex: str = "^2__",
+    bm_regex: Optional[str] = "^2__",
     bm_ids: Optional[list] = None,
     group_bms: bool = True,
     prefixes: Optional[list[str]] = None,
