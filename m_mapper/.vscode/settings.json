@@ -1,7 +1,0 @@
-{
-  "python.linting.mypyEnabled": true,
-  "python.linting.mypyArgs": [
-    "--config-file", "mypy.ini"
-  ],
-  "python.analysis.extraPaths": ["src"]
-}
