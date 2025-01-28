@@ -47,3 +47,4 @@ distribution = true
 mypy = "mypy src tests"
 ruff = "ruff format src tests"
 tests = "pytest"
+
