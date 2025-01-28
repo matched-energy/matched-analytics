@@ -9,7 +9,10 @@ import pandas as pd
 from m_mapper.common import MappingException
 
 
-def load_bmus(bmrs_bm_units_path: Path) -> pd.DataFrame:
+def load_bmrs_bmus(bmrs_bm_units_path: Path) -> pd.DataFrame:
+    """Load BMUS as downloaded from:
+    https://bmrs.elexon.co.uk/api-documentation/endpoint/reference/bmunits/all
+    """
     with open(bmrs_bm_units_path, "r") as file:
         json_list = json.load(file)
     bmrs_bmus = pd.DataFrame(json_list)
@@ -18,65 +21,49 @@ def load_bmus(bmrs_bm_units_path: Path) -> pd.DataFrame:
     return bmrs_bmus
 
 
-def read_and_agg_vols(vol_by_bsc: Path, bsc_lead_party_id: str, bm_ids: list[str]) -> pd.DataFrame:
-    vols_df = m_elexon.S0142.process_csv.process_directory(
-        input_dir=vol_by_bsc / Path(bsc_lead_party_id),
-        bsc_lead_party_id=bsc_lead_party_id,
-        bm_regex=None,
-        bm_ids=bm_ids,
-        group_bms=True,
-        output_path=Path(f"/tmp/bm_metered_vol_agg_{bsc_lead_party_id}.csv"),
-    )
-    return vols_df
-
-
-def vols_by_month(vols_df: pd.DataFrame) -> pd.DataFrame:
-    _vols_df = copy.deepcopy(vols_df)
-    _vols_df["Settlement Month"] = vols_df["Settlement Date"].dt.month
-    vols_by_month = (
-        _vols_df.groupby("Settlement Month")
+def half_hourly_to_monthly_volumes(half_hourly_volumes: pd.DataFrame) -> pd.DataFrame:
+    cp_half_hourly_volumes = copy.deepcopy(half_hourly_volumes)
+    cp_half_hourly_volumes["Settlement Month"] = half_hourly_volumes["Settlement Date"].dt.month
+    monthly_volumes = (
+        cp_half_hourly_volumes.groupby("Settlement Month")
         .agg(
             {
                 "Settlement Date": "first",
                 "BM Unit Metered Volume": "sum",
-                # "Period BM Unit Balancing Services Volume": "sum",
             }
         )
         .sort_values("Settlement Date")
     ).set_index("Settlement Date")
-    vols_by_month["BM Unit Metered Volume"] /= 1e3
-    # TODO - adjust? or delete?
-    # vols_by_month["Period BM Unit Balancing Services Volume"] /= 1e3
-    # vols_by_month["BM Net Vol"] = (
-    #     vols_by_month["BM Unit Metered Volume"]
-    #     + vols_by_month["Period BM Unit Balancing Services Volume"]
-    # )
-    return vols_by_month
+    monthly_volumes["BM Unit Metered Volume"] /= 1e3  # TODO - standardise units
+    return monthly_volumes
 
 
-def extract_bm_vols_by_month(
-    lead_party_id: str, bmu_ids: list, bmus_total_net_capacity: float
+def get_monthly_volumes(
+    bsc_lead_party_id: str, bm_ids: list, bmus_total_net_capacity: float
 ) -> Tuple[dict, pd.DataFrame]:
     try:
-        volumes_df = read_and_agg_vols(
-            Path("/Users/jjk/data/2024-12-12-CP2023-all-bscs-s0142/"),
-            lead_party_id,
-            bmu_ids,
+        volumes_df = m_elexon.S0142.process_csv.process_directory(
+            input_dir=Path("/Users/jjk/data/2024-12-12-CP2023-all-bscs-s0142/") / Path(bsc_lead_party_id),
+            bsc_lead_party_id=bsc_lead_party_id,
+            bm_regex=None,
+            bm_ids=bm_ids,
+            group_bms=True,
+            output_path=None,
         )
         total_volume = volumes_df["BM Unit Metered Volume"].sum()
         return (
             dict(
                 bmu_total_volume=total_volume,
                 bmu_capacity_factor=total_volume / (bmus_total_net_capacity * 24 * 365),
-                bmu_sampling_months=12,  # NOTE: presumed! TODO: test for this!
+                bmu_sampling_months=12,  # TODO: test for this!
             ),
-            vols_by_month(volumes_df),
+            half_hourly_to_monthly_volumes(volumes_df),
         )
     except Exception as e:
         raise MappingException(f"Failed to extract bm volumes by month {e}")
 
 
-def get_bmu_list_and_aggregate_properties(bmus: pd.DataFrame) -> dict:
+def validate_matching_bmus(bmus: pd.DataFrame) -> None:
     try:
         assert len(bmus["leadPartyName"].unique()) == 1
         assert len(bmus["leadPartyId"].unique()) == 1
@@ -88,6 +75,9 @@ def get_bmu_list_and_aggregate_properties(bmus: pd.DataFrame) -> dict:
                 [str(t) for t in bmus[["leadPartyName", "leadPartyId", "fuelType"]].itertuples(index=False, name=None)]
             )
         )
+
+
+def get_matching_bmus_dict(bmus: pd.DataFrame) -> dict:
     return dict(
         bmus=[
             dict(

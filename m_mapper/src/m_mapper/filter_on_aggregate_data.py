@@ -1,7 +1,7 @@
 import pandas as pd
 
 from m_mapper.common import MappingException
-from m_mapper.data.bmus import extract_bm_vols_by_month
+from m_mapper.data.bmus import get_monthly_volumes
 from m_mapper.data.regos import extract_rego_volume_by_month
 
 
@@ -23,7 +23,7 @@ def appraise_energy_volumes(generator_profile: dict, regos: pd.DataFrame) -> dic
     )
     generator_profile.update(rego_volume_stats)
 
-    bmu_volume_stats, bmu_monthly_volumes = extract_bm_vols_by_month(
+    bmu_volume_stats, bmu_monthly_volumes = get_monthly_volumes(
         generator_profile["bmu_lead_party_id"],
         [bmu["bmu_unit"] for bmu in generator_profile["bmus"]],
         generator_profile["bmus_total_net_capacity"],
