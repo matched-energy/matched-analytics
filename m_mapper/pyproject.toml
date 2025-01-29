@@ -10,6 +10,7 @@ dependencies = [
     "click>=8.1.8",
     "pyyaml>=6.0.2",
     "pylance>=0.22.0",
+    "httpx>=0.28.1",
 ]
 requires-python = ">=3.13"
 readme = "README.md"
