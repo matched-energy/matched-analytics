@@ -3,8 +3,8 @@ from pathlib import Path
 import pandas as pd
 from pytest import approx
 
-import m_elexon.S0142.plot as plot
-import m_elexon.S0142.process_csv as process_csv
+import ma.elexon.S0142.plot as plot
+import ma.elexon.S0142.process_csv as process_csv
 
 
 def run_simple(group_bms: bool) -> pd.DataFrame:

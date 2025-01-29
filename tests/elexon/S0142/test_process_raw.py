@@ -6,8 +6,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
-import m_elexon.S0142.process_raw  # noqa: F401
-from m_elexon.S0142 import process_raw
+import ma.elexon.S0142.process_raw  # noqa: F401
+from ma.elexon.S0142 import process_raw
 
 
 def run_process_file(bsc_party_ids: List[str]) -> Dict[str, pd.DataFrame]:
@@ -55,8 +55,8 @@ def test_main(mock_glob: MagicMock, mock_listdir: MagicMock) -> None:
     mock_glob.return_value = []
     mock_process_file = MagicMock(return_value=[("BSC1", MagicMock())])
 
-    with patch("m_elexon.S0142.process_raw.process_file", mock_process_file):
-        m_elexon.S0142.process_raw.process_directory(
+    with patch("ma.elexon.S0142.process_raw.process_file", mock_process_file):
+        ma.elexon.S0142.process_raw.process_directory(
             input_dir=Path("/fake/input"),
             output_dir=Path("/fake/output"),
             bsc_party_ids=["BSC1", "BSC2"],

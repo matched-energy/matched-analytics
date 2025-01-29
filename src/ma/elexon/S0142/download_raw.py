@@ -4,6 +4,8 @@ import sys
 from pathlib import Path
 
 import pandas as pd
+
+# TODO: move to httpx
 import requests
 from dotenv import load_dotenv
 

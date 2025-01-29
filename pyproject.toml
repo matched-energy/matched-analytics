@@ -1,26 +1,42 @@
-[dependency-groups]
-dev = [
-    "mypy>=1.14.1",
-]
-
 [project]
-name = "matched-analytics"
+name = "ma"
 version = "0.1.0"
-description = "Default template for PDM package"
+description = "Tools to track renewable energy supply"
 authors = [
-    {name = "Joe Kwiatkowski", email = "joe@matched.energy"},
+    {name = "Joe Kwiatkowski"} 
 ]
-dependencies = []
-requires-python = "==3.13.*"
+dependencies = ["pandas>=2.2.3", "plotly>=6.0.0", "python-dotenv>=1.0.1", "click>=8.1.8", "pyyaml>=6.0.2", "httpx>=0.28.1", "types-PyYAML>=6.0.12.20241230", "types-python-dateutil>=2.9.0.20241206", "types-requests>=2.32.0.20241016"]
+requires-python = ">=3.13"
 readme = "README.md"
-license = {text = "MIT"}
+license = {text = "0"}
+
+[build-system]
+requires = ["pdm-backend"]
+build-backend = "pdm.backend"
 
 
 [tool.pdm]
-distribution = false
+distribution = true
 
-[tool.pdm.dev-dependencies]
+[dependency-groups]
 dev = [
-    "-e file:///${PROJECT_ROOT}/m_elexon",
-    "-e file:///${PROJECT_ROOT}/m_mapper",
+    "mypy>=1.14.1",
+    "pytest>=8.3.4",
+    "ruff>=0.9.3",
+    "pandas-stubs>=2.2.3.241126",
 ]
+
+[tool.ruff]
+line-length = 120
+
+[tool.lint.per-file-ignores]
+"tests/**" = [
+    "S101", # Use of `assert` detected
+    "D103", # Missing docstring in public function
+]
+
+[tool.pdm.scripts]
+mypy = "mypy src tests"
+ruff = "ruff format src tests"
+tests = "pytest"
+

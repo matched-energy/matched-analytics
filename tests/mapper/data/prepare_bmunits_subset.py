@@ -5,7 +5,7 @@ from typing import List, Optional
 
 import pandas as pd
 
-import m_elexon.api.endpoints
+import ma.elexon.api.endpoints
 
 SUBSET_BMUS = [  # Matching the biggest REGO generators
     "T_DRAXX-1",
@@ -53,10 +53,9 @@ SUBSET_BMUS = [  # Matching the biggest REGO generators
 ]
 
 
-def persist_bmus(output_path, subset_bmus_raw):
-    if output_path:
-        with open(output_path, "w") as file:
-            json.dump(subset_bmus_raw, file, indent=4)
+def persist_bmus(output_path: Path, subset_bmus_raw: List) -> None:
+    with open(output_path, "w") as file:
+        json.dump(subset_bmus_raw, file, indent=4)
 
 
 def filter_bmus(all_bmus: List, bmu_ids: Optional[List] = None) -> List:
@@ -69,7 +68,7 @@ def filter_bmus(all_bmus: List, bmu_ids: Optional[List] = None) -> List:
 
 
 def main(output_path: Path) -> List:
-    all_bmus_raw = m_elexon.api.endpoints.bmunits_all()
+    all_bmus_raw = ma.elexon.api.endpoints.bmunits_all()
     subset_bmus_raw = filter_bmus(all_bmus_raw)
     persist_bmus(output_path, subset_bmus_raw)
     return subset_bmus_raw

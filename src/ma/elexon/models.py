@@ -4,7 +4,7 @@ from typing import Optional
 
 import pandas as pd
 
-import m_elexon.api.endpoints
+import ma.elexon.api.endpoints
 
 
 def bmus(local_path: Optional[Path]) -> pd.DataFrame:
@@ -12,7 +12,7 @@ def bmus(local_path: Optional[Path]) -> pd.DataFrame:
         with open(local_path, "r") as file:
             bmus_raw = json.load(file)
     else:
-        bmus_raw = m_elexon.api.endpoints.bmunits_all()
+        bmus_raw = ma.elexon.api.endpoints.bmunits_all()
     bmrs_bmus = pd.DataFrame(bmus_raw)
     bmrs_bmus["generationCapacity"] = bmrs_bmus["generationCapacity"].astype(float)
     bmrs_bmus["demandCapacity"] = bmrs_bmus["demandCapacity"].astype(float)

@@ -4,12 +4,12 @@ from typing import Any, Dict, List
 
 import pandas as pd
 
-import m_mapper.utils
+import ma.mapper.utils
 
 
 def compare_to_expected(mapping_scores: pd.DataFrame, expected_mappings_file: Path) -> pd.DataFrame:
     """Left join"""
-    expected_mappings = m_mapper.utils.from_yaml_file(expected_mappings_file)
+    expected_mappings = ma.mapper.utils.from_yaml_file(expected_mappings_file)
     comparisons = []
     for _, row in mapping_scores.iterrows():
         rego_station_name = row["rego_name"]

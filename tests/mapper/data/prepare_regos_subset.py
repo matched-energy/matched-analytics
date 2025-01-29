@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pandas as pd
 
-import m_mapper.data.regos
+import ma.mapper.data.regos
 
 STATIONS = [
     "Drax Power Station (REGO)",
@@ -13,7 +13,7 @@ STATIONS = [
 
 
 def main(input_path: Path, output_path: Path) -> pd.DataFrame:
-    regos = m_mapper.data.regos.read_from_file(input_path)
+    regos = ma.mapper.data.regos.read_from_file(input_path)
     regos = regos[regos["Generating Station / Agent Group"].isin(STATIONS)]
     regos.to_csv(output_path)
     return regos

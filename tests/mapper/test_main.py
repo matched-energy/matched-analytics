@@ -3,13 +3,13 @@ from pathlib import Path
 import pandas as pd
 from pandas.testing import assert_frame_equal
 
-import m_mapper.main
+import ma.mapper.main
 
 DATA_DIR = Path(__file__).parent / "data"
 
 
 def test_end_to_end() -> None:
-    mappings = m_mapper.main.main(
+    mappings = ma.mapper.main.main(
         start=0,
         stop=3,
         regos_path=DATA_DIR / "regos_apr2022_mar2023_SUBSET.csv",

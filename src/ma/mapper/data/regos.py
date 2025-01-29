@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 from dateutil.relativedelta import relativedelta
 
-from m_mapper.common import MappingException
+from ma.mapper.common import MappingException
 
 COLUMNS: list[str] = [
     "Accreditation No.",

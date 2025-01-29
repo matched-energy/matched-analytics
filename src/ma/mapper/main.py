@@ -3,16 +3,16 @@ from typing import Optional
 
 import pandas as pd
 
-import m_elexon.models
-import m_mapper.utils
-from m_mapper.common import MappingException
-from m_mapper.data.bmus import get_matching_bmus_dict, validate_matching_bmus
-from m_mapper.data.regos import get_generator_profile, groupby_regos_by_station, load_accredited_stations, load_regos
-from m_mapper.filter_on_aggregate_data import appraise_energy_volumes, appraise_rated_power
-from m_mapper.filter_on_bmu_meta_data import get_matching_bmus
-from m_mapper.summarise_and_score import summarise_mapping_and_mapping_strength
+import ma.elexon.models
+import ma.mapper.utils
+from ma.mapper.common import MappingException
+from ma.mapper.data.bmus import get_matching_bmus_dict, validate_matching_bmus
+from ma.mapper.data.regos import get_generator_profile, groupby_regos_by_station, load_accredited_stations, load_regos
+from ma.mapper.filter_on_aggregate_data import appraise_energy_volumes, appraise_rated_power
+from ma.mapper.filter_on_bmu_meta_data import get_matching_bmus
+from ma.mapper.summarise_and_score import summarise_mapping_and_mapping_strength
 
-LOGGER = m_mapper.utils.get_logger("m_mapper")
+LOGGER = ma.mapper.utils.get_logger("ma.mapper")
 
 
 def map_station(
@@ -45,7 +45,7 @@ def map_station(
 
     except MappingException as e:
         LOGGER.warning(str(e) + str(generator_profile))
-    LOGGER.debug(m_mapper.utils.to_yaml_text(generator_profile))
+    LOGGER.debug(ma.mapper.utils.to_yaml_text(generator_profile))
     return summarise_mapping_and_mapping_strength(generator_profile)
 
 
@@ -85,6 +85,6 @@ def main(
         stop=stop,
         regos=load_regos(regos_path),
         accredited_stations=load_accredited_stations(accredited_stations_dir),
-        bmus=m_elexon.models.bmus(bmus_path),
-        expected_mappings=(m_mapper.utils.from_yaml_file(expected_mappings_file) if expected_mappings_file else {}),
+        bmus=ma.elexon.models.bmus(bmus_path),
+        expected_mappings=(ma.mapper.utils.from_yaml_file(expected_mappings_file) if expected_mappings_file else {}),
     )
