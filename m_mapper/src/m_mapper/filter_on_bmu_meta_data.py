@@ -95,11 +95,11 @@ def define_bmu_match_features_and_filters(station_profile: dict, bmus: pd.DataFr
     filters.append(filter)
 
     feature, filter = filter_on_name_intersection(station_profile, bmus)
-    features["leadPartyName_intersection_count"] = feature  # TODO
+    features["leadPartyName_intersection_count"] = feature
     filters.append(filter)
 
     feature, filter = filter_on_name_contiguous(station_profile, bmus)
-    features["leadPartyName_contiguous_words"] = feature  # TODO
+    features["leadPartyName_contiguous_words"] = feature
     filters.append(filter)
 
     return features, filters

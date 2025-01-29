@@ -1,14 +1,11 @@
 import copy
-import json
 from pathlib import Path
 from typing import Tuple
 
-import m_elexon.S0142.process_csv
 import pandas as pd
 
+import m_elexon.S0142.process_csv
 from m_mapper.common import MappingException
-
-
 
 
 def half_hourly_to_monthly_volumes(half_hourly_volumes: pd.DataFrame) -> pd.DataFrame:

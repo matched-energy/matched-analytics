@@ -92,4 +92,3 @@ def summarise_mapping_and_mapping_strength(generator_profile: dict) -> pd.DataFr
     # An aggregate p-value that is the product of all others
     summary_row["p"] = summary_row[[col for col in summary_row.columns if "p(" in col]].prod(axis=1)
     return summary_row
-    return summary_row
