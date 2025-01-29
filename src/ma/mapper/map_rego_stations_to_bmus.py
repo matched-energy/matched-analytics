@@ -7,10 +7,10 @@ import ma.elexon.models
 import ma.mapper.utils
 from ma.mapper.common import MappingException
 from ma.mapper.data.bmus import get_matching_bmus_dict, validate_matching_bmus
-from ma.mapper.data.regos import get_generator_profile, groupby_regos_by_station, load_accredited_stations, load_regos
 from ma.mapper.filter_on_aggregate_data import appraise_energy_volumes, appraise_rated_power
 from ma.mapper.filter_on_bmu_meta_data import get_matching_bmus
 from ma.mapper.summarise_and_score import summarise_mapping_and_mapping_strength
+from ma.ofgem.regos import get_generator_profile, groupby_regos_by_station, load_accredited_stations, load_regos
 
 LOGGER = ma.mapper.utils.get_logger("ma.mapper")
 

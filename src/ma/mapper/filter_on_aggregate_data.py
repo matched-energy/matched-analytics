@@ -2,7 +2,7 @@ import pandas as pd
 
 from ma.mapper.common import MappingException
 from ma.mapper.data.bmus import get_monthly_volumes
-from ma.mapper.data.regos import extract_rego_volume_by_month
+from ma.ofgem.regos import extract_rego_volume_by_month
 
 
 def appraise_rated_power(generator_profile: dict) -> dict:
