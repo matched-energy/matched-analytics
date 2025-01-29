@@ -3,8 +3,9 @@ import sys
 from pathlib import Path
 from typing import List, Optional
 
-import httpx
 import pandas as pd
+
+import m_elexon.api.endpoints
 
 SUBSET_BMUS = [  # Matching the biggest REGO generators
     "T_DRAXX-1",
@@ -52,12 +53,6 @@ SUBSET_BMUS = [  # Matching the biggest REGO generators
 ]
 
 
-def fetch_bmus() -> List:
-    response = httpx.get("https://data.elexon.co.uk/bmrs/api/v1/reference/bmunits/all", timeout=10)
-    response.raise_for_status()
-    return response.json()
-
-
 def persist_bmus(output_path, subset_bmus_raw):
     if output_path:
         with open(output_path, "w") as file:
@@ -74,7 +69,7 @@ def filter_bmus(all_bmus: List, bmu_ids: Optional[List] = None) -> List:
 
 
 def main(output_path: Path) -> List:
-    all_bmus_raw = fetch_bmus()
+    all_bmus_raw = m_elexon.api.endpoints.bmunits_all()
     subset_bmus_raw = filter_bmus(all_bmus_raw)
     persist_bmus(output_path, subset_bmus_raw)
     return subset_bmus_raw

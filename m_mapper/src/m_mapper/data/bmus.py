@@ -9,16 +9,6 @@ import pandas as pd
 from m_mapper.common import MappingException
 
 
-def load_bmrs_bmus(bmrs_bm_units_path: Path) -> pd.DataFrame:
-    """Load BMUS as downloaded from:
-    https://bmrs.elexon.co.uk/api-documentation/endpoint/reference/bmunits/all
-    """
-    with open(bmrs_bm_units_path, "r") as file:
-        json_list = json.load(file)
-    bmrs_bmus = pd.DataFrame(json_list)
-    bmrs_bmus["generationCapacity"] = bmrs_bmus["generationCapacity"].astype(float)
-    bmrs_bmus["demandCapacity"] = bmrs_bmus["demandCapacity"].astype(float)
-    return bmrs_bmus
 
 
 def half_hourly_to_monthly_volumes(half_hourly_volumes: pd.DataFrame) -> pd.DataFrame:
