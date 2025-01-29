@@ -7,6 +7,7 @@ import pandas as pd
 import pytest
 
 import ma.elexon.S0142.process_raw  # noqa: F401
+import test_data.register
 from ma.elexon.S0142 import process_raw
 
 
@@ -14,7 +15,7 @@ def run_process_file(bsc_party_ids: List[str]) -> Dict[str, pd.DataFrame]:
     return {
         bsc_party_id: S0142_df
         for bsc_party_id, S0142_df in process_raw.process_file(
-            input_path=Path(__file__).parent / "data" / "S0142_20230330_SF_20230425121906.gz",
+            test_data.register.S0142_20230330_SF_20230425121906_GZ,
             bsc_party_ids=bsc_party_ids,
         )
     }

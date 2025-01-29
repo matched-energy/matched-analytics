@@ -15,9 +15,6 @@ requires = ["pdm-backend"]
 build-backend = "pdm.backend"
 
 
-[tool.pdm]
-distribution = true
-
 [dependency-groups]
 dev = [
     "mypy>=1.14.1",
@@ -35,8 +32,18 @@ line-length = 120
     "D103", # Missing docstring in public function
 ]
 
+
+[tool.pdm]
+distribution = true
+
 [tool.pdm.scripts]
 mypy = "mypy src tests"
 ruff = "ruff format src tests"
 tests = "pytest"
 
+[tool.pdm.dev-dependencies]
+dev = [
+    "-e file:///${PROJECT_ROOT}/test_data#egg=test-data",
+]
+[tool.setuptools.packages.find]
+include = ["tests"]

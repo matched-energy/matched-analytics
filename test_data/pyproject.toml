@@ -1,0 +1,15 @@
+[project]
+name = "test_data"
+version = "0.1.0"
+description = "Test data for matched-analytics"
+authors = [
+    {name = "Joe Kwiatkowski", email = "joe@matched.energy"},
+]
+dependencies = []
+requires-python = ">=3.13"
+readme = "README.md"
+license = {text = "MIT"}
+
+
+[tool.pdm]
+distribution = false

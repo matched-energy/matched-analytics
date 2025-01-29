@@ -5,7 +5,7 @@
 groups = ["default", "dev"]
 strategy = ["inherit_metadata"]
 lock_version = "4.5.0"
-content_hash = "sha256:bdf032490d2344f7de987f3a23ca1b3daabe09738e134feadcc10ac7d42fe8dc"
+content_hash = "sha256:13b0e675edd8bebd08aa1bd32da120a8a477edfbb0f2ee2996a822c5e7e1f400"
 
 [[metadata.targets]]
 requires_python = ">=3.13"
@@ -411,6 +411,15 @@ files = [
     {file = "sniffio-1.3.1-py3-none-any.whl", hash = "sha256:2f6da418d1f1e0fddd844478f41680e794e6051915791a034ff65e5f100525a2"},
     {file = "sniffio-1.3.1.tar.gz", hash = "sha256:f4324edc670a0f49750a81b895f35c3adb843cca46f0530f79fc1babb23789dc"},
 ]
+
+[[package]]
+name = "test-data"
+version = "0.1.0"
+requires_python = ">=3.13"
+editable = true
+path = "./test_data"
+summary = "Default template for PDM package"
+groups = ["dev"]
 
 [[package]]
 name = "types-python-dateutil"
