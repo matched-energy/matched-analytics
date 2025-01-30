@@ -3,7 +3,7 @@ name = "data"
 version = "0.1.0"
 description = "Default template for PDM package"
 authors = [
-    {name = "Joe Kwiatkowski", email = "joe@matched.energy"},
+    {name = "Matched"},
 ]
 dependencies = []
 requires-python = ">=3.13"
