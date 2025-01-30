@@ -5,7 +5,6 @@ import data.register
 import ma.mapper.map_rego_stations_to_bmus
 
 
-# TODO - test on energy volumes and other dimensions
 def test_end_to_end() -> None:
     mappings = ma.mapper.map_rego_stations_to_bmus.main(
         start=0,
@@ -19,15 +18,24 @@ def test_end_to_end() -> None:
             {
                 "rego_name": "Drax Power Station (REGO)",
                 "bmu_ids": "T_DRAXX-1, T_DRAXX-2, T_DRAXX-3, T_DRAXX-4",
+                "lead_party_name": "Drax Power Ltd",
+                "rego_mw": 3865,
             },
-            {"rego_name": "Walney Extension", "bmu_ids": "T_WLNYO-3, T_WLNYO-4"},
+            {
+                "rego_name": "Walney Extension",
+                "bmu_ids": "T_WLNYO-3, T_WLNYO-4",
+                "lead_party_name": "Walney Extension Ltd",
+                "rego_mw": 648,
+            },
             {
                 "rego_name": "Triton Knoll Offshore Windfarm",
                 "bmu_ids": "T_TKNEW-1, T_TKNWW-1",
+                "lead_party_name": "Triton Knoll Offshore Wind",
+                "rego_mw": 847.477,
             },
         ]
     )
     assert_frame_equal(
-        mappings[["rego_name", "bmu_ids"]].reset_index(drop=True),
+        mappings[["rego_name", "bmu_ids", "lead_party_name", "rego_mw"]].reset_index(drop=True),
         expected_mappings.reset_index(drop=True),
     )
