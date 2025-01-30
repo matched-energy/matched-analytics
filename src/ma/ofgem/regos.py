@@ -1,7 +1,5 @@
-import copy
-import os
 from pathlib import Path
-from typing import Optional, Tuple
+from typing import List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
@@ -9,7 +7,7 @@ from dateutil.relativedelta import relativedelta
 
 from ma.mapper.common import MappingException
 
-COLUMNS: list[str] = [
+REGO_COLUMNS: list[str] = [
     "Accreditation No.",
     "Generating Station / Agent Group",
     "Station TIC",
@@ -29,7 +27,7 @@ COLUMNS: list[str] = [
     "Company Registration Number",
 ]
 
-TECH_SIMPLE = {
+SIMPLIFIED_TECH_CATEGORIES = {
     "Photovoltaic": "SOLAR",
     "Hydro": "HYDRO",
     "Wind": "WIND",
@@ -45,85 +43,103 @@ TECH_SIMPLE = {
 }
 
 
-def read_from_file(
-    filepath: Path,
-    current_holder_organisation_names: Optional[list[str]] = None,
-    status: str = "Redeemed",
-) -> pd.DataFrame:
-    d = pd.read_csv(filepath, names=COLUMNS, skiprows=4)
-    if current_holder_organisation_names:
-        return d[
-            (d["Current Holder Organisation Name"].isin(current_holder_organisation_names))
-            & (d["Certificate Status"] == status)
-            ## TODO: this is a bug! Should do this filtering in the 'filter function'?
-        ]
+def read_raw(rego_file_path: Path) -> pd.DataFrame:
+    return pd.read_csv(rego_file_path, names=REGO_COLUMNS, skiprows=4)
+
+
+def parse_date_range(date_str: str) -> Tuple[pd.Timestamp, pd.Timestamp, int]:
+    # e.g. 01/09/2022 - 30/09/2022
+    if "/" in date_str:
+        start, end = date_str.split(" - ")
+        start_dt = pd.to_datetime(start, dayfirst=True)
+        end_dt = pd.to_datetime(end, dayfirst=True) + +np.timedelta64(1, "D")
+
+    # e.g. 2022 - 2023: we presume this should be taken to cover a compliance year
+    elif " - " in date_str:
+        year_start, year_end = date_str.split(" - ")
+        start_dt = pd.to_datetime("01/04/" + year_start, dayfirst=True)
+        end_dt = pd.to_datetime("31/03/" + year_end, dayfirst=True) + np.timedelta64(1, "D")
+
+    # e.g. May-2022
+    elif "-" in date_str:
+        month_year = pd.to_datetime(date_str, format="%b-%Y")
+        start_dt = month_year.replace(day=1)
+        end_dt = month_year + pd.offsets.MonthEnd(0) + np.timedelta64(1, "D")
+
     else:
-        return d
+        raise ValueError(r"Invalid date string {}".format(date_str))
+
+    period_duration = relativedelta(end_dt, start_dt)
+    months_difference = period_duration.years * 12 + period_duration.months
+
+    return start_dt, end_dt, months_difference
 
 
-def parse_output_period(df_regos: pd.DataFrame) -> pd.DataFrame:
-    df = df_regos.copy(deep=True)
-    if df.empty:
-        df[["start", "end", "months_different"]] = pd.DataFrame(columns=["start", "end", "months_difference"])
-        return df
-
-    # TODO: test
-    def parse_date_range(date_str: str) -> tuple[pd.Timestamp, pd.Timestamp]:
-        if "/" in date_str:
-            start, end = date_str.split(" - ")
-            return (
-                pd.to_datetime(start, dayfirst=True),
-                pd.to_datetime(end, dayfirst=True),
-            )
-        elif " - " in date_str:
-            year_start, year_end = date_str.split(" - ")
-            start_dt = pd.to_datetime("01/01/" + year_start, dayfirst=True)
-            end_dt = pd.to_datetime("31/12/" + year_end, dayfirst=True)
-            return start_dt, end_dt
-        elif "-" in date_str:
-            month_year = pd.to_datetime(date_str, format="%b-%Y")
-            start_dt = month_year.replace(day=1)
-            end_dt = month_year + pd.offsets.MonthEnd(0)
-            return start_dt, end_dt
-        else:
-            raise ValueError(r"Invalid date string {}".format(date_str))
-
-    df[["start", "end"]] = df["Output Period"].apply(lambda x: pd.Series(parse_date_range(x)))
-    df["end"] += np.timedelta64(1, "D")
-    df["months_difference"] = df.apply(
-        lambda row: relativedelta(row["end"], row["start"]).years * 12 + relativedelta(row["end"], row["start"]).months,
-        axis=1,
-    )
-
-    # # Add columns for each month to represent if it's within the start/end range
-    # for month in range(1, 13):
-    #     month_name = f"month_{month}_in_range"
-    #     df[month_name] = (df["start"].dt.month <= month) & (df["end"].dt.month >= month)
-
-    # df.to_csv("test.csv")
-    return df
+def parse_output_period(regos: pd.DataFrame) -> pd.DataFrame:
+    # TODO start -> period_start; end -> period_end; months_difference -> period_months;
+    # TODO use typed datastructure
+    column_names = ["start", "end", "months_difference"]
+    period_columns = pd.DataFrame(columns=column_names)
+    if not regos.empty:
+        period_columns = regos["Output Period"].apply(lambda x: pd.Series(parse_date_range(x)))
+        period_columns.columns = pd.Index(column_names)
+    return pd.concat([regos, period_columns], axis=1)
 
 
 def add_columns(regos: pd.DataFrame) -> pd.DataFrame:
-    _regos = copy.deepcopy(regos)
-    _regos["GWh"] = _regos["MWh Per Certificate"] * _regos["No. Of Certificates"] / 1e3
-    _regos["tech_simple"] = regos["Technology Group"].map(TECH_SIMPLE)
-    return _regos
-
-
-def filter(regos: pd.DataFrame) -> pd.DataFrame:
-    return regos[(regos["Certificate Status"] == "Redeemed") & (regos["Scheme"] == "REGO")]
-
-
-def load_regos(regos_path: Path) -> pd.DataFrame:
-    regos = read_from_file(regos_path)
-    regos = parse_output_period(regos)
-    regos = add_columns(regos)
-    regos = filter(regos)
+    regos = regos.copy()
+    regos["GWh"] = regos["MWh Per Certificate"] * regos["No. Of Certificates"] / 1e3
+    regos["tech_simple"] = regos["Technology Group"].map(SIMPLIFIED_TECH_CATEGORIES)
     return regos
 
 
-def groupby_regos_by_station(regos: pd.DataFrame) -> pd.DataFrame:
+def filter(
+    regos: pd.DataFrame,
+    holders: Optional[List[str]] = None,
+    statuses: Optional[List[str]] = None,  # "Redeemed",
+    schemes: Optional[List[str]] = None,  # "REGO",
+) -> pd.DataFrame:
+    filters = []
+    if holders:
+        filters.append((regos["Current Holder Organisation Name"].isin(holders)))
+    if statuses:
+        filters.append(regos["Certificate Status"].isin(statuses))
+    if schemes:
+        filters.append(regos["Scheme"].isin(schemes))
+
+    if not filters:
+        return regos
+    else:
+        return regos.loc[np.logical_and.reduce(filters)]
+
+
+def load(
+    regos_path: Path,
+    holders: Optional[List[str]] = None,
+    statuses: Optional[List[str]] = ["Redeemed"],
+    schemees: Optional[List[str]] = ["REGO"],
+) -> pd.DataFrame:
+    regos = read_raw(regos_path)
+    regos = parse_output_period(regos)
+    regos = add_columns(regos)
+    regos = filter(regos, holders=holders, statuses=statuses, schemes=schemees)
+    return regos
+
+
+def groupby_station(regos: pd.DataFrame) -> pd.DataFrame:
+    # Check columns that are expected to be unique
+    unique_count_by_station = regos.groupby("Generating Station / Agent Group").agg(
+        accredition_number_unique=("Accreditation No.", "nunique"),
+        company_registration_number_unique=("Company Registration Number", "nunique"),
+        technology_group_unique=("Technology Group", "nunique"),
+        generation_type_unique=("Generation Type", "nunique"),
+        tech_simple_unique=("tech_simple", "nunique"),
+    )
+    non_unique_by_station = unique_count_by_station[(unique_count_by_station > 1).any(axis=1)]
+    if not non_unique_by_station.empty:
+        raise ValueError(f"Generating stations {list(non_unique_by_station.index)} have non-unique values")
+
+    # Groupby
     regos_by_station = (
         regos.groupby("Generating Station / Agent Group")
         .agg(
@@ -136,7 +152,10 @@ def groupby_regos_by_station(regos: pd.DataFrame) -> pd.DataFrame:
         )
         .sort_values(by="GWh", ascending=False)
     )
-    regos_by_station["%"] = regos_by_station["GWh"] / regos_by_station["GWh"].sum() * 100
+
+    # Station output as a fraction of a whole
+    regos_by_station["percentage_of_whole"] = regos_by_station["GWh"] / regos_by_station["GWh"].sum() * 100
+
     return regos_by_station.reset_index()
 
 

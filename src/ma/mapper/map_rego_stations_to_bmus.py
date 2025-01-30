@@ -10,7 +10,7 @@ from ma.mapper.data.bmus import get_matching_bmus_dict, validate_matching_bmus
 from ma.mapper.filter_on_aggregate_data import appraise_energy_volumes, appraise_rated_power
 from ma.mapper.filter_on_bmu_meta_data import get_matching_bmus
 from ma.mapper.summarise_and_score import summarise_mapping_and_mapping_strength
-from ma.ofgem.regos import get_generator_profile, groupby_regos_by_station, load_regos
+from ma.ofgem.regos import get_generator_profile, groupby_station, load
 from ma.ofgem.stations import load_accredited_stations
 
 LOGGER = ma.mapper.utils.get_logger("ma.mapper")
@@ -58,7 +58,7 @@ def map_station_range(
     bmus: pd.DataFrame,
     expected_mappings: Optional[dict] = None,
 ) -> pd.DataFrame:
-    regos_by_station = groupby_regos_by_station(regos)
+    regos_by_station = groupby_station(regos)
     station_summaries = []
     for i in range(start, stop):
         station_summaries.append(
@@ -84,7 +84,7 @@ def main(
     return map_station_range(
         start=start,
         stop=stop,
-        regos=load_regos(regos_path),
+        regos=load(regos_path),
         accredited_stations=load_accredited_stations(accredited_stations_dir),
         bmus=ma.elexon.models.bmus(bmus_path),
         expected_mappings=(ma.mapper.utils.from_yaml_file(expected_mappings_file) if expected_mappings_file else {}),
