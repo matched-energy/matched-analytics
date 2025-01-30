@@ -5,6 +5,7 @@ import data.register
 import ma.mapper.map_rego_stations_to_bmus
 
 
+# TODO - test on energy volumes and other dimensions
 def test_end_to_end() -> None:
     mappings = ma.mapper.map_rego_stations_to_bmus.main(
         start=0,

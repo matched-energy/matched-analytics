@@ -9,10 +9,10 @@ from ma.mapper.common import MappingException
 
 
 def half_hourly_to_monthly_volumes(half_hourly_volumes: pd.DataFrame) -> pd.DataFrame:
-    cp_half_hourly_volumes = copy.deepcopy(half_hourly_volumes)
-    cp_half_hourly_volumes["Settlement Month"] = half_hourly_volumes["Settlement Date"].dt.month
+    half_hourly_volumes = copy.deepcopy(half_hourly_volumes)
+    half_hourly_volumes["Settlement Month"] = half_hourly_volumes["Settlement Date"].dt.month
     monthly_volumes = (
-        cp_half_hourly_volumes.groupby("Settlement Month")
+        half_hourly_volumes.groupby("Settlement Month")
         .agg(
             {
                 "Settlement Date": "first",
@@ -25,11 +25,13 @@ def half_hourly_to_monthly_volumes(half_hourly_volumes: pd.DataFrame) -> pd.Data
     return monthly_volumes
 
 
+# TODO - test
 def get_monthly_volumes(
     bsc_lead_party_id: str, bm_ids: list, bmus_total_net_capacity: float
 ) -> Tuple[dict, pd.DataFrame]:
     try:
         volumes_df = ma.elexon.S0142.process_csv.process_directory(
+            # TODO - path
             input_dir=Path("/Users/jjk/data/2024-12-12-CP2023-all-bscs-s0142/") / Path(bsc_lead_party_id),
             bsc_lead_party_id=bsc_lead_party_id,
             bm_regex=None,
