@@ -1,20 +1,17 @@
-from pathlib import Path
-
 import pandas as pd
 from pandas.testing import assert_frame_equal
 
+import data.register
 import ma.mapper.map_rego_stations_to_bmus
-
-DATA_DIR = Path(__file__).parent / "data"
 
 
 def test_end_to_end() -> None:
     mappings = ma.mapper.map_rego_stations_to_bmus.main(
         start=0,
         stop=3,
-        regos_path=DATA_DIR / "regos_apr2022_mar2023_SUBSET.csv",
-        accredited_stations_dir=DATA_DIR / "rego_accredited_stations",
-        bmus_path=DATA_DIR / "bmunits_subset.json",
+        regos_path=data.register.REGOS_APR2022_MAR2023_SUBSET,
+        accredited_stations_dir=data.register.REGO_ACCREDITED_STATIONS_DIR,
+        bmus_path=data.register.BMUNITS_SUBSET,
     )
     expected_mappings = pd.DataFrame(
         [
