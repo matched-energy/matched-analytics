@@ -5,12 +5,13 @@ import pandas as pd
 
 import ma.elexon.models
 import ma.mapper.utils
+from ma.mapper.bmu_helpers import get_matching_bmus_dict, validate_matching_bmus
 from ma.mapper.common import MappingException
-from ma.mapper.data.bmus import get_matching_bmus_dict, validate_matching_bmus
 from ma.mapper.filter_on_aggregate_data import appraise_energy_volumes, appraise_rated_power
 from ma.mapper.filter_on_bmu_meta_data import get_matching_bmus
+from ma.mapper.rego_helpers import get_generator_profile
 from ma.mapper.summarise_and_score import summarise_mapping_and_mapping_strength
-from ma.ofgem.regos import get_generator_profile, groupby_station, load
+from ma.ofgem.regos import groupby_station, load
 from ma.ofgem.stations import load_accredited_stations
 
 LOGGER = ma.mapper.utils.get_logger("ma.mapper")

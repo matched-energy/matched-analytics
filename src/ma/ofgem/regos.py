@@ -5,8 +5,6 @@ import numpy as np
 import pandas as pd
 from dateutil.relativedelta import relativedelta
 
-from ma.mapper.common import MappingException
-
 REGO_COLUMNS: list[str] = [
     "Accreditation No.",
     "Generating Station / Agent Group",
@@ -137,7 +135,7 @@ def groupby_station(regos: pd.DataFrame) -> pd.DataFrame:
     )
     non_unique_by_station = unique_count_by_station[(unique_count_by_station > 1).any(axis=1)]
     if not non_unique_by_station.empty:
-        raise ValueError(f"Generating stations {list(non_unique_by_station.index)} have non-unique values")
+        raise AssertionError(f"Generating stations {list(non_unique_by_station.index)} have non-unique values")
 
     # Groupby
     regos_by_station = (
@@ -159,56 +157,20 @@ def groupby_station(regos: pd.DataFrame) -> pd.DataFrame:
     return regos_by_station.reset_index()
 
 
-def extract_rego_volume_by_month(
+def get_rego_station_volume_by_month(
     regos: pd.DataFrame,
     rego_station_name: str,
-    rego_station_dnc_mw: float,  # TODO - move this
-) -> Tuple[dict, pd.DataFrame]:
-    # TODO - validate always monthly
-    station_regos = regos[regos["Generating Station / Agent Group"] == rego_station_name]
-    station_regos_by_period = station_regos.groupby(["start", "end", "months_difference"]).agg(dict(GWh="sum"))
-    rego_total_volume = station_regos_by_period["GWh"].sum()
-    return (
-        dict(
-            rego_total_volume=rego_total_volume,
-            rego_capacity_factor=(
-                rego_total_volume * 1e3 / (rego_station_dnc_mw * 24 * 365)  # NOTE: assuming 1 year!
-            ),
-            rego_sampling_months=12,  # NOTE: presumed!
-        ),
-        station_regos_by_period.reset_index().set_index("start").sort_index(),
+) -> pd.DataFrame:
+    rego_station_volumes_by_month = (
+        regos[(regos["Generating Station / Agent Group"] == rego_station_name) & (regos["months_difference"] == 1)]
+        .groupby(["start", "end", "months_difference"])
+        .agg(dict(GWh="sum"))
     )
 
-
-def get_generator_profile(rego_station_name: str, regos: pd.DataFrame, accredited_stations: pd.DataFrame) -> dict:
-    rego_accreditation_numbers = regos[regos["Generating Station / Agent Group"] == rego_station_name][
-        "Accreditation No."
-    ].unique()
-    try:
-        assert len(rego_accreditation_numbers) == 1
-    except Exception:
-        raise MappingException(
-            f"Found multiple accreditation numbers for {rego_station_name}: {rego_accreditation_numbers}"
+    months_count = len(rego_station_volumes_by_month)
+    if months_count > 12:
+        raise AssertionError(
+            f"Don't expect reporting to be more granuular than monthly: {rego_station_name} has {months_count} periods in the year"
         )
 
-    rego_accreditation_number = rego_accreditation_numbers[0]
-    accredited_station = accredited_stations[
-        (accredited_stations["AccreditationNumber"] == rego_accreditation_number)
-        & (accredited_stations["Scheme"] == "REGO")
-    ]
-    try:
-        assert len(accredited_station) == 1
-    except Exception:
-        raise MappingException(
-            f"Expected 1 accredited_station for {rego_accreditation_numbers} but found"
-            + f"{list(accredited_station['GeneratingStation'][:5])}"
-        )
-
-    return dict(
-        {
-            "rego_station_name": rego_station_name,
-            "rego_accreditation_number": rego_accreditation_number,
-            "rego_station_dnc_mw": accredited_station.iloc[0]["StationDNC_MW"],
-            "rego_station_technology": accredited_station.iloc[0]["Technology"],
-        }
-    )
+    return rego_station_volumes_by_month.reset_index().set_index("start").sort_index()

@@ -1,8 +1,9 @@
 import pandas as pd
 
+from ma.mapper.bmu_helpers import get_monthly_volumes
 from ma.mapper.common import MappingException
-from ma.mapper.data.bmus import get_monthly_volumes
-from ma.ofgem.regos import extract_rego_volume_by_month
+from ma.mapper.rego_helpers import get_rego_station_volume_stats
+from ma.ofgem.regos import get_rego_station_volume_by_month
 
 
 def appraise_rated_power(generator_profile: dict) -> dict:
@@ -16,9 +17,12 @@ def appraise_rated_power(generator_profile: dict) -> dict:
 
 
 def appraise_energy_volumes(generator_profile: dict, regos: pd.DataFrame) -> dict:
-    rego_volume_stats, rego_monthly_volumes = extract_rego_volume_by_month(
+    rego_monthly_volumes = get_rego_station_volume_by_month(
         regos,
         generator_profile["rego_station_name"],
+    )
+    rego_volume_stats = get_rego_station_volume_stats(
+        rego_monthly_volumes,
         generator_profile["rego_station_dnc_mw"],
     )
     generator_profile.update(rego_volume_stats)
