@@ -43,7 +43,7 @@ tests = "pytest"
 
 [tool.pdm.dev-dependencies]
 dev = [
-    "-e file:///${PROJECT_ROOT}/test_data#egg=test-data",
+    "-e file:///${PROJECT_ROOT}/data#egg=data",
 ]
 [tool.setuptools.packages.find]
 include = ["tests"]

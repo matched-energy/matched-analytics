@@ -1,14 +1,14 @@
 import pandas as pd
 from pytest import approx
 
+import data.register
 import ma.elexon.S0142.plot as plot
 import ma.elexon.S0142.process_csv as process_csv
-import test_data.register
 
 
 def run_simple(group_bms: bool) -> pd.DataFrame:
     load = process_csv.process_directory(
-        input_dir=test_data.register.S0142_CSV_DIR,
+        input_dir=data.register.S0142_CSV_DIR,
         bsc_lead_party_id="GOLD",
         group_bms=group_bms,
     )

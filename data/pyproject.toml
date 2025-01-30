@@ -1,7 +1,7 @@
 [project]
-name = "test_data"
+name = "data"
 version = "0.1.0"
-description = "Test data for matched-analytics"
+description = "Default template for PDM package"
 authors = [
     {name = "Joe Kwiatkowski", email = "joe@matched.energy"},
 ]
