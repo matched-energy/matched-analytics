@@ -1,7 +1,7 @@
 import pandas as pd
 import plotly.graph_objects as go
 
-from ma.elexon.utils import truncate_string
+from ma.utils.misc import truncate_string
 
 
 def get_fig(df: pd.DataFrame) -> go.Figure:
