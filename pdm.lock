@@ -5,7 +5,7 @@
 groups = ["default", "dev"]
 strategy = ["inherit_metadata"]
 lock_version = "4.5.0"
-content_hash = "sha256:20affffa9ed7e82bd37fe64dc91f5e6fe8e1fbe94cd999457a1570976c70cf93"
+content_hash = "sha256:5132cf19353f23671d7e600c0310f04261a753c94746d995deea560b2b4089f9"
 
 [[metadata.targets]]
 requires_python = ">=3.13"
@@ -863,7 +863,7 @@ name = "types-python-dateutil"
 version = "2.9.0.20241206"
 requires_python = ">=3.8"
 summary = "Typing stubs for python-dateutil"
-groups = ["default"]
+groups = ["dev"]
 files = [
     {file = "types_python_dateutil-2.9.0.20241206-py3-none-any.whl", hash = "sha256:e248a4bc70a486d3e3ec84d0dc30eec3a5f979d6e7ee4123ae043eedbb987f53"},
     {file = "types_python_dateutil-2.9.0.20241206.tar.gz", hash = "sha256:18f493414c26ffba692a72369fea7a154c502646301ebfe3d56a04b3767284cb"},
@@ -885,7 +885,7 @@ name = "types-pyyaml"
 version = "6.0.12.20241230"
 requires_python = ">=3.8"
 summary = "Typing stubs for PyYAML"
-groups = ["default"]
+groups = ["dev"]
 files = [
     {file = "types_PyYAML-6.0.12.20241230-py3-none-any.whl", hash = "sha256:fa4d32565219b68e6dee5f67534c722e53c00d1cfc09c435ef04d7353e1e96e6"},
     {file = "types_pyyaml-6.0.12.20241230.tar.gz", hash = "sha256:7f07622dbd34bb9c8b264fe860a17e0efcad00d50b5f27e93984909d9363498c"},
