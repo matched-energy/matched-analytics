@@ -40,7 +40,7 @@ def get_bmu_volumes_by_month(
 
     monthly_vols = half_hourly_to_monthly_volumes(half_hourly_vols)
     monthly_vols["BM Unit Metered Volume GWh"] = monthly_vols["BM Unit Metered Volume"] / 1e3
-    return monthly_vols
+    return monthly_vols[["BM Unit Metered Volume GWh"]]
 
 
 def get_bmu_volume_stats(monthly_vols: pd.DataFrame, bmus_total_net_capacity: float) -> Dict:

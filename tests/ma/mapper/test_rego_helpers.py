@@ -11,4 +11,4 @@ def test_get_rego_station_volume_stats() -> None:
     stats = ma.mapper.rego_helpers.get_rego_station_volume_stats(monthly_volumes=monthly_volumes, station_dnc_mw=3865.0)
     assert stats["rego_total_volume"] == approx(12425.565)
     assert stats["rego_capacity_factor"] == approx(12425.565 * 1e3 / (3865 * 24 * 365))
-    assert stats["rego_sampling_months"] == 12
+    assert stats["rego_sample_months"] == 12

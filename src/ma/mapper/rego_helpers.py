@@ -16,7 +16,7 @@ def get_rego_station_volume_stats(
     return dict(
         rego_total_volume=total_gwh,
         rego_capacity_factor=total_mwh / nameplate_mwh,
-        rego_sample=months_count,
+        rego_sample_months=months_count,
     )
 
 
