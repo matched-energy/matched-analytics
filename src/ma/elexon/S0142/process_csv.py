@@ -3,15 +3,17 @@ import sys
 from pathlib import Path
 from typing import Optional
 
+import numpy as np
 import pandas as pd
 
 
-def filter_by_bm_regex(df: pd.DataFrame, pattern: str) -> pd.DataFrame:
-    return df[df["BM Unit Id"].str.contains(pattern, regex=True)]
-
-
-def filter_by_bm_ids(df: pd.DataFrame, ids: list[str]) -> pd.DataFrame:
-    return df[df["BM Unit Id"].isin(ids)]
+def filter(hh_df: pd.DataFrame, bm_regex: Optional[str] = None, bm_ids: Optional[list] = None) -> pd.DataFrame:
+    mask = np.ones(len(hh_df), dtype=bool)
+    if bm_ids:
+        mask &= hh_df["BM Unit Id"].isin(bm_ids)
+    if bm_regex:
+        mask &= hh_df["BM Unit Id"].str.contains(bm_regex, regex=True)
+    return hh_df[mask]
 
 
 def group_by_sp(df: pd.DataFrame) -> pd.DataFrame:
@@ -38,28 +40,23 @@ def process_directory(
     bsc_lead_party_id: str,
     bm_regex: Optional[str] = "^2__",
     bm_ids: Optional[list] = None,
-    group_bms: bool = True,
+    aggregate_bms: bool = True,
     prefixes: Optional[list[str]] = None,
     output_path: Optional[Path] = None,
 ) -> pd.DataFrame:
     list_of_hh_df = []
-    # TODO scandir
-    for filename in os.listdir(input_dir):
-        if not (
-            filename.endswith(".csv")
-            and bsc_lead_party_id in filename
-            and (prefixes is None or any(filename.startswith(p) for p in prefixes))
+    for entry in os.scandir(input_dir):
+        if (
+            entry.is_file()
+            and entry.name.endswith(".csv")
+            and bsc_lead_party_id in entry.name
+            and (prefixes is None or any(entry.name.startswith(p) for p in prefixes))
         ):
-            continue
-        hh_df = segregate_import_exports(pd.read_csv(os.path.join(input_dir, filename)))
-        # TODO: one-pass filtering
-        if bm_regex:
-            hh_df = filter_by_bm_regex(hh_df, bm_regex)
-        if bm_ids:
-            hh_df = filter_by_bm_ids(hh_df, bm_ids)
-        if group_bms:
-            hh_df = group_by_sp(hh_df)
-        list_of_hh_df.append(hh_df)
+            hh_df = segregate_import_exports(pd.read_csv(os.path.join(input_dir, entry.name)))
+            hh_df = filter(hh_df, bm_regex=bm_regex, bm_ids=bm_ids)
+            if aggregate_bms:
+                hh_df = group_by_sp(hh_df)
+            list_of_hh_df.append(hh_df)
     concatenated_df = concat_and_sort(list_of_hh_df)
 
     if output_path:

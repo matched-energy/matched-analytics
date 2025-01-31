@@ -34,7 +34,7 @@ def get_bmu_volumes_by_month(
         bsc_lead_party_id=bsc_lead_party_id,
         bm_regex=None,
         bm_ids=bm_ids,
-        group_bms=True,
+        aggregate_bms=True,
         output_path=None,
     )
 
