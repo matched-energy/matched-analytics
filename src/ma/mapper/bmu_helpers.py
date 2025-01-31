@@ -1,6 +1,6 @@
 import copy
 from pathlib import Path
-from typing import Tuple
+from typing import Dict
 
 import pandas as pd
 
@@ -25,31 +25,32 @@ def half_hourly_to_monthly_volumes(half_hourly_volumes: pd.DataFrame) -> pd.Data
     return monthly_volumes
 
 
-# TODO - test
-def get_monthly_volumes(
-    bsc_lead_party_id: str, bm_ids: list, bmus_total_net_capacity: float
-) -> Tuple[dict, pd.DataFrame]:
-    try:
-        volumes_df = ma.elexon.S0142.process_csv.process_directory(
-            # TODO - path
-            input_dir=Path("/Users/jjk/data/2024-12-12-CP2023-all-bscs-s0142/") / Path(bsc_lead_party_id),
-            bsc_lead_party_id=bsc_lead_party_id,
-            bm_regex=None,
-            bm_ids=bm_ids,
-            group_bms=True,
-            output_path=None,
-        )
-        total_volume = volumes_df["BM Unit Metered Volume"].sum()
-        return (
-            dict(
-                bmu_total_volume=total_volume,
-                bmu_capacity_factor=total_volume / (bmus_total_net_capacity * 24 * 365),
-                bmu_sampling_months=12,  # TODO: test for this!
-            ),
-            half_hourly_to_monthly_volumes(volumes_df),
-        )
-    except Exception as e:
-        raise MappingException(f"Failed to extract bm volumes by month {e}")
+def get_bmu_volumes_by_month(
+    bsc_lead_party_id: str,
+    bm_ids: list,
+) -> pd.DataFrame:
+    half_hourly_vols = ma.elexon.S0142.process_csv.process_directory(
+        # TODO - path
+        input_dir=Path("/Users/jjk/data/2024-12-12-CP2023-all-bscs-s0142/") / Path(bsc_lead_party_id),
+        bsc_lead_party_id=bsc_lead_party_id,
+        bm_regex=None,
+        bm_ids=bm_ids,
+        group_bms=True,
+        output_path=None,
+    )
+
+    monthly_vols = half_hourly_to_monthly_volumes(half_hourly_vols)
+    monthly_vols["BM Unit Metered Volume GWh"] = monthly_vols["BM Unit Metered Volume"] / 1e3
+    return monthly_vols
+
+
+def get_bmu_volume_stats(monthly_vols: pd.DataFrame, bmus_total_net_capacity: float) -> Dict:
+    total_gwh = monthly_vols["BM Unit Metered Volume GWh"].sum()
+    return dict(
+        bmu_total_volume=total_gwh,
+        bmu_capacity_factor=total_gwh / (bmus_total_net_capacity * 24 * 365),
+        bmu_sampling_months=12,  # TODO: test for this!
+    )
 
 
 def validate_matching_bmus(bmus: pd.DataFrame) -> None:
@@ -70,7 +71,7 @@ def get_matching_bmus_dict(bmus: pd.DataFrame) -> dict:
     return dict(
         bmus=[
             dict(
-                bmu_unit=bmu["elexonBmUnit"],  # TODO --> bmu_id
+                bmu_unit=bmu["elexonBmUnit"],
                 bmu_demand_capacity=bmu["demandCapacity"],
                 bmu_generation_capacity=bmu["generationCapacity"],
                 bmu_production_or_consumption_flag=bmu["productionOrConsumptionFlag"],
