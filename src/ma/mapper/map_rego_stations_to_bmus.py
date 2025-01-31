@@ -66,7 +66,7 @@ def map_station_range(
     for i in range(start, stop):
         station_summaries.append(
             map_station(
-                regos_by_station.iloc[i]["Generating Station / Agent Group"],
+                regos_by_station.iloc[i]["station_name"],
                 regos,
                 accredited_stations,
                 bmus,

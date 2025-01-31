@@ -7,16 +7,17 @@ from pytest import approx
 
 import data.register
 import ma.ofgem.regos
+from ma.utils.pandas import apply_schema
 
 
 def test_load() -> None:
     regos = ma.ofgem.regos.load(data.register.REGOS_APR2022_MAR2023_SUBSET)
 
     assert len(regos) == 220
-    assert set(regos["Generating Station / Agent Group"]) == set(
+    assert set(regos["station_name"]) == set(
         ["Drax Power Station (REGO)", "Triton Knoll Offshore Windfarm", "Walney Extension"]
     )
-    assert set(regos["Technology Group"]) == set(["Biomass", "Off-shore Wind"])
+    assert set(regos["technology_group"]) == set(["Biomass", "Off-shore Wind"])
     assert set(regos["tech_simple"]) == set(["BIOMASS", "WIND"])
     assert regos["GWh"].sum() == approx(17114.284)
 
@@ -89,12 +90,13 @@ def test_parse_data_range_EXPECTED_FORMAT() -> None:
     * Apr-2022
     """
     regos = ma.ofgem.regos.load(data.register.REGOS_APR2022_MAR2023_SUBSET)
-    assert regos[~regos["Output Period"].str.contains(" - |-|/", na=False)].empty
+    assert regos[~regos["output_period"].str.contains(" - |-|/", na=False)].empty
 
 
 def test_parse_output_period() -> None:
     regos_raw = ma.ofgem.regos.read_raw(data.register.REGOS_APR2022_MAR2023_SUBSET)
-    regos = ma.ofgem.regos.parse_output_period(regos_raw)
+    regos = apply_schema(regos_raw, ma.ofgem.regos.REGO_SCHEMA)
+    regos = ma.ofgem.regos.parse_output_period(regos)
     assert len(regos)
     assert len(regos) == len(regos_raw)
     assert set(["start", "end", "months_difference"]) < set(regos.columns)
