@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import pandas as pd
 
 from ma.mapper.bmu_helpers import get_bmu_volume_stats, get_bmu_volumes_by_month
@@ -15,7 +17,7 @@ def appraise_rated_power(generator_profile: dict) -> dict:
     )
 
 
-def appraise_energy_volumes(generator_profile: dict, regos: pd.DataFrame) -> dict:
+def appraise_energy_volumes(generator_profile: dict, regos: pd.DataFrame, S0142_csv_dir: Path) -> dict:
     # REGO volumes
     rego_monthly_vols = get_rego_station_volume_by_month(
         regos,
@@ -31,6 +33,7 @@ def appraise_energy_volumes(generator_profile: dict, regos: pd.DataFrame) -> dic
     bmu_monthly_vols = get_bmu_volumes_by_month(
         generator_profile["bmu_lead_party_id"],
         [bmu["bmu_unit"] for bmu in generator_profile["bmus"]],
+        S0142_csv_dir,
     )
     bmu_volume_stats = get_bmu_volume_stats(
         bmu_monthly_vols,

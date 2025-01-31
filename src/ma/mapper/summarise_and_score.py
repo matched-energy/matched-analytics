@@ -74,14 +74,22 @@ def get_p_values_for_all_metrics(generator_profile: dict) -> List:
 
 
 def summarise_mapping_and_mapping_strength(generator_profile: dict) -> pd.DataFrame:
+    # TODO: consolidate naming
     mapping_summary = {
         "rego_name": generator_profile.get("rego_station_name"),
-        "rego_mw": generator_profile.get("rego_station_dnc_mw"),
-        "rego_technology": generator_profile.get("rego_station_technology"),
         "lead_party_name": generator_profile.get("bmu_lead_party_name"),
         "lead_party_id": generator_profile.get("bmu_lead_party_id"),
-        "bmu_ids": ", ".join([bmu["bmu_unit"] for bmu in generator_profile.get("bmus", [])]),
+        "rego_technology": generator_profile.get("rego_station_technology"),
         "bmu_fuel_type": generator_profile.get("bmu_fuel_type"),
+        "bmu_ids": ", ".join([bmu["bmu_unit"] for bmu in generator_profile.get("bmus", [])]),
+        "rego_mw": generator_profile.get("rego_station_dnc_mw"),
+        "bmu_net_mw": generator_profile.get("bmus_total_net_capacity"),
+        "rego_gwh": generator_profile.get("rego_total_volume"),
+        "bmu_gwh": generator_profile.get("bmu_total_volume"),
+        "rego_capacity_factor": generator_profile.get("rego_capacity_factor"),
+        "bmu_capacity_factor": generator_profile.get("bmu_capacity_factor"),
+        "rego_sample_months": generator_profile.get("rego_sample_months"),
+        "bmu_sample_months": generator_profile.get("bmu_sample_months"),
         "intersection_count": generator_profile.get("lead_party_name_intersection_count"),
     }
     mapping_strength = {

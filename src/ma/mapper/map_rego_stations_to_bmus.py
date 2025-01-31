@@ -22,6 +22,7 @@ def map_station(
     regos: pd.DataFrame,
     accredited_stations: pd.DataFrame,
     bmus: pd.DataFrame,
+    S0142_csv_dir: Path,
     expected_mappings: Optional[dict] = None,
 ) -> pd.DataFrame:
     if not expected_mappings:
@@ -43,7 +44,7 @@ def map_station(
         generator_profile.update(appraise_rated_power(generator_profile))
 
         # Appraise energy volumes
-        generator_profile.update(appraise_energy_volumes(generator_profile, regos))
+        generator_profile.update(appraise_energy_volumes(generator_profile, regos, S0142_csv_dir))
 
     except MappingException as e:
         LOGGER.warning(str(e) + str(generator_profile))
@@ -57,6 +58,7 @@ def map_station_range(
     regos: pd.DataFrame,
     accredited_stations: pd.DataFrame,
     bmus: pd.DataFrame,
+    S0142_csv_dir: Path,
     expected_mappings: Optional[dict] = None,
 ) -> pd.DataFrame:
     regos_by_station = groupby_station(regos)
@@ -68,6 +70,7 @@ def map_station_range(
                 regos,
                 accredited_stations,
                 bmus,
+                S0142_csv_dir,
                 expected_mappings,
             )
         )
@@ -80,13 +83,15 @@ def main(
     regos_path: Path,
     accredited_stations_dir: Path,
     bmus_path: Path,
+    S0142_csv_dir: Path,
     expected_mappings_file: Optional[Path] = None,
 ) -> pd.DataFrame:
     return map_station_range(
-        start=start,
-        stop=stop,
-        regos=load(regos_path),
-        accredited_stations=load_accredited_stations(accredited_stations_dir),
-        bmus=ma.elexon.models.bmus(bmus_path),
-        expected_mappings=(ma.mapper.utils.from_yaml_file(expected_mappings_file) if expected_mappings_file else {}),
+        start,
+        stop,
+        load(regos_path),
+        load_accredited_stations(accredited_stations_dir),
+        ma.elexon.models.bmus(bmus_path),
+        S0142_csv_dir,
+        (ma.mapper.utils.from_yaml_file(expected_mappings_file) if expected_mappings_file else {}),
     )

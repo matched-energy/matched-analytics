@@ -21,17 +21,16 @@ def half_hourly_to_monthly_volumes(half_hourly_volumes: pd.DataFrame) -> pd.Data
         )
         .sort_values("Settlement Date")
     ).set_index("Settlement Date")
-    monthly_volumes["BM Unit Metered Volume"] /= 1e3  # TODO - standardise units
     return monthly_volumes
 
 
 def get_bmu_volumes_by_month(
     bsc_lead_party_id: str,
     bm_ids: list,
+    S0142_csv_dir: Path,
 ) -> pd.DataFrame:
     half_hourly_vols = ma.elexon.S0142.process_csv.process_directory(
-        # TODO - path
-        input_dir=Path("/Users/jjk/data/2024-12-12-CP2023-all-bscs-s0142/") / Path(bsc_lead_party_id),
+        input_dir=S0142_csv_dir / Path(bsc_lead_party_id),
         bsc_lead_party_id=bsc_lead_party_id,
         bm_regex=None,
         bm_ids=bm_ids,
@@ -46,10 +45,11 @@ def get_bmu_volumes_by_month(
 
 def get_bmu_volume_stats(monthly_vols: pd.DataFrame, bmus_total_net_capacity: float) -> Dict:
     total_gwh = monthly_vols["BM Unit Metered Volume GWh"].sum()
+    total_mwh = total_gwh * 1e3
+    months_count = len(monthly_vols)
+    nameplate_mwh = bmus_total_net_capacity * 24 * 365 * months_count / 12
     return dict(
-        bmu_total_volume=total_gwh,
-        bmu_capacity_factor=total_gwh / (bmus_total_net_capacity * 24 * 365),
-        bmu_sampling_months=12,  # TODO: test for this!
+        bmu_total_volume=total_gwh, bmu_capacity_factor=total_mwh / nameplate_mwh, bmu_sample_months=months_count
     )
 
 

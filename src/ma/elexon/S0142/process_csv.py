@@ -43,6 +43,7 @@ def process_directory(
     output_path: Optional[Path] = None,
 ) -> pd.DataFrame:
     list_of_hh_df = []
+    # TODO scandir
     for filename in os.listdir(input_dir):
         if not (
             filename.endswith(".csv")
