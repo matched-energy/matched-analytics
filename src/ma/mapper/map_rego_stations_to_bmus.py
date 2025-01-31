@@ -4,7 +4,6 @@ from typing import Optional
 import pandas as pd
 
 import ma.elexon.models
-import ma.mapper.utils
 from ma.mapper.bmu_helpers import get_matching_bmus_dict, validate_matching_bmus
 from ma.mapper.common import MappingException
 from ma.mapper.filter_on_aggregate_data import appraise_energy_volumes, appraise_rated_power
@@ -13,8 +12,9 @@ from ma.mapper.rego_helpers import get_generator_profile
 from ma.mapper.summarise_and_score import summarise_mapping_and_mapping_strength
 from ma.ofgem.regos import groupby_station, load
 from ma.ofgem.stations import load_accredited_stations
+from ma.utils.io import get_logger, to_yaml_text
 
-LOGGER = ma.mapper.utils.get_logger("ma.mapper")
+LOGGER = get_logger("ma.mapper")
 
 
 def map_station(
@@ -48,7 +48,7 @@ def map_station(
 
     except MappingException as e:
         LOGGER.warning(str(e) + str(generator_profile))
-    LOGGER.debug(ma.mapper.utils.to_yaml_text(generator_profile))
+    LOGGER.debug(to_yaml_text(generator_profile))
     return summarise_mapping_and_mapping_strength(generator_profile)
 
 
@@ -93,5 +93,5 @@ def main(
         load_accredited_stations(accredited_stations_dir),
         ma.elexon.models.bmus(bmus_path),
         S0142_csv_dir,
-        (ma.mapper.utils.from_yaml_file(expected_mappings_file) if expected_mappings_file else {}),
+        (ma.utils.io.from_yaml_file(expected_mappings_file) if expected_mappings_file else {}),
     )

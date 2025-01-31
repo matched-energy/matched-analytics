@@ -4,8 +4,8 @@ from typing import Optional, Set, Tuple
 import numpy as np
 import pandas as pd
 
-import ma.mapper.utils
 from ma.mapper.common import MappingException
+from ma.utils.pandas import select_columns
 
 
 ################################################################################
@@ -130,7 +130,7 @@ def get_matching_bmus(generator_profile: dict, bmus: pd.DataFrame, expected_mapp
 
     # Return expected / filtered BMUs with matching
     matching_bmus = bmus_to_search if expected_overrides else apply_bmu_match_filters(bmus_to_search, bmu_match_filters)
-    return ma.mapper.utils.select_columns(
+    return select_columns(
         matching_bmus,
         exclude=[
             "workingDayCreditAssessmentImportCapability",
