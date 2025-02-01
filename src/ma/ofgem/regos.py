@@ -6,12 +6,7 @@ import pandas as pd
 from dateutil.relativedelta import relativedelta
 
 from ma.ofgem.schema_regos import REGO_SCHEMA, SIMPLIFIED_TECH_CATEGORIES
-from ma.utils.pandas import apply_schema
-
-
-def read_raw(rego_file_path: Path) -> pd.DataFrame:
-    raw_column_names = [dfs["old_name"] for dfs in REGO_SCHEMA.values()]
-    return pd.read_csv(rego_file_path, names=raw_column_names, skiprows=4)
+from ma.utils.pandas import apply_schema, read_raw_with_schema
 
 
 def parse_date_range(date_str: str) -> Tuple[pd.Timestamp, pd.Timestamp, int]:
@@ -86,7 +81,7 @@ def load(
     statuses: Optional[List[str]] = ["Redeemed"],
     schemees: Optional[List[str]] = ["REGO"],
 ) -> pd.DataFrame:
-    regos = read_raw(regos_path)
+    regos = read_raw_with_schema(regos_path, REGO_SCHEMA, skip_rows=4)
     regos = apply_schema(regos, REGO_SCHEMA)
     regos = parse_output_period(regos)
     regos = add_columns(regos)

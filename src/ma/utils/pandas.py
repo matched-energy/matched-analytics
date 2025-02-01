@@ -1,4 +1,5 @@
 import copy
+from pathlib import Path
 from typing import Dict, NotRequired, TypedDict, Union
 
 import pandas as pd
@@ -9,13 +10,18 @@ def select_columns(df: pd.DataFrame, exclude: list) -> pd.DataFrame:
     return df[[col for col in df.columns if col not in exclude]]
 
 
-class DataFrameSchema(TypedDict):
+class ColumnSchema(TypedDict):
     old_name: NotRequired[str]
     check: NotRequired[Union[pa.Column, pa.Check]]
 
 
+def read_raw_with_schema(file_path: Path, schema: Dict[str, ColumnSchema], skip_rows: int = 0) -> pd.DataFrame:
+    raw_column_names = [dfs["old_name"] for dfs in schema.values()]
+    return pd.read_csv(file_path, names=raw_column_names, skiprows=skip_rows)
+
+
 # TODO - test
-def apply_schema(df: pd.DataFrame, schema: Dict[str, DataFrameSchema]) -> pd.DataFrame:
+def apply_schema(df: pd.DataFrame, schema: Dict[str, ColumnSchema]) -> pd.DataFrame:
     df = copy.deepcopy(df)
 
     # rename columns
