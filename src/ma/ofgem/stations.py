@@ -3,35 +3,19 @@ from pathlib import Path
 
 import pandas as pd
 
+from ma.ofgem.schema_stations import STATIONS_SCHEMA
+from ma.utils.pandas import apply_schema
 
-def load_accredited_stations(accredited_stations_dir: Path) -> pd.DataFrame:
-    names = [
-        "AccreditationNumber",
-        "Status",
-        "GeneratingStation",
-        "Scheme",
-        "StationDNC",
-        "Country",
-        "Technology",
-        "ContractType",
-        "AccreditationDate",
-        "CommissionDate",
-        "Organisation",
-        "OrganisationContactAddress",
-        "OrganisationContactFax",
-        "GeneratingStationAddress",
-    ]
-    dfs = []
 
-    with os.scandir(accredited_stations_dir) as entries:
-        for entry in entries:
-            if entry.is_file() and entry.name.endswith(".csv"):
-                filepath = Path(entry.path)
-                try:
-                    df = pd.read_csv(filepath, skiprows=1, names=names)
-                    df["StationDNC_MW"] = df["StationDNC"].astype(float) / 1e3
-                    dfs.append(df)
-                except ValueError as e:
-                    print(f"Skipping {entry.name}: {e}")
+def load(file_path: Path) -> pd.DataFrame:
+    stations_raw = pd.read_csv(file_path, header=0)
+    stations = apply_schema(stations_raw, STATIONS_SCHEMA)
+    stations["station_dnc_mw"] = stations["station_dnc"] / 1e3
+    stations.drop(columns=["station_dnc"])
+    return stations
 
-    return pd.concat(dfs)
+
+def load_from_dir(dir: Path) -> pd.DataFrame:
+    return pd.concat(
+        [load(Path(entry.path)) for entry in os.scandir(dir) if entry.is_file() and entry.name.endswith(".csv")]
+    )

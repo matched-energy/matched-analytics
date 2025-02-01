@@ -4,6 +4,7 @@ from typing import Optional
 import pandas as pd
 
 import ma.elexon.models
+import ma.ofgem.stations
 from ma.mapper.bmu_helpers import get_matching_bmus_dict, validate_matching_bmus
 from ma.mapper.common import MappingException
 from ma.mapper.filter_on_aggregate_data import appraise_energy_volumes, appraise_rated_power
@@ -11,7 +12,6 @@ from ma.mapper.filter_on_bmu_meta_data import get_matching_bmus
 from ma.mapper.rego_helpers import get_generator_profile
 from ma.mapper.summarise_and_score import summarise_mapping_and_mapping_strength
 from ma.ofgem.regos import groupby_station, load
-from ma.ofgem.stations import load_accredited_stations
 from ma.utils.io import get_logger, to_yaml_text
 
 LOGGER = get_logger("ma.mapper")
@@ -90,7 +90,7 @@ def main(
         start,
         stop,
         load(regos_path),
-        load_accredited_stations(accredited_stations_dir),
+        ma.ofgem.stations.load_from_dir(accredited_stations_dir),
         ma.elexon.models.bmus(bmus_path),
         S0142_csv_dir,
         (ma.utils.io.from_yaml_file(expected_mappings_file) if expected_mappings_file else {}),

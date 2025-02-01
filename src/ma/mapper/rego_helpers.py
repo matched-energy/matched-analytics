@@ -29,20 +29,20 @@ def get_generator_profile(rego_station_name: str, regos: pd.DataFrame, accredite
 
     rego_accreditation_number = rego_accreditation_numbers[0]
     accredited_station = accredited_stations[
-        (accredited_stations["AccreditationNumber"] == rego_accreditation_number)
-        & (accredited_stations["Scheme"] == "REGO")
+        (accredited_stations["accreditation_number"] == rego_accreditation_number)
+        & (accredited_stations["scheme"] == "REGO")
     ]
     if not len(accredited_station) == 1:
         raise MappingException(
             f"Expected 1 accredited_station for {rego_accreditation_numbers} but found"
-            + f"{list(accredited_station['GeneratingStation'][:5])}"
+            + f"{list(accredited_station['generating_station'][:5])}"
         )
 
     return dict(
         {
             "rego_station_name": rego_station_name,
             "rego_accreditation_number": rego_accreditation_number,
-            "rego_station_dnc_mw": accredited_station.iloc[0]["StationDNC_MW"],
-            "rego_station_technology": accredited_station.iloc[0]["Technology"],
+            "rego_station_dnc_mw": accredited_station.iloc[0]["station_dnc_mw"],
+            "rego_station_technology": accredited_station.iloc[0]["technology"],
         }
     )
