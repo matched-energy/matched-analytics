@@ -7,7 +7,6 @@ from pytest import approx
 
 import data.register
 import ma.ofgem.regos
-from ma.ofgem.schema_regos import REGO_SCHEMA
 from ma.utils.pandas import apply_schema
 
 
@@ -25,7 +24,7 @@ def test_load() -> None:
 
 def test_load_NON_DEFAULT_FILTERING() -> None:
     assert (
-        len(ma.ofgem.regos.load(data.register.REGOS_APR2022_MAR2023_SUBSET, holders=None, statuses=None, schemees=None))
+        len(ma.ofgem.regos.load(data.register.REGOS_APR2022_MAR2023_SUBSET, holders=None, statuses=None, schemes=None))
         == 327
     )
 
@@ -95,7 +94,7 @@ def test_parse_data_range_EXPECTED_FORMAT() -> None:
 
 
 def test_parse_output_period() -> None:
-    regos_raw = ma.utils.pandas.read_raw_with_schema(data.register.REGOS_APR2022_MAR2023_SUBSET, REGO_SCHEMA)
+    regos_raw = pd.read_csv(data.register.REGOS_APR2022_MAR2023_SUBSET, skiprows=4)
     regos = apply_schema(regos_raw, ma.ofgem.regos.REGO_SCHEMA)
     regos = ma.ofgem.regos.parse_output_period(regos)
     assert len(regos)
@@ -104,7 +103,7 @@ def test_parse_output_period() -> None:
 
 
 def test_parse_output_period_EMPTY_DATAFRAME() -> None:
-    regos_raw = ma.utils.pandas.read_raw_with_schema(data.register.REGOS_APR2022_MAR2023_SUBSET, REGO_SCHEMA)
+    regos_raw = pd.read_csv(data.register.REGOS_APR2022_MAR2023_SUBSET, skiprows=4)
     regos = ma.ofgem.regos.parse_output_period(regos_raw[:0])
     assert set(["start", "end", "months_difference"]) < set(regos.columns)
 
