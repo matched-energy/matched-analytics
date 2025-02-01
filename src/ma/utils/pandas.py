@@ -15,6 +15,9 @@ class ColumnSchema(TypedDict):
     keep: NotRequired[bool]
 
 
+DateTimeEngine = pa.engines.pandas_engine.DateTime({"dayfirst": True})
+
+
 def apply_schema(df: pd.DataFrame, schema: Dict[str, ColumnSchema]) -> pd.DataFrame:
     df = copy.deepcopy(df)
 
