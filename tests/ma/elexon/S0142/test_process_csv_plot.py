@@ -5,7 +5,7 @@ from pytest import approx
 
 import data.register
 import ma.elexon.S0142.plot as plot
-import ma.elexon.S0142.process_csv as process_csv
+import ma.elexon.S0142.bmu_vols as bmu_vols
 
 
 def wrapper_process_directory(
@@ -13,7 +13,7 @@ def wrapper_process_directory(
     bm_regex: Optional[str] = None,
     bm_ids: Optional[List[str]] = None,
 ) -> pd.DataFrame:
-    bm_vols = process_csv.process_directory(
+    bm_vols = bmu_vols.process_directory(
         input_dir=data.register.S0142_CSV_DIR,
         bsc_lead_party_id="GOLD",
         aggregate_bms=aggregate_bms,

@@ -6,7 +6,7 @@ from typing import Optional
 import numpy as np
 import pandas as pd
 
-from ma.elexon.S0142.schema_S0142 import bmu_vols_schema_on_load, transform_bmu_vols_schema
+from ma.elexon.S0142.schema_bmu_vols import bmu_vols_schema_on_load, transform_bmu_vols_schema
 from ma.utils.pandas import apply_schema
 
 
