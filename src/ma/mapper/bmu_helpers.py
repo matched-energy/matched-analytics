@@ -10,17 +10,17 @@ from ma.mapper.common import MappingException
 
 def half_hourly_to_monthly_volumes(half_hourly_volumes: pd.DataFrame) -> pd.DataFrame:
     half_hourly_volumes = copy.deepcopy(half_hourly_volumes)
-    half_hourly_volumes["Settlement Month"] = half_hourly_volumes["Settlement Date"].dt.month
+    half_hourly_volumes["Settlement Month"] = half_hourly_volumes["settlement_date"].dt.month
     monthly_volumes = (
         half_hourly_volumes.groupby("Settlement Month")
         .agg(
             {
-                "Settlement Date": "first",
-                "BM Unit Metered Volume": "sum",
+                "settlement_date": "first",
+                "bm_unit_metered_volume": "sum",
             }
         )
-        .sort_values("Settlement Date")
-    ).set_index("Settlement Date")
+        .sort_values("settlement_date")
+    ).set_index("settlement_date")
     return monthly_volumes
 
 
@@ -39,12 +39,12 @@ def get_bmu_volumes_by_month(
     )
 
     monthly_vols = half_hourly_to_monthly_volumes(half_hourly_vols)
-    monthly_vols["BM Unit Metered Volume GWh"] = monthly_vols["BM Unit Metered Volume"] / 1e3
-    return monthly_vols[["BM Unit Metered Volume GWh"]]
+    monthly_vols["bm_unit_metered_volume_gwh"] = monthly_vols["bm_unit_metered_volume"] / 1e3
+    return monthly_vols[["bm_unit_metered_volume_gwh"]]
 
 
 def get_bmu_volume_stats(monthly_vols: pd.DataFrame, bmus_total_net_capacity: float) -> Dict:
-    total_gwh = monthly_vols["BM Unit Metered Volume GWh"].sum()
+    total_gwh = monthly_vols["bm_unit_metered_volume_gwh"].sum()
     total_mwh = total_gwh * 1e3
     months_count = len(monthly_vols)
     nameplate_mwh = bmus_total_net_capacity * 24 * 365 * months_count / 12

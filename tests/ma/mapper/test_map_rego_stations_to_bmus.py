@@ -11,7 +11,7 @@ import ma.mapper.map_rego_stations_to_bmus
 
 monthly_vols = {
     "DRAX": {
-        "Settlement Date": {
+        "settlement_date": {
             0: Timestamp("2022-04-01 00:00:00"),
             1: Timestamp("2022-05-01 00:00:00"),
             2: Timestamp("2022-06-01 00:00:00"),
@@ -25,7 +25,7 @@ monthly_vols = {
             10: Timestamp("2023-02-01 00:00:00"),
             11: Timestamp("2023-03-01 00:00:00"),
         },
-        "BM Unit Metered Volume GWh": {
+        "bm_unit_metered_volume_gwh": {
             0: 1069.243975,
             1: 663.4200629999999,
             2: 829.629625,
@@ -41,7 +41,7 @@ monthly_vols = {
         },
     },
     "DONG012": {
-        "Settlement Date": {
+        "settlement_date": {
             0: Timestamp("2022-04-01 00:00:00"),
             1: Timestamp("2022-05-01 00:00:00"),
             2: Timestamp("2022-06-01 00:00:00"),
@@ -55,7 +55,7 @@ monthly_vols = {
             10: Timestamp("2023-02-01 00:00:00"),
             11: Timestamp("2023-03-01 00:00:00"),
         },
-        "BM Unit Metered Volume GWh": {
+        "bm_unit_metered_volume_gwh": {
             0: 167.99957500000002,
             1: 218.15741699999998,
             2: 154.42182699999998,
@@ -71,7 +71,7 @@ monthly_vols = {
         },
     },
     "TKWFL": {
-        "Settlement Date": {
+        "settlement_date": {
             0: Timestamp("2022-04-01 00:00:00"),
             1: Timestamp("2022-05-01 00:00:00"),
             2: Timestamp("2022-06-01 00:00:00"),
@@ -85,7 +85,7 @@ monthly_vols = {
             10: Timestamp("2023-02-01 00:00:00"),
             11: Timestamp("2023-03-01 00:00:00"),
         },
-        "BM Unit Metered Volume GWh": {
+        "bm_unit_metered_volume_gwh": {
             0: 133.596191,
             1: 190.23191699999998,
             2: 158.67947,
@@ -108,7 +108,7 @@ def mock_get(
     bm_ids: list,
     S0142_csv_dir: Path,
 ) -> pd.DataFrame:
-    return pd.DataFrame(monthly_vols[bsc_lead_party_id]).set_index("Settlement Date")
+    return pd.DataFrame(monthly_vols[bsc_lead_party_id]).set_index("settlement_date")
 
 
 def test_end_to_end() -> None:
