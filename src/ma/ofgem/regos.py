@@ -50,7 +50,7 @@ def parse_output_period(regos: pd.DataFrame) -> pd.DataFrame:
 
 def add_columns(regos: pd.DataFrame) -> pd.DataFrame:
     regos = regos.copy()
-    regos["GWh"] = regos["mwh_per_certificate"] * regos["certificate_count"] / 1e3
+    regos["rego_gwh"] = regos["mwh_per_certificate"] * regos["certificate_count"] / 1e3
     regos["tech_simple"] = regos["technology_group"].map(rego_simplified_tech_categories)
     return regos
 
@@ -108,16 +108,16 @@ def groupby_station(regos: pd.DataFrame) -> pd.DataFrame:
         .agg(
             accredition_number=("accreditation_number", "first"),
             company_registration_number=("company_registration_number", "first"),
-            GWh=("GWh", "sum"),
+            rego_gwh=("rego_gwh", "sum"),
             technology_group=("technology_group", "first"),
             generation_type=("generation_type", "first"),
             tech_simple=("tech_simple", "first"),
         )
-        .sort_values(by="GWh", ascending=False)
+        .sort_values(by="rego_gwh", ascending=False)
     )
 
     # Station output as a fraction of a whole
-    regos_by_station["percentage_of_whole"] = regos_by_station["GWh"] / regos_by_station["GWh"].sum() * 100
+    regos_by_station["percentage_of_whole"] = regos_by_station["rego_gwh"] / regos_by_station["rego_gwh"].sum() * 100
 
     return regos_by_station.reset_index()
 
@@ -129,7 +129,7 @@ def get_rego_station_volume_by_month(
     rego_station_volumes_by_month = (
         regos[(regos["station_name"] == rego_station_name) & (regos["months_difference"] == 1)]
         .groupby(["start", "end", "months_difference"])
-        .agg(dict(GWh="sum"))
+        .agg(dict(rego_gwh="sum"))
     )
 
     months_count = len(rego_station_volumes_by_month)

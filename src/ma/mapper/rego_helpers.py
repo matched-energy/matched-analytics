@@ -9,7 +9,7 @@ def get_rego_station_volume_stats(
     monthly_volumes: pd.DataFrame,
     station_dnc_mw: float,
 ) -> Dict:
-    total_gwh = monthly_volumes["GWh"].sum()
+    total_gwh = monthly_volumes["rego_gwh"].sum()
     total_mwh = total_gwh * 1e3
     months_count = len(monthly_volumes)
     nameplate_mwh = station_dnc_mw * 24 * 365 * months_count / 12

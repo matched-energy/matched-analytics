@@ -19,7 +19,7 @@ def test_load() -> None:
     )
     assert set(regos["technology_group"]) == set(["Biomass", "Off-shore Wind"])
     assert set(regos["tech_simple"]) == set(["BIOMASS", "WIND"])
-    assert regos["GWh"].sum() == approx(17114.284)
+    assert regos["rego_gwh"].sum() == approx(17114.284)
 
 
 def test_load_NON_DEFAULT_FILTERING() -> None:
@@ -112,7 +112,7 @@ def test_groupby_station() -> None:
     regos = ma.ofgem.regos.load(data.register.REGOS_APR2022_MAR2023_SUBSET)
     regos_grouped = ma.ofgem.regos.groupby_station(regos)
     assert len(regos_grouped) == 3
-    assert regos_grouped["GWh"].sum() == approx(17114.284)
+    assert regos_grouped["rego_gwh"].sum() == approx(17114.284)
     assert set(regos_grouped["tech_simple"]) == set(["BIOMASS", "WIND"])
 
 

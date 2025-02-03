@@ -48,14 +48,14 @@ def appraise_energy_volumes(generator_profile: dict, regos: pd.DataFrame, S0142_
         left_index=True,
         right_index=True,
     )
-    monthly_vols["rego_to_bmu_ratio"] = monthly_vols["GWh"] / monthly_vols["bm_unit_metered_volume_gwh"]
+    monthly_vols["rego_to_bmu_ratio"] = monthly_vols["rego_gwh"] / monthly_vols["bm_unit_metered_volume_gwh"]
     monthly_vols.index.name = "start"
     monthly_vols_summary = [
         dict(
             end=str(row["end"]),
             start=str(row["start"]),
-            bmu_GWh=row["bm_unit_metered_volume_gwh"],
-            rego_GWh=row["GWh"],
+            bmu_gwh=row["bm_unit_metered_volume_gwh"],
+            rego_gwh=row["rego_gwh"],
             rego_to_bmu_ratio=row["rego_to_bmu_ratio"],
         )
         for _, row in monthly_vols.reset_index().iterrows()
