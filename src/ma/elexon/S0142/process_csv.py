@@ -25,8 +25,8 @@ def group_by_sp(df: pd.DataFrame) -> pd.DataFrame:
 
 def segregate_import_exports(df: pd.DataFrame) -> pd.DataFrame:
     updated_df = df.copy()
-    updated_df["bm_unit_metered_volume_+ve"] = updated_df["bm_unit_metered_volume"].clip(lower=0)
-    updated_df["bm_unit_metered_volume_-ve"] = updated_df["bm_unit_metered_volume"].clip(upper=0)
+    updated_df["bm_unit_metered_volume_+ve_mwh"] = updated_df["bm_unit_metered_volume_mwh"].clip(lower=0)
+    updated_df["bm_unit_metered_volume_-ve_mwh"] = updated_df["bm_unit_metered_volume_mwh"].clip(upper=0)
     return updated_df
 
 

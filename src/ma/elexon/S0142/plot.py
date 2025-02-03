@@ -13,7 +13,7 @@ def get_fig(df: pd.DataFrame) -> go.Figure:
         fig.add_trace(
             go.Scatter(
                 x=bm_unit_data["settlement_datetime"],
-                y=bm_unit_data["bm_unit_metered_volume"],
+                y=bm_unit_data["bm_unit_metered_volume_mwh"],
                 mode="lines",
                 name=truncate_string(bm_unit_id),
             )

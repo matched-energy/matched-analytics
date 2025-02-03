@@ -39,7 +39,7 @@ def get_bmu_volumes_by_month(
     )
 
     monthly_vols = half_hourly_to_monthly_volumes(half_hourly_vols)
-    monthly_vols["bm_unit_metered_volume_gwh"] = monthly_vols["bm_unit_metered_volume"] / 1e3
+    monthly_vols["bm_unit_metered_volume_gwh"] = monthly_vols["bm_unit_metered_volume_mwh"] / 1e3
     return monthly_vols[["bm_unit_metered_volume_gwh"]]
 
 

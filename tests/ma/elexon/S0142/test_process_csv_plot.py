@@ -26,12 +26,12 @@ def wrapper_process_directory(
 def test_filtering_and_grouping() -> None:
     # Aggregated
     bm_vols = wrapper_process_directory(aggregate_bms=True)
-    assert bm_vols["bm_unit_metered_volume"].sum() == approx(-6945.599)
+    assert bm_vols["bm_unit_metered_volume_mwh"].sum() == approx(-6945.599)
     assert len(bm_vols["bm_unit_id"].unique()) == 1
 
     # Unaggregated BMs
     bm_vols = wrapper_process_directory(aggregate_bms=False)
-    assert bm_vols["bm_unit_metered_volume"].sum() == approx(-6945.599)
+    assert bm_vols["bm_unit_metered_volume_mwh"].sum() == approx(-6945.599)
     assert len(bm_vols["bm_unit_id"].unique()) == 14
 
     # REGEX

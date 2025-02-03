@@ -17,7 +17,7 @@ schema_on_load: Dict[str, CS] = dict(
     period_bm_unit_balancing_services_volume    =CS(check=pa.Column(float)),
     period_information_imbalance_volume	        =CS(check=pa.Column(float)),
     period_expected_metered_volume		        =CS(check=pa.Column(float)),
-    bm_unit_metered_volume				        =CS(check=pa.Column(float)),
+    bm_unit_metered_volume_mwh	    	        =CS(check=pa.Column(float)),
     period_bm_unit_non_delivered_bid_volume	    =CS(check=pa.Column(str)),
     period_bm_unit_non_delivered_offer_volume   =CS(check=pa.Column(str)),
     transmission_loss_factor                    =CS(check=pa.Column(float)),
