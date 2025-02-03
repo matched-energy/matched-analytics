@@ -1,7 +1,7 @@
 [project]
 name = "matched-analytics"
 version = "0.1.0"
-description = "Tools to track renewable energy supply"
+description = "Tools to track renewable energy supply from public data"
 authors = [
     {name = "Matched"},
 ]
