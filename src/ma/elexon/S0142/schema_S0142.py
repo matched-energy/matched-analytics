@@ -1,11 +1,13 @@
+import copy
 from typing import Dict
 
+import pandas as pd
 import pandera as pa
 
 from ma.utils.pandas import ColumnSchema as CS
 
 # fmt: off
-schema_on_load: Dict[str, CS] = dict(
+bmu_vols_schema_on_load: Dict[str, CS] = dict(
     bsc							                =CS(check=pa.Column(str)),
     settlement_date							    =CS(check=pa.Column(str)),
     settlement_period						    =CS(check=pa.Column(int)),
@@ -29,3 +31,12 @@ schema_on_load: Dict[str, CS] = dict(
     period_supplier_bm_unit_non_bm_absvd_volume =CS(check=pa.Column(float)),
 )
 # fmt: on
+
+
+def transform_bmu_vols_schema(bmu_vols_raw: pd.DataFrame) -> pd.DataFrame:
+    bmu_vols = copy.deepcopy(bmu_vols_raw)
+    bmu_vols["settlement_date"] = pd.to_datetime(bmu_vols["settlement_date"], dayfirst=True)
+    bmu_vols["settlement_datetime"] = bmu_vols["settlement_date"] + (bmu_vols["settlement_period"] - 1) * pd.Timedelta(
+        minutes=30
+    )
+    return bmu_vols
