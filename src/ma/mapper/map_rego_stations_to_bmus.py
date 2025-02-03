@@ -68,8 +68,8 @@ def map_station_range(
     bmus: pd.DataFrame,
     bmu_vol_dir: Path,
     expected_mappings: Optional[dict] = None,
-    summary_path: Optional[Path] = None,
-    abbreviated_summary_path: Optional[Path] = None,
+    mappings_path: Optional[Path] = None,
+    abbreviated_mappings_path: Optional[Path] = None,
 ) -> pd.DataFrame:
     regos_by_station = ma.ofgem.regos.groupby_station(regos)
     summaries = []
@@ -86,10 +86,10 @@ def map_station_range(
         )
 
     summary = pd.concat(summaries)
-    if summary_path:
-        summary.to_csv(summary_path, float_format="%.2f")
-    if abbreviated_summary_path:
-        abbreviate_summary(summary).to_csv(abbreviated_summary_path, float_format="%.2f")
+    if mappings_path:
+        summary.to_csv(mappings_path, float_format="%.2f")
+    if abbreviated_mappings_path:
+        abbreviate_summary(summary).to_csv(abbreviated_mappings_path, float_format="%.2f")
     return summary
 
 
@@ -101,8 +101,8 @@ def map_station_range(
 @click.option("--bmus-path", type=click.Path(exists=True, path_type=Path))
 @click.option("--bmu-vol-dir", type=click.Path(exists=True, path_type=Path))
 @click.option("--expected-mappings-file", type=click.Path(exists=True, path_type=Path), default=None)
-@click.option("--summary-path", type=click.Path(path_type=Path), default=None)
-@click.option("--abbreviated-summary-path", type=click.Path(path_type=Path), default=None)
+@click.option("--mappings-path", type=click.Path(path_type=Path), default=None)
+@click.option("--abbreviated-mappings-path", type=click.Path(path_type=Path), default=None)
 def cli(
     start: int,
     stop: int,
@@ -111,8 +111,8 @@ def cli(
     bmus_path: Path,
     bmu_vol_dir: Path,
     expected_mappings_file: Optional[Path] = None,
-    summary_path: Optional[Path] = None,
-    abbreviated_summary_path: Optional[Path] = None,
+    mappings_path: Optional[Path] = None,
+    abbreviated_mappings_path: Optional[Path] = None,
 ) -> None:
     map_station_range(
         start,
@@ -122,8 +122,8 @@ def cli(
         ma.elexon.bmus.load(bmus_path),
         bmu_vol_dir,
         (ma.utils.io.from_yaml_file(expected_mappings_file) if expected_mappings_file else {}),
-        summary_path,
-        abbreviated_summary_path,
+        mappings_path,
+        abbreviated_mappings_path,
     )
 
 
