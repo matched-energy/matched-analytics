@@ -6,7 +6,7 @@ from ma.utils.pandas import ColumnSchema as CS
 from ma.utils.pandas import DateTimeEngine as DTE
 
 # fmt: off
-REGO_SCHEMA: Dict[str, CS] = dict( 
+rego_schema_on_load: Dict[str, CS] = dict( 
     index                       =CS(check=pa.Column(int)),
     accreditation_number        =CS(check=pa.Column(str)),
     station_name                =CS(check=pa.Column(str)),
@@ -28,7 +28,7 @@ REGO_SCHEMA: Dict[str, CS] = dict(
 )
 # fmt: on
 
-SIMPLIFIED_TECH_CATEGORIES = {
+rego_simplified_tech_categories = {
     "Photovoltaic": "SOLAR",
     "Hydro": "HYDRO",
     "Wind": "WIND",

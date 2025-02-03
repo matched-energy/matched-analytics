@@ -95,7 +95,7 @@ def test_parse_data_range_EXPECTED_FORMAT() -> None:
 
 def test_parse_output_period() -> None:
     regos_raw = pd.read_csv(data.register.REGOS_APR2022_MAR2023_SUBSET, skiprows=4)
-    regos = apply_schema(regos_raw, ma.ofgem.regos.REGO_SCHEMA)
+    regos = apply_schema(regos_raw, ma.ofgem.regos.rego_schema_on_load)
     regos = ma.ofgem.regos.parse_output_period(regos)
     assert len(regos)
     assert len(regos) == len(regos_raw)

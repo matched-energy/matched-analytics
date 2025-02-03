@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 from dateutil.relativedelta import relativedelta
 
-from ma.ofgem.schema_regos import REGO_SCHEMA, SIMPLIFIED_TECH_CATEGORIES
+from ma.ofgem.schema_regos import rego_schema_on_load, rego_simplified_tech_categories
 from ma.utils.pandas import apply_schema
 
 
@@ -51,7 +51,7 @@ def parse_output_period(regos: pd.DataFrame) -> pd.DataFrame:
 def add_columns(regos: pd.DataFrame) -> pd.DataFrame:
     regos = regos.copy()
     regos["GWh"] = regos["mwh_per_certificate"] * regos["certificate_count"] / 1e3
-    regos["tech_simple"] = regos["technology_group"].map(SIMPLIFIED_TECH_CATEGORIES)
+    regos["tech_simple"] = regos["technology_group"].map(rego_simplified_tech_categories)
     return regos
 
 
@@ -82,7 +82,7 @@ def load(
     schemes: Optional[List[str]] = ["REGO"],
 ) -> pd.DataFrame:
     regos = pd.read_csv(regos_path, skiprows=4, header=None)
-    regos = apply_schema(regos, REGO_SCHEMA)
+    regos = apply_schema(regos, rego_schema_on_load)
     regos = parse_output_period(regos)
     regos = add_columns(regos)
     regos = filter(regos, holders=holders, statuses=statuses, schemes=schemes)
