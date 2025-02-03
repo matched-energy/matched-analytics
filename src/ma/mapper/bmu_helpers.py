@@ -10,17 +10,17 @@ from ma.mapper.common import MappingException
 
 def half_hourly_to_monthly_volumes(half_hourly_volumes: pd.DataFrame) -> pd.DataFrame:
     half_hourly_volumes = copy.deepcopy(half_hourly_volumes)
-    half_hourly_volumes["Settlement Month"] = half_hourly_volumes["settlement_date"].dt.month
+    half_hourly_volumes["settlement_month"] = half_hourly_volumes["settlement_datetime"].dt.month
     monthly_volumes = (
-        half_hourly_volumes.groupby("Settlement Month")
+        half_hourly_volumes.groupby("settlement_month")
         .agg(
             {
-                "settlement_date": "first",
-                "bm_unit_metered_volume": "sum",
+                "settlement_datetime": "first",
+                "bm_unit_metered_volume_mwh": "sum",
             }
         )
-        .sort_values("settlement_date")
-    ).set_index("settlement_date")
+        .sort_values("settlement_datetime")
+    ).set_index("settlement_datetime")
     return monthly_volumes
 
 
