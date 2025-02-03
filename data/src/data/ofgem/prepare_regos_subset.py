@@ -19,7 +19,7 @@ def main(input_path: Path, output_path: Path) -> pd.DataFrame:
     skip_rows = copy.deepcopy(regos[:4])
     skip_rows.loc[:, "station_name"] = "SKIPPED_ROW"
     regos = pd.concat([skip_rows, regos])  # mimic four rows that have to be ignored from Ofgem download
-    regos.to_csv(output_path, header=False)
+    regos.to_csv(output_path, header=False, index=False)
     return regos
 
 
