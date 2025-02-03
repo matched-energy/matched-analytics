@@ -62,7 +62,7 @@ def filter_bmus(all_bmus: List, bmu_ids: Optional[List] = None) -> List:
     if not bmu_ids:
         bmu_ids = SUBSET_BMUS
     all_bmus_df = pd.DataFrame(all_bmus)
-    subset_bmus_df = all_bmus_df[all_bmus_df["elexonBmUnit"].isin(bmu_ids)]
+    subset_bmus_df = all_bmus_df[all_bmus_df["elexon_bm_unit"].isin(bmu_ids)]
     subset_bmus_raw = subset_bmus_df.to_dict(orient="records")
     return subset_bmus_raw
 

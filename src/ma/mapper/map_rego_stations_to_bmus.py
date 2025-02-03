@@ -3,7 +3,7 @@ from typing import Optional
 
 import pandas as pd
 
-import ma.elexon.models
+import ma.elexon.bmus
 import ma.ofgem.stations
 from ma.mapper.bmu_helpers import get_matching_bmus_dict, validate_matching_bmus
 from ma.mapper.common import MappingException
@@ -91,7 +91,7 @@ def main(
         stop,
         load(regos_path),
         ma.ofgem.stations.load_from_dir(accredited_stations_dir),
-        ma.elexon.models.bmus(bmus_path),
+        ma.elexon.bmus.load(bmus_path),
         S0142_csv_dir,
         (ma.utils.io.from_yaml_file(expected_mappings_file) if expected_mappings_file else {}),
     )

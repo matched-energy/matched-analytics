@@ -5,7 +5,6 @@ import numpy as np
 import pandas as pd
 
 from ma.mapper.common import MappingException
-from ma.utils.pandas import select_columns
 
 
 ################################################################################
@@ -43,8 +42,10 @@ def intersection(series: pd.Series, value: str, ignore: Optional[Set] = None) ->
 # FILTERS
 ################################################################################
 def filter_on_name_contiguous(station_profile: dict, bmus: pd.DataFrame) -> Tuple[pd.Series, pd.Series]:
-    lead_party_count = bmus["leadPartyName"].apply(lambda x: contiguous_words(station_profile["rego_station_name"], x))
-    bmu_count = bmus["bmUnitName"].apply(lambda x: contiguous_words(station_profile["rego_station_name"], x))
+    lead_party_count = bmus["lead_party_name"].apply(
+        lambda x: contiguous_words(station_profile["rego_station_name"], x)
+    )
+    bmu_count = bmus["bm_unit_name"].apply(lambda x: contiguous_words(station_profile["rego_station_name"], x))
     # max_count = pd.Series(map(max, lead_party_count, bmu_count))
     max_count = pd.Series([max(x, y) for x, y in zip(lead_party_count, bmu_count)])
     max_count_filter = (max_count > 0) & (max_count == max(max_count))
@@ -53,12 +54,12 @@ def filter_on_name_contiguous(station_profile: dict, bmus: pd.DataFrame) -> Tupl
 
 def filter_on_name_intersection(station_profile: dict, bmus: pd.DataFrame) -> Tuple[pd.Series, pd.Series]:
     lead_party_count, _ = intersection(
-        bmus["leadPartyName"],
+        bmus["lead_party_name"],
         station_profile["rego_station_name"],
         ignore=set(["wind", "farm", "windfarm", "limited", "ltd"]),
     )
     bmu_intersection_count, _ = intersection(
-        bmus["bmUnitName"],
+        bmus["bm_unit_name"],
         station_profile["rego_station_name"],
         ignore=set(["wind", "farm", "windfarm", "limited", "ltd"]),
     )
@@ -69,15 +70,15 @@ def filter_on_name_intersection(station_profile: dict, bmus: pd.DataFrame) -> Tu
 
 def filter_on_fuel_type(station_profile: dict, bmus: pd.DataFrame) -> pd.Series:
     _, filter = intersection(
-        bmus["fuelType"],
+        bmus["fuel_type"],
         station_profile["rego_station_technology"],
     )
     return filter
 
 
 def filter_on_generation_capacity(station_profile: dict, bmus: pd.DataFrame) -> pd.Series:
-    return (station_profile["rego_station_dnc_mw"] / 10 < bmus["generationCapacity"]) & (
-        bmus["generationCapacity"] < station_profile["rego_station_dnc_mw"] * 2
+    return (station_profile["rego_station_dnc_mw"] / 10 < bmus["generation_capacity"]) & (
+        bmus["generation_capacity"] < station_profile["rego_station_dnc_mw"] * 2
     )
 
 
@@ -95,11 +96,11 @@ def define_bmu_match_features_and_filters(station_profile: dict, bmus: pd.DataFr
     filters.append(filter)
 
     feature, filter = filter_on_name_intersection(station_profile, bmus)
-    features["leadPartyName_intersection_count"] = feature
+    features["lead_party_name_intersection_count"] = feature
     filters.append(filter)
 
     feature, filter = filter_on_name_contiguous(station_profile, bmus)
-    features["leadPartyName_contiguous_words"] = feature
+    features["lead_party_name_contiguous_words"] = feature
     filters.append(filter)
 
     return features, filters
@@ -121,7 +122,7 @@ def get_matching_bmus(generator_profile: dict, bmus: pd.DataFrame, expected_mapp
     # Determine if should rate expected BMUs or search over all BMUs
     expected_overrides = expected_mapping["bmu_ids"] and expected_mapping.get("override")
     bmus_to_search = (
-        bmus[bmus["elexonBmUnit"].isin(expected_mapping["bmu_ids"])] if expected_overrides else copy.deepcopy(bmus)
+        bmus[bmus["elexon_bm_unit"].isin(expected_mapping["bmu_ids"])] if expected_overrides else copy.deepcopy(bmus)
     )
 
     # Define matching features and filters
@@ -129,15 +130,4 @@ def get_matching_bmus(generator_profile: dict, bmus: pd.DataFrame, expected_mapp
     bmus_to_search = bmus_to_search.join(bmu_match_features, how="outer")
 
     # Return expected / filtered BMUs with matching
-    matching_bmus = bmus_to_search if expected_overrides else apply_bmu_match_filters(bmus_to_search, bmu_match_filters)
-    return select_columns(
-        matching_bmus,
-        exclude=[
-            "workingDayCreditAssessmentImportCapability",
-            "nonWorkingDayCreditAssessmentImportCapability",
-            "workingDayCreditAssessmentExportCapability",
-            "nonWorkingDayCreditAssessmentExportCapability",
-            "creditQualifyingStatus",
-            "gspGroupId",
-        ],
-    )
+    return bmus_to_search if expected_overrides else apply_bmu_match_filters(bmus_to_search, bmu_match_filters)
