@@ -5,6 +5,8 @@ from typing import Generator, Optional, Tuple
 
 import pandas as pd
 
+# TODO - apply_schema() at this point
+
 COLUMN_MAP_BP7: dict[int, str] = {
     1: "BM Unit Id",
     2: "Information Imbalance Cashflow",

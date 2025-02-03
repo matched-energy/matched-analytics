@@ -74,7 +74,6 @@ def get_p_values_for_all_metrics(generator_profile: dict) -> List:
 
 
 def summarise_mapping_and_mapping_strength(generator_profile: dict) -> pd.DataFrame:
-    # TODO: consolidate naming
     mapping_summary = {
         "rego_name": generator_profile.get("rego_station_name"),
         "lead_party_name": generator_profile.get("bmu_lead_party_name"),
@@ -90,7 +89,7 @@ def summarise_mapping_and_mapping_strength(generator_profile: dict) -> pd.DataFr
         "bmu_capacity_factor": generator_profile.get("bmu_capacity_factor"),
         "rego_sample_months": generator_profile.get("rego_sample_months"),
         "bmu_sample_months": generator_profile.get("bmu_sample_months"),
-        "intersection_count": generator_profile.get("lead_party_name_intersection_count"),
+        "name_intersection_count": generator_profile.get("lead_party_name_intersection_count"),
     }
     mapping_strength = {
         k: v for p_val_dict in get_p_values_for_all_metrics(generator_profile) for k, v in p_val_dict.items()
