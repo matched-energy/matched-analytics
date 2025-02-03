@@ -1,5 +1,6 @@
 from typing import Dict
 
+import pandas as pd
 import pandera as pa
 
 from ma.utils.pandas import ColumnSchema as CS
@@ -27,6 +28,14 @@ rego_schema_on_load: Dict[str, CS] = dict(
     company_registration_number =CS(check=pa.Column(str, nullable=True)),
 )
 # fmt: on
+
+
+def transform_regos_schema(regos_raw: pd.DataFrame) -> pd.DataFrame:
+    regos = regos_raw.copy()
+    regos["rego_gwh"] = regos["mwh_per_certificate"] * regos["certificate_count"] / 1e3
+    regos["tech_simple"] = regos["technology_group"].map(rego_simplified_tech_categories)
+    return regos
+
 
 rego_simplified_tech_categories = {
     "Photovoltaic": "SOLAR",
