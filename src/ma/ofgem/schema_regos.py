@@ -85,8 +85,7 @@ def parse_date_range(date_str: str) -> Tuple[pd.Timestamp, pd.Timestamp, int]:
 
 
 def add_output_period_columns(regos: pd.DataFrame) -> pd.DataFrame:
-    # TODO start -> period_start; end -> period_end; months_difference -> period_months;
-    column_names = ["start", "end", "months_difference"]
+    column_names = ["period_start", "period_end", "period_months"]
     period_columns = pd.DataFrame(columns=column_names)
     if not regos.empty:
         period_columns = regos["output_period"].apply(lambda x: pd.Series(parse_date_range(x)))

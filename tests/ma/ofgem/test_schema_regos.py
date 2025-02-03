@@ -65,10 +65,10 @@ def test_parse_output_period() -> None:
     regos = add_output_period_columns(regos)
     assert len(regos)
     assert len(regos) == len(regos_raw)
-    assert set(["start", "end", "months_difference"]) < set(regos.columns)
+    assert set(["period_start", "period_end", "period_months"]) < set(regos.columns)
 
 
 def test_parse_output_period_EMPTY_DATAFRAME() -> None:
     regos_raw = pd.read_csv(data.register.REGOS_APR2022_MAR2023_SUBSET, skiprows=4)
     regos = add_output_period_columns(regos_raw[:0])
-    assert set(["start", "end", "months_difference"]) < set(regos.columns)
+    assert set(["period_start", "period_end", "period_months"]) < set(regos.columns)

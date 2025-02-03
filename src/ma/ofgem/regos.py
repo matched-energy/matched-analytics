@@ -78,8 +78,8 @@ def get_rego_station_volume_by_month(
     rego_station_name: str,
 ) -> pd.DataFrame:
     rego_station_volumes_by_month = (
-        regos[(regos["station_name"] == rego_station_name) & (regos["months_difference"] == 1)]
-        .groupby(["start", "end", "months_difference"])
+        regos[(regos["station_name"] == rego_station_name) & (regos["period_months"] == 1)]
+        .groupby(["period_start", "period_end", "period_months"])
         .agg(dict(rego_gwh="sum"))
     )
 
@@ -89,4 +89,4 @@ def get_rego_station_volume_by_month(
             f"Don't expect reporting to be more granuular than monthly: {rego_station_name} has {months_count} periods in the year"
         )
 
-    return rego_station_volumes_by_month.reset_index().set_index("start").sort_index()
+    return rego_station_volumes_by_month.sort_index().reset_index().set_index("period_start")
