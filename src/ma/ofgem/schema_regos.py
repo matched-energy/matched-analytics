@@ -10,7 +10,6 @@ from ma.utils.pandas import DateTimeEngine as DTE
 
 # fmt: off
 rego_schema_on_load: Dict[str, CS] = dict( 
-    index                       =CS(check=pa.Column(int)),
     accreditation_number        =CS(check=pa.Column(str)),
     station_name                =CS(check=pa.Column(str)),
     station_tic                 =CS(check=pa.Column(float)),

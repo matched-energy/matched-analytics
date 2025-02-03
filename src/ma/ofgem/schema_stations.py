@@ -5,7 +5,6 @@ import pandas as pd
 import pandera as pa
 
 from ma.utils.pandas import ColumnSchema as CS
-from ma.utils.pandas import DateTimeEngine as DTE
 
 # fmt: off
 stations_schema_on_load: Dict[str, CS] = dict(
@@ -17,12 +16,12 @@ stations_schema_on_load: Dict[str, CS] = dict(
     country                      = CS(check=pa.Column(str)), 
     technology                   = CS(check=pa.Column(str)), 
     contract_type                = CS(check=pa.Column(str)), 
-    accreditation_date           = CS(check=pa.Column(DTE)), 
-    commission_date              = CS(check=pa.Column(DTE)), 
-    organisation                 = CS(check=pa.Column(str)), 
-    organisation_contact_address = CS(check=pa.Column(str)), 
+    accreditation_date           = CS(check=pa.Column(str)), 
+    commission_date              = CS(check=pa.Column(str)), 
+    organisation                 = CS(check=pa.Column(str, nullable=True)), 
+    organisation_contact_address = CS(check=pa.Column(str, nullable=True)), 
     organisation_contact_fax     = CS(keep=False), 
-    generating_sation_address    = CS(check=pa.Column(str)), 
+    generating_station_address    = CS(check=pa.Column(str, nullable=True)), 
 )
 # fmt: on
 
