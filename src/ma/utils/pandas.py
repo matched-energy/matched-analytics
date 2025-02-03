@@ -1,5 +1,5 @@
 import copy
-from typing import Dict, NotRequired, TypedDict, Union
+from typing import Callable, Dict, NotRequired, Optional, TypedDict, Union
 
 import pandas as pd
 import pandera as pa
@@ -18,24 +18,30 @@ class ColumnSchema(TypedDict):
 DateTimeEngine = pa.engines.pandas_engine.DateTime({"dayfirst": True})
 
 
-def apply_schema(df: pd.DataFrame, schema: Dict[str, ColumnSchema]) -> pd.DataFrame:
+def apply_schema(
+    df: pd.DataFrame, schema: Dict[str, ColumnSchema], transform: Optional[Callable] = None
+) -> pd.DataFrame:
     df = copy.deepcopy(df)
 
-    # rename columns
+    # Name columns
     new_columns = pd.Index(schema.keys())
     if len(new_columns) != len(df.columns):
         raise AssertionError(
             f"Schema & DataFrame have different number of columns ({len(new_columns)} & {len(df.columns)} respectively)"
         )
-    df.columns = pd.Index(schema.keys())
+    df.columns = new_columns
 
-    # drop columns
-    df = df[[col for col in schema.keys() if schema.get("keep", True)]]
-
-    # validate schema
+    # Validate schema
     pandera_schema = pa.DataFrameSchema(
         {col: cs["check"] for col, cs in schema.items() if cs.get("check")}, coerce=True
     )
     df = pandera_schema(df)
+
+    # Transform
+    if transform is not None:
+        df = transform(df)
+
+    # Drop columns
+    df = select_columns(df, exclude=[col for col, cs in schema.items() if not cs.get("keep", True)])
 
     return df
