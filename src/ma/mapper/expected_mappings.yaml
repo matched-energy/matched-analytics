@@ -1,0 +1,241 @@
+Drax Power Station (REGO): 
+  bmu_ids: 
+    - T_DRAXX-1
+    - T_DRAXX-2
+    - T_DRAXX-3
+    - T_DRAXX-4
+
+Walney Extension: 
+  bmu_ids: 
+    - T_WLNYO-3
+    - T_WLNYO-4
+
+Triton Knoll Offshore Windfarm:
+  bmu_ids: 
+    - T_TKNEW-1
+    - T_TKNWW-1
+
+East Anglia One Offshore Wind:
+  bmu_ids: 
+    - T_EAAO-1
+    - T_EAAO-2
+
+"Hornsea 1 - Phase":
+  bmu_ids: 
+    - T_HOWAO-1
+  override: True
+
+"Hornsea 1 - Phase 2":
+  bmu_ids: 
+    - T_HOWAO-2
+  override: True
+
+"Hornsea 1 - Phase 3":
+  bmu_ids: 
+    - T_HOWAO-3
+  override: True
+
+London Array Offshore Windfarm:
+  bmu_ids: 
+    - T_LARYW-1
+    - T_LARYW-2
+    - T_LARYW-3
+    - T_LARYW-4
+
+Stronelairg Wind Farm: 
+  bmu_ids: 
+    - T_STLGW-1
+    - T_STLGW-2
+    - T_STLGW-3
+
+Dorenell Windfarm: 
+  bmu_ids: 
+    - T_DOREW-1
+    - T_DOREW-2
+
+Walney Offshore Wind Phase I: 
+  bmu_ids: 
+    - T_WLNYW-1 
+  override: 
+      True 
+
+Walney Offshore Wind Phase II: 
+  bmu_ids: 
+    - T_WLNYO-2
+  override: 
+    True
+
+Robin Rigg Offshore Wind Farm (West):
+  bmu_ids: 
+    - T_RRWW-1
+  override:
+    True
+
+Robin Rigg Offshore Wind Farm (East):
+  bmu_ids: 
+    - T_RREW-1
+  override:
+    True
+
+Clyde Windfarm (North): 
+  bmu_ids: 
+    - T_CLDNW-1
+  override: 
+    True
+
+Clyde Windfarm (Central): 
+  bmu_ids: 
+    - T_CLDCW-1
+  override: 
+    True
+
+Clyde Windfarm (South): 
+  bmu_ids: 
+    - T_CLDSW-1 
+  override: 
+    True
+
+Windy Standard II (Brockloch Rig): 
+  bmu_ids: 
+    - T_WISTW-2
+  override: 
+    True
+
+Burbo Offshore Windfarm - A (31/01/07):
+  bmu_ids: 
+    - E_BURBO 
+  override: 
+    True
+
+Burbo Bank Extension:
+  bmu_ids: 
+    - T_BRBEO-1
+  override: 
+    True
+
+Hadyard Hill Windfarm - A,C:
+  notes: 
+    -  via match on bmUnitName
+    - https://www.sserenewables.com/onshore-wind/great-britain/hadyard-hill/
+  bmu_ids: 
+      - T_HADHW-1    
+  override:
+    True
+
+Mid Hill Wind Farm:
+  notes:
+    - https://fredolsenrenewables.com/windfarm-collection/united-kingdom/mid-hill/
+    - bmus[(50 < bmus['generationCapacity']) & (bmus['generationCapacity'] < 100) & (bmus['fuelType'].str.contains('wind', case=False, na=False))]
+  bmu_ids: 
+    - 2__PSTAT002
+  override:
+    True
+
+Pauls Hill Wind Farm - A,C,E:
+  notes:
+    - 
+  bmu_ids: 
+    - 2__PENEC002
+  override:   
+    True
+
+Blackburn Meadows Renewable Energy Plant:
+  notes: 
+    - bmus[(25 < bmus['generationCapacity']) & (bmus['generationCapacity'] < 50) & (bmus['fuelType'].str.contains('biomass', case=False, na=False))]
+  bmu_ids: 
+    - 2__NSMAE001
+  override: 
+    True
+
+West of Duddon Sands Offshore Wind Farm:
+  notes:
+    -  helpers.filter(bmus, name='west of duddon', fuel_type='wind')
+  bmu_ids:
+    - T_WDNSO-1
+    - T_WDNSO-2
+  override:
+    True
+
+Sheringham Shoal: 
+  notes: 
+    - helpers.filter(bmus, name='sheringham', fuel_type='wind')
+  bmu_ids: 
+    - T_SHRSW-1
+    - T_SHRSW-2
+  override:
+    True
+
+Whitelee Windfarm Extension:
+  notes: 
+    - helpers.filter(bmus, name='Whitelee', fuel_type='wind')
+  bmu_ids: 
+    - T_WHILW-2
+  override: 
+    True
+
+Whitelee Windfarm: 
+  notes: 
+    - mapped from the extension, on leadPartyId
+  bmu_ids: 
+    - T_WHILW-1
+  override: 
+    True
+
+Humber Gateway Offshore Wind Farm:
+  notes: 
+  bmu_ids: 
+    - T_HMGTO-1
+    - T_HMGTO-2
+  override: 
+    True
+
+Kilgallioch:
+  notes: 
+  bmu_ids: 
+    - T_KLGLW-1
+  override: 
+    True
+
+Lynemouth Power Ltd:
+  notes:
+    - automatically mapped but with p=0.25, so noting here
+  bmu_ids:
+    - E_LYNE1
+    - E_LYNE2
+    - E_LYNE3
+
+PyC Wind Farm: 
+  notes: 
+    - https://group.vattenfall.com/uk/what-we-do/our-projects/pen-y-cymoedd
+  bmu_ids: 
+    - T_PNYCW-1
+  override: 
+    True
+
+# Markinch CHP:
+#   notes:
+#     - https://www.gem.wiki/Markinch_CHP_power_station
+#   bmu_ids: 
+#     - unknown
+# 
+# Lochaber hydro station 1:
+#   notes: 
+#     - 2__PMARB001 is a Consumption unit
+#   bmu_ids: 
+#     - unknown
+
+Gunfleet Sands I:
+  notes: 
+  bmu_ids: 
+    - T_GNFSW-1
+  override: 
+    True
+
+# Lynn Offshore Wind Farm:
+#   notes: 
+#     - https://en.wikipedia.org/wiki/Lynn_and_Inner_Dowsing_Wind_Farms
+#     - PowerParkModules
+#   bmu_ids: 
+#     - unknown  
+#   override: 
+#     True
