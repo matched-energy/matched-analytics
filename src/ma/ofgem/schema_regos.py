@@ -1,7 +1,9 @@
-from typing import Dict
+from typing import Dict, Tuple
 
+import numpy as np
 import pandas as pd
 import pandera as pa
+from dateutil.relativedelta import relativedelta
 
 from ma.utils.pandas import ColumnSchema as CS
 from ma.utils.pandas import DateTimeEngine as DTE
@@ -34,6 +36,7 @@ def transform_regos_schema(regos_raw: pd.DataFrame) -> pd.DataFrame:
     regos = regos_raw.copy()
     regos["rego_gwh"] = regos["mwh_per_certificate"] * regos["certificate_count"] / 1e3
     regos["tech_simple"] = regos["technology_group"].map(rego_simplified_tech_categories)
+    regos = add_output_period_columns(regos)
     return regos
 
 
@@ -51,3 +54,41 @@ rego_simplified_tech_categories = {
     "Micro Hydro": "HYDRO",
     "Biomass 50kW DNC or less": "BIOMASS",
 }
+
+
+def parse_date_range(date_str: str) -> Tuple[pd.Timestamp, pd.Timestamp, int]:
+    # e.g. 01/09/2022 - 30/09/2022
+    if "/" in date_str:
+        start, end = date_str.split(" - ")
+        start_dt = pd.to_datetime(start, dayfirst=True)
+        end_dt = pd.to_datetime(end, dayfirst=True) + +np.timedelta64(1, "D")
+
+    # e.g. 2022 - 2023: we presume this should be taken to cover a compliance year
+    elif " - " in date_str:
+        year_start, year_end = date_str.split(" - ")
+        start_dt = pd.to_datetime("01/04/" + year_start, dayfirst=True)
+        end_dt = pd.to_datetime("31/03/" + year_end, dayfirst=True) + np.timedelta64(1, "D")
+
+    # e.g. May-2022
+    elif "-" in date_str:
+        month_year = pd.to_datetime(date_str, format="%b-%Y")
+        start_dt = month_year.replace(day=1)
+        end_dt = month_year + pd.offsets.MonthEnd(0) + np.timedelta64(1, "D")
+
+    else:
+        raise ValueError(r"Invalid date string {}".format(date_str))
+
+    period_duration = relativedelta(end_dt, start_dt)
+    months_difference = period_duration.years * 12 + period_duration.months
+
+    return start_dt, end_dt, months_difference
+
+
+def add_output_period_columns(regos: pd.DataFrame) -> pd.DataFrame:
+    # TODO start -> period_start; end -> period_end; months_difference -> period_months;
+    column_names = ["start", "end", "months_difference"]
+    period_columns = pd.DataFrame(columns=column_names)
+    if not regos.empty:
+        period_columns = regos["output_period"].apply(lambda x: pd.Series(parse_date_range(x)))
+        period_columns.columns = pd.Index(column_names)
+    return pd.concat([regos, period_columns], axis=1)

@@ -1,51 +1,23 @@
 from pathlib import Path
-from typing import List, Optional, Tuple
+from typing import List, Optional
 
 import numpy as np
 import pandas as pd
-from dateutil.relativedelta import relativedelta
 
 from ma.ofgem.schema_regos import rego_schema_on_load, transform_regos_schema
 from ma.utils.pandas import apply_schema
 
 
-def parse_date_range(date_str: str) -> Tuple[pd.Timestamp, pd.Timestamp, int]:
-    # e.g. 01/09/2022 - 30/09/2022
-    if "/" in date_str:
-        start, end = date_str.split(" - ")
-        start_dt = pd.to_datetime(start, dayfirst=True)
-        end_dt = pd.to_datetime(end, dayfirst=True) + +np.timedelta64(1, "D")
-
-    # e.g. 2022 - 2023: we presume this should be taken to cover a compliance year
-    elif " - " in date_str:
-        year_start, year_end = date_str.split(" - ")
-        start_dt = pd.to_datetime("01/04/" + year_start, dayfirst=True)
-        end_dt = pd.to_datetime("31/03/" + year_end, dayfirst=True) + np.timedelta64(1, "D")
-
-    # e.g. May-2022
-    elif "-" in date_str:
-        month_year = pd.to_datetime(date_str, format="%b-%Y")
-        start_dt = month_year.replace(day=1)
-        end_dt = month_year + pd.offsets.MonthEnd(0) + np.timedelta64(1, "D")
-
-    else:
-        raise ValueError(r"Invalid date string {}".format(date_str))
-
-    period_duration = relativedelta(end_dt, start_dt)
-    months_difference = period_duration.years * 12 + period_duration.months
-
-    return start_dt, end_dt, months_difference
-
-
-def parse_output_period(regos: pd.DataFrame) -> pd.DataFrame:
-    # TODO start -> period_start; end -> period_end; months_difference -> period_months;
-    # TODO use typed datastructure
-    column_names = ["start", "end", "months_difference"]
-    period_columns = pd.DataFrame(columns=column_names)
-    if not regos.empty:
-        period_columns = regos["output_period"].apply(lambda x: pd.Series(parse_date_range(x)))
-        period_columns.columns = pd.Index(column_names)
-    return pd.concat([regos, period_columns], axis=1)
+def load(
+    regos_path: Path,
+    holders: Optional[List[str]] = None,
+    statuses: Optional[List[str]] = ["Redeemed"],
+    schemes: Optional[List[str]] = ["REGO"],
+) -> pd.DataFrame:
+    regos = pd.read_csv(regos_path, skiprows=4, header=None)
+    regos = apply_schema(regos, rego_schema_on_load, transform_regos_schema)
+    regos = filter(regos, holders=holders, statuses=statuses, schemes=schemes)
+    return regos
 
 
 def filter(
@@ -66,19 +38,6 @@ def filter(
         return regos
     else:
         return regos.loc[np.logical_and.reduce(filters)]
-
-
-def load(
-    regos_path: Path,
-    holders: Optional[List[str]] = None,
-    statuses: Optional[List[str]] = ["Redeemed"],
-    schemes: Optional[List[str]] = ["REGO"],
-) -> pd.DataFrame:
-    regos = pd.read_csv(regos_path, skiprows=4, header=None)
-    regos = apply_schema(regos, rego_schema_on_load, transform_regos_schema)
-    regos = parse_output_period(regos)
-    regos = filter(regos, holders=holders, statuses=statuses, schemes=schemes)
-    return regos
 
 
 def groupby_station(regos: pd.DataFrame) -> pd.DataFrame:
