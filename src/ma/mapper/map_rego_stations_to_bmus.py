@@ -1,18 +1,20 @@
+import pprint
 from pathlib import Path
 from typing import Optional
 
+import click
 import pandas as pd
 
 import ma.elexon.bmus
+import ma.ofgem.regos
 import ma.ofgem.stations
 from ma.mapper.bmu_helpers import get_matching_bmus_dict, validate_matching_bmus
 from ma.mapper.common import MappingException
 from ma.mapper.filter_on_aggregate_data import appraise_energy_volumes, appraise_rated_power
 from ma.mapper.filter_on_bmu_meta_data import get_matching_bmus
 from ma.mapper.rego_helpers import get_generator_profile
-from ma.mapper.summarise_and_score import summarise_mapping_and_mapping_strength
-from ma.ofgem.regos import groupby_station, load
-from ma.utils.io import get_logger, to_yaml_text
+from ma.mapper.summarise_and_score import abbreviate_summary, score_mapping, summarise_profile
+from ma.utils.io import get_logger
 
 LOGGER = get_logger("ma.mapper")
 
@@ -46,10 +48,16 @@ def map_station(
         # Appraise energy volumes
         generator_profile.update(appraise_energy_volumes(generator_profile, regos, S0142_csv_dir))
 
+        LOGGER.debug("\n" + pprint.pformat(generator_profile, width=100))
+
     except MappingException as e:
-        LOGGER.warning(str(e) + str(generator_profile))
-    LOGGER.debug(to_yaml_text(generator_profile))
-    return summarise_mapping_and_mapping_strength(generator_profile)
+        LOGGER.warning(str(e))
+        LOGGER.warning("\n" + pprint.pformat(generator_profile, width=100))
+
+    scores = score_mapping(generator_profile)
+    profile = summarise_profile(generator_profile)
+
+    return pd.concat([profile, scores], axis=1)
 
 
 def map_station_range(
@@ -58,40 +66,66 @@ def map_station_range(
     regos: pd.DataFrame,
     accredited_stations: pd.DataFrame,
     bmus: pd.DataFrame,
-    S0142_csv_dir: Path,
+    bmu_vol_dir: Path,
     expected_mappings: Optional[dict] = None,
+    summary_path: Optional[Path] = None,
+    abbreviated_summary_path: Optional[Path] = None,
 ) -> pd.DataFrame:
-    regos_by_station = groupby_station(regos)
-    station_summaries = []
+    regos_by_station = ma.ofgem.regos.groupby_station(regos)
+    summaries = []
     for i in range(start, stop):
-        station_summaries.append(
+        summaries.append(
             map_station(
                 regos_by_station.iloc[i]["station_name"],
                 regos,
                 accredited_stations,
                 bmus,
-                S0142_csv_dir,
+                bmu_vol_dir,
                 expected_mappings,
             )
         )
-    return pd.concat(station_summaries)
+
+    summary = pd.concat(summaries)
+    if summary_path:
+        summary.to_csv(summary_path, float_format="%.2f")
+    if abbreviated_summary_path:
+        abbreviate_summary(summary).to_csv(abbreviated_summary_path, float_format="%.2f")
+    return summary
 
 
-def main(
+@click.command()
+@click.option("--start", type=int)
+@click.option("--stop", type=int)
+@click.option("--regos-path", type=click.Path(exists=True, path_type=Path))
+@click.option("--accredited-stations-dir", type=click.Path(exists=True, path_type=Path))
+@click.option("--bmus-path", type=click.Path(exists=True, path_type=Path))
+@click.option("--bmu-vol-dir", type=click.Path(exists=True, path_type=Path))
+@click.option("--expected-mappings-file", type=click.Path(exists=True, path_type=Path), default=None)
+@click.option("--summary-path", type=click.Path(path_type=Path), default=None)
+@click.option("--abbreviated-summary-path", type=click.Path(path_type=Path), default=None)
+def cli(
     start: int,
     stop: int,
     regos_path: Path,
     accredited_stations_dir: Path,
     bmus_path: Path,
-    S0142_csv_dir: Path,
+    bmu_vol_dir: Path,
     expected_mappings_file: Optional[Path] = None,
-) -> pd.DataFrame:
-    return map_station_range(
+    summary_path: Optional[Path] = None,
+    abbreviated_summary_path: Optional[Path] = None,
+) -> None:
+    map_station_range(
         start,
         stop,
-        load(regos_path),
+        ma.ofgem.regos.load(regos_path),
         ma.ofgem.stations.load_from_dir(accredited_stations_dir),
         ma.elexon.bmus.load(bmus_path),
-        S0142_csv_dir,
+        bmu_vol_dir,
         (ma.utils.io.from_yaml_file(expected_mappings_file) if expected_mappings_file else {}),
+        summary_path,
+        abbreviated_summary_path,
     )
+
+
+if __name__ == "__main__":
+    cli()

@@ -7,7 +7,10 @@ from pandas import Timestamp
 from pandas.testing import assert_frame_equal
 
 import data.register
+import ma.elexon.bmus
 import ma.mapper.map_rego_stations_to_bmus
+import ma.ofgem.regos
+import ma.ofgem.stations
 
 monthly_vols = {
     "DRAX": {
@@ -114,13 +117,13 @@ def mock_get(
 def test_end_to_end() -> None:
     with patch("ma.mapper.filter_on_aggregate_data.get_bmu_volumes_by_month") as get_vols:
         get_vols.side_effect = mock_get
-        mappings = ma.mapper.map_rego_stations_to_bmus.main(
+        mappings = ma.mapper.map_rego_stations_to_bmus.map_station_range(
             start=0,
             stop=3,
-            regos_path=data.register.REGOS_APR2022_MAR2023_SUBSET,
-            accredited_stations_dir=data.register.REGO_ACCREDITED_STATIONS_DIR,
-            bmus_path=data.register.BMUNITS_SUBSET,
-            S0142_csv_dir=Path("/mocked"),
+            regos=ma.ofgem.regos.load(data.register.REGOS_APR2022_MAR2023_SUBSET),
+            accredited_stations=ma.ofgem.stations.load_from_dir(data.register.REGO_ACCREDITED_STATIONS_DIR),
+            bmus=ma.elexon.bmus.load(data.register.BMUNITS_SUBSET),
+            bmu_vol_dir=Path("/mocked"),
         )
 
     class ValidationData(TypedDict):
@@ -132,7 +135,7 @@ def test_end_to_end() -> None:
         bmu_net_mw: float
         rego_gwh: float
         bmu_gwh: float
-        volume_ratio_p50: float
+        rego_bmu_monthly_volume_ratio_median: float
 
     expected_mappings = pd.DataFrame(
         [
@@ -146,7 +149,7 @@ def test_end_to_end() -> None:
                     "bmu_net_mw": 2551.067,
                     "rego_gwh": 12425.565,
                     "bmu_gwh": 12577.203,
-                    "volume_ratio_p50": 1.032024,
+                    "rego_bmu_monthly_volume_ratio_median": 1.032024,
                 }
             ),
             ValidationData(
@@ -159,7 +162,7 @@ def test_end_to_end() -> None:
                     "bmu_net_mw": 650.349,
                     "rego_gwh": 2383.633,
                     "bmu_gwh": 2666.114,
-                    "volume_ratio_p50": 0.967947,
+                    "rego_bmu_monthly_volume_ratio_median": 0.967947,
                 }
             ),
             ValidationData(
@@ -172,7 +175,7 @@ def test_end_to_end() -> None:
                     "bmu_net_mw": 810.87,
                     "rego_gwh": 2305.086,
                     "bmu_gwh": 2894.148,
-                    "volume_ratio_p50": 0.797787,
+                    "rego_bmu_monthly_volume_ratio_median": 0.797787,
                 }
             ),
         ]
