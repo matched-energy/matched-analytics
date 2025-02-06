@@ -80,7 +80,6 @@ def map_station_range(
             )
         except Exception as e:
             LOGGER.warning(str(e))
-            break
 
     summary = pd.concat(summaries)
     if mappings_path:
