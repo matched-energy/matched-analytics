@@ -107,6 +107,7 @@ def summarise_profile(generator_profile: dict) -> pd.DataFrame:
         [
             {
                 "rego_name": generator_profile.get("rego_station_name"),
+                "accreditation_number": generator_profile.get("rego_accreditation_number"),
                 "lead_party_name": generator_profile.get("bmu_lead_party_name"),
                 "lead_party_id": generator_profile.get("bmu_lead_party_id"),
                 "rego_technology": generator_profile.get("rego_station_technology"),

@@ -58,4 +58,4 @@ Example invocation
         --bmu-vol-dir ${MATCHED_DATA}/processed/S0142                       \  # BM Metered Volumes, as processed from Elexon S0142 files
         --expected-mappings-file expected_mappings.yaml                     \  # Overrides (see checked in file)
         --mappings-path mappings.csv                                        \  #
-        --abbreviated-mappings-path abbreviated-mappings.csv                \  # Human-readable output
+        --abbreviated-mappings-path abbreviated-mappings.csv                   # Human-readable output

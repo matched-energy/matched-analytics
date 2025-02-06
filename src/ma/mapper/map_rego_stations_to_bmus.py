@@ -9,7 +9,6 @@ import ma.elexon.bmus
 import ma.ofgem.regos
 import ma.ofgem.stations
 from ma.mapper.bmu_helpers import get_matching_bmus_dict, validate_matching_bmus
-from ma.mapper.common import MappingException
 from ma.mapper.filter_on_aggregate_data import appraise_energy_volumes, appraise_rated_power
 from ma.mapper.filter_on_bmu_meta_data import get_matching_bmus
 from ma.mapper.rego_helpers import get_generator_profile
@@ -33,30 +32,24 @@ def map_station(
 
     generator_profile = {}
     matching_bmus = None
-    try:
-        # Get details of a REGO generator
-        generator_profile.update(get_generator_profile(rego_station_name, regos, accredited_stations))
+    # Get details of a REGO generator
+    generator_profile.update(get_generator_profile(rego_station_name, regos, accredited_stations))
 
-        # Add matching BMUs
-        matching_bmus = get_matching_bmus(generator_profile, bmus, expected_mapping)
-        validate_matching_bmus(matching_bmus)
-        generator_profile.update(get_matching_bmus_dict(matching_bmus))
+    # Add matching BMUs
+    matching_bmus = get_matching_bmus(generator_profile, bmus, expected_mapping)
+    validate_matching_bmus(matching_bmus)
+    generator_profile.update(get_matching_bmus_dict(matching_bmus))
 
-        # Appraise rated power
-        generator_profile.update(appraise_rated_power(generator_profile))
+    # Appraise rated power
+    generator_profile.update(appraise_rated_power(generator_profile))
 
-        # Appraise energy volumes
-        generator_profile.update(appraise_energy_volumes(generator_profile, regos, S0142_csv_dir))
+    # Appraise energy volumes
+    generator_profile.update(appraise_energy_volumes(generator_profile, regos, S0142_csv_dir))
 
-        LOGGER.debug("\n" + pprint.pformat(generator_profile, width=100))
-
-    except MappingException as e:
-        LOGGER.warning(str(e))
-        LOGGER.warning("\n" + pprint.pformat(generator_profile, width=100))
-
+    # Return
+    LOGGER.debug("\n" + pprint.pformat(generator_profile, width=100))
     scores = score_mapping(generator_profile)
     profile = summarise_profile(generator_profile)
-
     return pd.concat([profile, scores], axis=1)
 
 
@@ -74,16 +67,20 @@ def map_station_range(
     regos_by_station = ma.ofgem.regos.groupby_station(regos)
     summaries = []
     for i in range(start, stop):
-        summaries.append(
-            map_station(
-                regos_by_station.iloc[i]["station_name"],
-                regos,
-                accredited_stations,
-                bmus,
-                bmu_vol_dir,
-                expected_mappings,
+        try:
+            summaries.append(
+                map_station(
+                    regos_by_station.iloc[i]["station_name"],
+                    regos,
+                    accredited_stations,
+                    bmus,
+                    bmu_vol_dir,
+                    expected_mappings,
+                )
             )
-        )
+        except Exception as e:
+            LOGGER.warning(str(e))
+            break
 
     summary = pd.concat(summaries)
     if mappings_path:
