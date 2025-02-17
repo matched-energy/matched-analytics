@@ -25,19 +25,15 @@ The fuzzy match yields zero, one, or more likely matching BM units.
 See `filter_on_bmu_meta_data.py`
 
 #### 2. Validate against power & energy
-Candidate BM units appraised in terms of:
-- their aggregate power rating, versus the nameplate capacity of the REGO station
-- monthly metered volumes, versus retired REGOs
+Candidate BM units are appraised in terms of:
+- their aggregate power rating, as compared to the nameplate capacity of the REGO station
+- their monthly metered volumes, as compared to monthly REGOs 
 
 See `filter_on_aggregate_data.py`
 
 Mapping score
 ----------
-A qualitative mapping score is given in terms of the match between:
-- registered names
-- min/median/max monthly volumes
-- rated power capacities
-
+A qualitative score summarises how well all the above are matched between REGO station and candidate BMUs.
 The scores given are:
 - `near certain`
 - `very probable`
