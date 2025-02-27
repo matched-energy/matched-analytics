@@ -9,13 +9,14 @@ def select_columns(df: pd.DataFrame, exclude: list) -> pd.DataFrame:
     return df[[col for col in df.columns if col not in exclude]]
 
 
+def DateTimeEngine(dayfirst: bool = True) -> pa.Column:
+    return pa.engines.pandas_engine.DateTime({"dayfirst": dayfirst})
+
+
 class ColumnSchema(TypedDict):
     old_name: NotRequired[str]
     check: NotRequired[Union[pa.Column, pa.Check]]
     keep: NotRequired[bool]
-
-
-DateTimeEngine = pa.engines.pandas_engine.DateTime({"dayfirst": True})
 
 
 def apply_schema(
@@ -32,8 +33,9 @@ def apply_schema(
     df.columns = new_columns
 
     # Validate schema
+    # TODO: Add explanatory note of change to avoid Pylance warning
     pandera_schema = pa.DataFrameSchema(
-        {col: cs["check"] for col, cs in schema.items() if cs.get("check")}, coerce=True
+        {col: cs.get("check") for col, cs in schema.items() if cs.get("check")}, coerce=True
     )
     df = pandera_schema(df)
 
