@@ -3,14 +3,15 @@ from typing import Callable, Dict, NotRequired, Optional, TypedDict, Union
 
 import pandas as pd
 import pandera as pa
+from pandera.engines.pandas_engine import DateTime
 
 
 def select_columns(df: pd.DataFrame, exclude: list) -> pd.DataFrame:
     return df[[col for col in df.columns if col not in exclude]]
 
 
-def DateTimeEngine(dayfirst: bool = True) -> pa.Column:
-    return pa.engines.pandas_engine.DateTime({"dayfirst": dayfirst})
+def DateTimeEngine(dayfirst: bool = True) -> DateTime:
+    return DateTime({"dayfirst": dayfirst})
 
 
 class ColumnSchema(TypedDict):
