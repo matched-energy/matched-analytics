@@ -8,7 +8,7 @@ from ma.utils.pandas import DateTimeEngine as DTE
 
 # fmt: off
 historic_gen_schema_on_load: Dict[str, CS] = dict(
-    datetime            =CS(check=pa.Column(str)),
+    datetime            =CS(check=pa.Column(DTE(dayfirst=False))),
     gas                 =CS(check=pa.Column(int)),
     coal                =CS(check=pa.Column(int)),
     nuclear             =CS(check=pa.Column(int)),

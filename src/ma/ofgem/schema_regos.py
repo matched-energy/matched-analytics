@@ -22,9 +22,9 @@ rego_schema_on_load: Dict[str, CS] = dict(
     certificate_start           =CS(check=pa.Column(str)),
     certificate_end             =CS(check=pa.Column(str)),
     mwh_per_certificate         =CS(check=pa.Column(float)),
-    issue_date                  =CS(check=pa.Column(str)),
+    issue_date                  =CS(check=pa.Column(DTE(dayfirst=True))),
     certificate_status          =CS(check=pa.Column(str)),
-    status_date                 =CS(check=pa.Column(str)),
+    status_date                 =CS(check=pa.Column(DTE(dayfirst=True))),
     current_holder              =CS(check=pa.Column(str)),
     company_registration_number =CS(check=pa.Column(str, nullable=True)),
 )
