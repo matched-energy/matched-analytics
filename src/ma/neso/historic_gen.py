@@ -26,6 +26,8 @@ def download(
 def load(historic_gen_path: Path) -> pd.DataFrame:
     historic_gen = pd.read_csv(historic_gen_path)
     historic_gen = apply_schema(historic_gen, historic_gen_schema_on_load)
+    # Convert datetime column to pandas Timestamp
+    historic_gen["datetime"] = pd.to_datetime(historic_gen["datetime"])
     return historic_gen
 
 
