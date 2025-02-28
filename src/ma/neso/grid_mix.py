@@ -1,7 +1,7 @@
 from pathlib import Path
 from ma.utils.enums import TechEnum
 from ma.utils.pandas import apply_schema
-from ma.neso.schema_historic_gen import historic_gen_schema_on_load
+from ma.neso.schema_grid_mix import grid_mix_schema_on_load
 import pandas as pd
 import data.register
 import httpx
@@ -23,26 +23,26 @@ def download(
     logger.info(f"Downloaded CSV file to {output_file_path}")
 
 
-def load(historic_gen_path: Path) -> pd.DataFrame:
-    historic_gen = pd.read_csv(historic_gen_path)
-    historic_gen = apply_schema(historic_gen, historic_gen_schema_on_load)
-    return historic_gen
+def load(grid_mix_path: Path) -> pd.DataFrame:
+    grid_mix = pd.read_csv(grid_mix_path)
+    grid_mix = apply_schema(grid_mix, grid_mix_schema_on_load)
+    return grid_mix
 
 
-def filter(historic_gen: pd.DataFrame, start_datetime: pd.Timestamp, end_datetime: pd.Timestamp) -> pd.DataFrame:
+def filter(grid_mix: pd.DataFrame, start_datetime: pd.Timestamp, end_datetime: pd.Timestamp) -> pd.DataFrame:
     """
     Filter by start and end datetime, inclusive of the end datetime.
     """
-    return historic_gen[(historic_gen["datetime"] >= start_datetime) & (historic_gen["datetime"] <= end_datetime)]
+    return grid_mix[(grid_mix["datetime"] >= start_datetime) & (grid_mix["datetime"] <= end_datetime)]
 
 
-def groupby_tech_and_month(historic_gen: pd.DataFrame) -> pd.DataFrame:
+def groupby_tech_and_month(grid_mix: pd.DataFrame) -> pd.DataFrame:
     """
     Group by tech and month, and sum the values. Returns MWh per month for each tech.
     """
-    historic_gen = historic_gen.assign(year=historic_gen["datetime"].dt.year, month=historic_gen["datetime"].dt.month)
+    grid_mix = grid_mix.assign(year=grid_mix["datetime"].dt.year, month=grid_mix["datetime"].dt.month)
     return (
-        historic_gen.groupby(["year", "month"])[[t.value for t in TechEnum]].sum() / 2
+        grid_mix.groupby(["year", "month"])[[t.value for t in TechEnum]].sum() / 2
     )  # Divide by 2 because we're converting to MWh
 
 

@@ -2,13 +2,13 @@ import pandas as pd
 from pytest import approx
 
 import data.register
-import ma.neso.historic_gen
+import ma.neso.grid_mix
 from ma.utils.enums import TechEnum
 
 
 def test_load() -> None:
     # Load data using our test function
-    historic_gen = ma.neso.historic_gen.load(data.register.NESO_FUEL_CKAN_CSV_SUBSET)
+    historic_gen = ma.neso.grid_mix.load(data.register.NESO_FUEL_CKAN_CSV_SUBSET)
 
     # Check that data was loaded
     assert len(historic_gen) > 0
@@ -22,7 +22,7 @@ def test_load() -> None:
 
 
 def test_filter() -> None:
-    historic_gen = ma.neso.historic_gen.load(data.register.NESO_FUEL_CKAN_CSV_SUBSET)
+    historic_gen = ma.neso.grid_mix.load(data.register.NESO_FUEL_CKAN_CSV_SUBSET)
 
     # Get min and max dates from the data
     min_date = historic_gen["datetime"].min()
@@ -30,30 +30,30 @@ def test_filter() -> None:
     mid_date = min_date + (max_date - min_date) / 2
 
     # Test filtering for the entire range
-    filtered_all = ma.neso.historic_gen.filter(historic_gen, min_date, max_date)
+    filtered_all = ma.neso.grid_mix.filter(historic_gen, min_date, max_date)
     assert len(filtered_all) == len(historic_gen)
 
     # Test filtering for the first half
-    filtered_first_half = ma.neso.historic_gen.filter(historic_gen, min_date, mid_date)
+    filtered_first_half = ma.neso.grid_mix.filter(historic_gen, min_date, mid_date)
     assert len(filtered_first_half) < len(historic_gen)
     assert filtered_first_half["datetime"].max() <= mid_date
 
     # Test filtering for the second half
-    filtered_second_half = ma.neso.historic_gen.filter(historic_gen, mid_date, max_date)
+    filtered_second_half = ma.neso.grid_mix.filter(historic_gen, mid_date, max_date)
     assert len(filtered_second_half) < len(historic_gen)
     assert filtered_second_half["datetime"].min() >= mid_date
 
     # Test filtering for a non-existent range
     future_date = max_date + pd.Timedelta(days=365)
-    filtered_empty = ma.neso.historic_gen.filter(historic_gen, future_date, future_date + pd.Timedelta(days=1))
+    filtered_empty = ma.neso.grid_mix.filter(historic_gen, future_date, future_date + pd.Timedelta(days=1))
     assert len(filtered_empty) == 0
 
 
 def test_groupby_tech_and_month() -> None:
-    historic_gen = ma.neso.historic_gen.load(data.register.NESO_FUEL_CKAN_CSV_SUBSET)
+    historic_gen = ma.neso.grid_mix.load(data.register.NESO_FUEL_CKAN_CSV_SUBSET)
 
     # Group by tech and month
-    grouped = ma.neso.historic_gen.groupby_tech_and_month(historic_gen)
+    grouped = ma.neso.grid_mix.groupby_tech_and_month(historic_gen)
 
     # Check that the grouping was done correctly
     assert grouped.index.names == ["year", "month"]
@@ -77,11 +77,11 @@ def test_groupby_tech_and_month() -> None:
 
 
 def test_data_specific_values() -> None:
-    historic_gen = ma.neso.historic_gen.load(data.register.NESO_FUEL_CKAN_CSV_SUBSET)
+    historic_gen = ma.neso.grid_mix.load(data.register.NESO_FUEL_CKAN_CSV_SUBSET)
 
     start_date = pd.Timestamp("2009-01-01 00:00:00")
     end_date = pd.Timestamp("2009-01-01 23:30:00")
-    filtered_data = ma.neso.historic_gen.filter(historic_gen, start_date, end_date)
+    filtered_data = ma.neso.grid_mix.filter(historic_gen, start_date, end_date)
 
     # Verify we have expected data for this time period
     assert len(filtered_data) == 48
