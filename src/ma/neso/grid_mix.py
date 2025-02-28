@@ -5,6 +5,7 @@ from ma.neso.schema_grid_mix import grid_mix_schema_on_load
 import pandas as pd
 import data.register
 import httpx
+import argparse
 from ma.utils.io import get_logger
 
 logger = get_logger(__name__)
@@ -47,4 +48,12 @@ def groupby_tech_and_month(grid_mix: pd.DataFrame) -> pd.DataFrame:
 
 
 if __name__ == "__main__":
-    download()
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "output_file_path",
+        nargs="?",
+        type=Path,
+        default=Path(data.register.NESO_FUEL_CKAN_CSV),
+    )
+    args = parser.parse_args()
+    download(args.output_file_path)
