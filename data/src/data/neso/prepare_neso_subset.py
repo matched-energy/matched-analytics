@@ -5,12 +5,11 @@ from pathlib import Path
 import data.register
 
 
-def get_subset(path: Path, output_path: Path) -> pd.DataFrame:
+def get_subset(path: Path, output_path: Path) -> None:
     df = pd.read_csv(path)
-    # trim to first 17521 rows (i.e. 2009's data)
-    df = df.iloc[:17521]
-    df.to_csv(output_path, index=False)
-    return df
+    df["DATETIME"] = pd.to_datetime(df["DATETIME"])
+    filtered_df = df[(df["DATETIME"] >= pd.Timestamp("2024-01-01")) & (df["DATETIME"] < pd.Timestamp("2024-01-04"))]
+    filtered_df.to_csv(output_path, index=False)
 
 
 if __name__ == "__main__":
