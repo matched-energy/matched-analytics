@@ -1,7 +1,7 @@
 from pathlib import Path
 from ma.utils.enums import TechEnum
 from ma.utils.pandas import apply_schema
-from ma.neso.schema_grid_mix import grid_mix_schema_on_load
+from ma.neso.schema_grid_mix import grid_mix_schema_on_load, transform_grid_mix_schema
 import pandas as pd
 import data.register
 import httpx
@@ -24,27 +24,34 @@ def download(
     logger.info(f"Downloaded CSV file to {output_file_path}")
 
 
-def load(grid_mix_path: Path) -> pd.DataFrame:
+def load(grid_mix_path: Path = Path(data.register.NESO_FUEL_CKAN_CSV)) -> pd.DataFrame:
     grid_mix = pd.read_csv(grid_mix_path)
-    grid_mix = apply_schema(grid_mix, grid_mix_schema_on_load)
+    grid_mix = apply_schema(grid_mix, grid_mix_schema_on_load, transform_grid_mix_schema)
     return grid_mix
 
 
 def filter(grid_mix: pd.DataFrame, start_datetime: pd.Timestamp, end_datetime: pd.Timestamp) -> pd.DataFrame:
     """
-    Filter by start and end datetime, inclusive of the end datetime.
+    Filter by start and end datetime, exclusive of the end datetime.
     """
-    return grid_mix[(grid_mix["datetime"] >= start_datetime) & (grid_mix["datetime"] <= end_datetime)]
+    # Use direct loc slicing on datetime index for more intuitive filtering
+    return (
+        grid_mix.loc[start_datetime:end_datetime].iloc[:-1]
+        if end_datetime in grid_mix.index
+        else grid_mix.loc[start_datetime:end_datetime]
+    )
 
 
 def groupby_tech_and_month(grid_mix: pd.DataFrame) -> pd.DataFrame:
     """
     Group by tech and month, and sum the values. Returns MWh per month for each tech.
     """
+    # Use index for extracting year and month attributes
+    grid_mix = grid_mix.reset_index()
     grid_mix = grid_mix.assign(year=grid_mix["datetime"].dt.year, month=grid_mix["datetime"].dt.month)
-    return (
-        grid_mix.groupby(["year", "month"])[[t.value for t in TechEnum]].sum() / 2
-    )  # Divide by 2 because we're converting to MWh
+    # save to csv
+
+    return grid_mix.groupby(["year", "month"])[[t.value for t in TechEnum]].sum()
 
 
 if __name__ == "__main__":

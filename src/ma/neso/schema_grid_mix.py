@@ -1,7 +1,9 @@
 from typing import Dict
 
+import pandas as pd
 import pandera as pa
 
+from ma.utils.enums import TechEnum
 from ma.utils.pandas import ColumnSchema as CS
 from ma.utils.pandas import DateTimeEngine as DTE
 
@@ -41,3 +43,12 @@ grid_mix_schema_on_load: Dict[str, CS] = dict(
     fossil_perc         =CS(check=pa.Column(float)),
 )
 # fmt: on
+
+
+def transform_grid_mix_schema(grid_mix: pd.DataFrame) -> pd.DataFrame:
+    grid_mix = grid_mix.copy()
+    tech_columns = [t.value for t in TechEnum]
+    grid_mix[tech_columns] = grid_mix[tech_columns] / 2  # convert from MW to MWh
+    # Set datetime as index for easier timeseries operations
+    grid_mix = grid_mix.set_index("datetime")
+    return grid_mix
