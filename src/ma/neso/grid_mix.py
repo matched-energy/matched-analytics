@@ -12,7 +12,7 @@ logger = get_logger(__name__)
 
 
 def download(
-    output_file_path: Path = Path(data.register.NESO_FUEL_CKAN_CSV),
+    output_file_path: Path,
 ) -> None:
     csv_url = "https://api.neso.energy/dataset/88313ae5-94e4-4ddc-a790-593554d8c6b9/resource/f93d1835-75bc-43e5-84ad-12472b180a98/download/df_fuel_ckan.csv"
 
@@ -24,7 +24,7 @@ def download(
     logger.info(f"Downloaded CSV file to {output_file_path}")
 
 
-def load(grid_mix_path: Path = Path(data.register.NESO_FUEL_CKAN_CSV)) -> pd.DataFrame:
+def load(grid_mix_path: Path) -> pd.DataFrame:
     grid_mix = pd.read_csv(grid_mix_path)
     grid_mix = apply_schema(grid_mix, grid_mix_schema_on_load, transform_grid_mix_schema)
     return grid_mix
@@ -34,7 +34,6 @@ def filter(grid_mix: pd.DataFrame, start_datetime: pd.Timestamp, end_datetime: p
     """
     Filter by start and end datetime, exclusive of the end datetime.
     """
-    # Ensure grid_mix has a datetime index
     if not isinstance(grid_mix.index, pd.DatetimeIndex):
         raise TypeError("grid_mix must have a DatetimeIndex")
 
@@ -61,7 +60,6 @@ if __name__ == "__main__":
         "output_file_path",
         nargs="?",
         type=Path,
-        default=Path(data.register.NESO_FUEL_CKAN_CSV),
     )
     args = parser.parse_args()
     download(args.output_file_path)
