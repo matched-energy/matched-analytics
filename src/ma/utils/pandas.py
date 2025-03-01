@@ -35,7 +35,6 @@ def apply_schema(
     df.columns = new_columns
 
     # Validate schema
-    # TODO: Add explanatory note of change to avoid Pylance warning
     pandera_schema = pa.DataFrameSchema(
         {col: cs.get("check") for col, cs in schema.items() if cs.get("check")}, coerce=True
     )
