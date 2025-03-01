@@ -3,7 +3,6 @@ from ma.utils.enums import TechEnum
 from ma.utils.pandas import apply_schema
 from ma.neso.schema_grid_mix import grid_mix_schema_on_load, transform_grid_mix_schema
 import pandas as pd
-import data.register
 import httpx
 import argparse
 from ma.utils.io import get_logger
@@ -37,7 +36,6 @@ def filter(grid_mix: pd.DataFrame, start_datetime: pd.Timestamp, end_datetime: p
     if not isinstance(grid_mix.index, pd.DatetimeIndex):
         raise TypeError("grid_mix must have a DatetimeIndex")
 
-    # Use pandas' built-in datetime functionality with pd.DatetimeIndex
     filtered_grid_mix = grid_mix[(grid_mix.index >= start_datetime) & (grid_mix.index < end_datetime)]
     return filtered_grid_mix
 
@@ -46,11 +44,8 @@ def groupby_tech_and_month(grid_mix: pd.DataFrame) -> pd.DataFrame:
     """
     Group by tech and month, and sum the values. Returns MWh per month for each tech.
     """
-    # Use index for extracting year and month attributes
     grid_mix = grid_mix.reset_index()
     grid_mix = grid_mix.assign(year=grid_mix["datetime"].dt.year, month=grid_mix["datetime"].dt.month)
-    # save to csv
-
     return grid_mix.groupby(["year", "month"])[[t.value for t in TechEnum]].sum()
 
 
