@@ -34,12 +34,13 @@ def filter(grid_mix: pd.DataFrame, start_datetime: pd.Timestamp, end_datetime: p
     """
     Filter by start and end datetime, exclusive of the end datetime.
     """
-    # Use direct loc slicing on datetime index for more intuitive filtering
-    return (
-        grid_mix.loc[start_datetime:end_datetime].iloc[:-1]
-        if end_datetime in grid_mix.index
-        else grid_mix.loc[start_datetime:end_datetime]
-    )
+    # Ensure grid_mix has a datetime index
+    if not isinstance(grid_mix.index, pd.DatetimeIndex):
+        raise TypeError("grid_mix must have a DatetimeIndex")
+
+    # Use pandas' built-in datetime functionality with pd.DatetimeIndex
+    filtered_grid_mix = grid_mix[(grid_mix.index >= start_datetime) & (grid_mix.index < end_datetime)]
+    return filtered_grid_mix
 
 
 def groupby_tech_and_month(grid_mix: pd.DataFrame) -> pd.DataFrame:

@@ -11,7 +11,10 @@ def select_columns(df: pd.DataFrame, exclude: list) -> pd.DataFrame:
 
 
 def DateTimeEngine(dayfirst: bool = True) -> pandas_engine.DateTime:
-    return pandas_engine.DateTime(to_datetime_kwargs={"dayfirst": dayfirst})
+    # Create a DateTime object with to_datetime_kwargs directly
+    # This is the correct way to initialize the DateTime class
+    # mypy doesn't recognize to_datetime_kwargs as a valid parameter, but it is at runtime
+    return pandas_engine.DateTime(to_datetime_kwargs={"dayfirst": dayfirst})  # type: ignore
 
 
 class ColumnSchema(TypedDict):
