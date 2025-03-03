@@ -3,8 +3,7 @@ from pathlib import Path
 import pandas as pd
 
 from ma.mapper.bmu_helpers import get_bmu_volume_stats, get_bmu_volumes_by_month
-from ma.mapper.rego_helpers import get_rego_station_volume_stats
-from ma.ofgem.regos import get_rego_station_volume_by_month
+from ma.mapper.rego_helpers import get_rego_station_volume_by_month, get_rego_station_volume_stats
 
 
 def appraise_rated_power(generator_profile: dict) -> dict:
