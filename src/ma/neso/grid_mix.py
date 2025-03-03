@@ -46,7 +46,7 @@ def groupby_tech_and_month(grid_mix: pd.DataFrame) -> pd.DataFrame:
     """
     grid_mix = grid_mix.reset_index()
     grid_mix = grid_mix.assign(year=grid_mix["datetime"].dt.year, month=grid_mix["datetime"].dt.month)
-    return grid_mix.groupby(["year", "month"])[[t.value for t in ProductionTechEnum]].sum()
+    return grid_mix.groupby(["year", "month"])[[f"{t.value}_mwh" for t in ProductionTechEnum]].sum()
 
 
 if __name__ == "__main__":

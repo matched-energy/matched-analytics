@@ -9,7 +9,7 @@ from ma.utils.pandas import DateTimeEngine as DTE
 
 # fmt: off
 grid_mix_schema_on_load: Dict[str, CS] = dict(
-    datetime            =CS(check=pa.Column(DTE(dayfirst=False)), ),
+    datetime            =CS(check=pa.Column(DTE(dayfirst=False)), keep=True),
     gas                 =CS(check=pa.Column(int), keep=True),
     coal                =CS(check=pa.Column(int), keep=True),
     nuclear             =CS(check=pa.Column(int), keep=True),
@@ -49,6 +49,7 @@ def transform_grid_mix_schema(grid_mix: pd.DataFrame) -> pd.DataFrame:
     grid_mix = grid_mix.copy()
     tech_columns = [t.value for t in ProductionTechEnum]
     grid_mix[tech_columns] = grid_mix[tech_columns] / 2  # convert from MW to MWh
+    grid_mix.columns = pd.Index([f"{col}_mwh" if col in tech_columns else col for col in grid_mix.columns])
 
     # Set datetime as index for easier timeseries operations
     grid_mix = grid_mix.set_index("datetime")

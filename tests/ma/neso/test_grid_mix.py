@@ -13,8 +13,8 @@ def test_groupby_tech_and_month() -> None:
     assert grouped.index.names == ["year", "month"]
 
     for tech in ProductionTechEnum:
-        assert tech.value in grouped.columns
+        assert f"{tech.value}_mwh" in grouped.columns
 
     expected_gas_sum = 538611.5  # Sum of gas column subset in Excel, divided by 2 to convert to MWH as load() does
-    jan_2024_gas = grouped.loc[(2024, 1), "gas"]
+    jan_2024_gas = grouped.loc[(2024, 1), "gas_mwh"]
     assert jan_2024_gas == approx(expected_gas_sum)
