@@ -16,7 +16,7 @@ def test_load() -> None:
         ["Drax Power Station (REGO)", "Triton Knoll Offshore Windfarm", "Walney Extension"]
     )
     assert set(regos["technology_group"]) == set(["Biomass", "Off-shore Wind"])
-    assert set(regos["tech_simple"]) == set(["BIOMASS", "WIND"])
+    assert set(regos["tech_simple"]) == set(["biomass", "wind"])
     assert regos["rego_gwh"].sum() == approx(17114.284)
 
 
@@ -45,7 +45,7 @@ def test_groupby_station() -> None:
     regos_grouped = ma.ofgem.regos.groupby_station(regos)
     assert len(regos_grouped) == 3
     assert regos_grouped["rego_gwh"].sum() == approx(17114.284)
-    assert set(regos_grouped["tech_simple"]) == set(["BIOMASS", "WIND"])
+    assert set(regos_grouped["tech_simple"]) == set(["biomass", "wind"])
 
 
 def test_groupby_station_NON_UNIQUE() -> None:
@@ -54,4 +54,3 @@ def test_groupby_station_NON_UNIQUE() -> None:
     regos_cp["tech_simple"] = "☀️"
     with pytest.raises(AssertionError):
         ma.ofgem.regos.groupby_station(pd.concat([regos, regos_cp], axis=0))
-
