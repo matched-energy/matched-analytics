@@ -1,8 +1,9 @@
 # Get a subset of the NEOS data
 
+from data.register import NESO_FUEL_CKAN_CSV_SUBSET
 import pandas as pd
 from pathlib import Path
-import data.register
+import argparse
 
 
 def get_subset(path: Path, output_path: Path) -> None:
@@ -13,4 +14,10 @@ def get_subset(path: Path, output_path: Path) -> None:
 
 
 if __name__ == "__main__":
-    get_subset(data.register.NESO_FUEL_CKAN_CSV, data.register.NESO_FUEL_CKAN_CSV_SUBSET)
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--input_path", type=str, required=True, help="Path to the input CSV file")
+    parser.add_argument(
+        "--output_path", type=str, default=str(NESO_FUEL_CKAN_CSV_SUBSET), help="Path to the output CSV file"
+    )
+    args = parser.parse_args()
+    get_subset(Path(args.input_path), Path(args.output_path))
