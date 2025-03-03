@@ -2,7 +2,7 @@ from pytest import approx
 
 import data.register
 import ma.neso.grid_mix
-from ma.utils.enums import TechEnum
+from ma.utils.enums import ProductionTechEnum
 
 
 def test_groupby_tech_and_month() -> None:
@@ -11,7 +11,8 @@ def test_groupby_tech_and_month() -> None:
 
     # Check that the grouping was done correctly, and all tech columns exist
     assert grouped.index.names == ["year", "month"]
-    for tech in TechEnum:
+
+    for tech in ProductionTechEnum:
         assert tech.value in grouped.columns
 
     expected_gas_sum = 538611.5  # Sum of gas column subset in Excel, divided by 2 to convert to MWH as load() does

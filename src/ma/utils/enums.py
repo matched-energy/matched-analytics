@@ -4,7 +4,7 @@
 from enum import Enum
 
 
-class TechEnum(Enum):
+class ProductionTechEnum(Enum):
     GAS = "gas"
     COAL = "coal"
     NUCLEAR = "nuclear"
@@ -15,4 +15,3 @@ class TechEnum(Enum):
     OTHER = "other"
     SOLAR = "solar"
     STORAGE = "storage"
-    GENERATION = "generation"
