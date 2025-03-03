@@ -54,3 +54,28 @@ def test_groupby_station_NON_UNIQUE() -> None:
     regos_cp["tech_simple"] = "☀️"
     with pytest.raises(AssertionError):
         ma.ofgem.regos.groupby_station(pd.concat([regos, regos_cp], axis=0))
+
+
+def test_groupby_tech_month_holder() -> None:
+    regos = ma.ofgem.regos.load(data.register.REGOS_APR2022_MAR2023_SUBSET)
+    filtered_regos = ma.ofgem.regos.filter(regos, holders=["British Gas Trading Ltd"])
+    result = ma.ofgem.regos.groupby_tech_month_holder(filtered_regos)
+
+    # check shape
+    assert set(result["tech_simple"]) == set(["biomass", "wind"])
+    assert len(result) == 9
+
+    # check values
+    biomass_2022_04 = result[(result["tech_simple"] == "biomass") & (result.index == pd.Period("2022-04"))][
+        "rego_gwh"
+    ].values[0]
+    biomass_2023_03 = result[(result["tech_simple"] == "biomass") & (result.index == pd.Period("2023-03"))][
+        "rego_gwh"
+    ].values[0]
+    wind_2023_03 = result[(result["tech_simple"] == "wind") & (result.index == pd.Period("2023-03"))][
+        "rego_gwh"
+    ].values[0]
+
+    assert biomass_2022_04 == 37.199
+    assert biomass_2023_03 == 500.000
+    assert wind_2023_03 == 314.075

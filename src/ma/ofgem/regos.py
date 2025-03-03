@@ -71,3 +71,27 @@ def groupby_station(regos: pd.DataFrame) -> pd.DataFrame:
     regos_by_station["percentage_of_whole"] = regos_by_station["rego_gwh"] / regos_by_station["rego_gwh"].sum() * 100
 
     return regos_by_station.reset_index()
+
+
+def groupby_tech_month_holder(regos: pd.DataFrame) -> pd.DataFrame:
+    required_columns = ["tech_simple", "period_start", "current_holder", "rego_gwh", "station_name"]
+    missing_columns = [col for col in required_columns if col not in regos.columns]
+    if missing_columns:
+        raise ValueError(f"Missing required columns: {missing_columns}")
+
+    # Extract month from period_start for grouping
+    regos = regos.copy()
+    regos["month"] = regos["period_start"].dt.to_period("M")
+
+    # Groupby tech, month, and holder
+    regos_by_tech_month_holder = (
+        regos.groupby(["tech_simple", "month", "current_holder"])
+        .agg(
+            rego_gwh=("rego_gwh", "sum"),
+            station_count=("station_name", "nunique"),
+        )
+        .sort_values(by=["tech_simple", "month", "current_holder"])
+    )
+
+    results = regos_by_tech_month_holder.reset_index().set_index("month")
+    return results
