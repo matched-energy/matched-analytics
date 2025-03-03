@@ -15,3 +15,8 @@ BMUNITS_SUBSET = DIR_ELEXON / "bmunits_SUBSET.json"
 DIR_OFGEM = DATA_DIR_ROOT / "ofgem"
 REGOS_APR2022_MAR2023_SUBSET = DIR_OFGEM / "regos_apr2022_mar2023_SUBSET.csv"
 REGO_ACCREDITED_STATIONS_DIR = DIR_OFGEM / "rego_accredited_stations"
+
+
+### NESO
+DIR_NESO = DATA_DIR_ROOT / "neso"
+NESO_FUEL_CKAN_CSV_SUBSET = DIR_NESO / "df_fuel_ckan_subset.csv"

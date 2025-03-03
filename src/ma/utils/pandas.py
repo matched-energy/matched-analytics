@@ -3,19 +3,22 @@ from typing import Callable, Dict, NotRequired, Optional, TypedDict, Union
 
 import pandas as pd
 import pandera as pa
+from pandera.engines import pandas_engine
 
 
 def select_columns(df: pd.DataFrame, exclude: list) -> pd.DataFrame:
     return df[[col for col in df.columns if col not in exclude]]
 
 
+def DateTimeEngine(dayfirst: bool = True) -> pandas_engine.DateTime:
+    # mypy doesn't recognize to_datetime_kwargs as a valid parameter, but it is at runtime
+    return pandas_engine.DateTime(to_datetime_kwargs={"dayfirst": dayfirst})  # type: ignore
+
+
 class ColumnSchema(TypedDict):
     old_name: NotRequired[str]
     check: NotRequired[Union[pa.Column, pa.Check]]
     keep: NotRequired[bool]
-
-
-DateTimeEngine = pa.engines.pandas_engine.DateTime({"dayfirst": True})
 
 
 def apply_schema(
@@ -33,7 +36,7 @@ def apply_schema(
 
     # Validate schema
     pandera_schema = pa.DataFrameSchema(
-        {col: cs["check"] for col, cs in schema.items() if cs.get("check")}, coerce=True
+        {col: cs.get("check") for col, cs in schema.items() if cs.get("check")}, coerce=True
     )
     df = pandera_schema(df)
 
