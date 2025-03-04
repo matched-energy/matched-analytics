@@ -35,9 +35,7 @@ rego_schema_on_load: Dict[str, CS] = dict(
 def transform_regos_schema(regos_raw: pd.DataFrame) -> pd.DataFrame:
     regos = regos_raw.copy()
     regos["rego_gwh"] = regos["mwh_per_certificate"] * regos["certificate_count"] / 1e3
-    regos["tech_simple"] = regos["technology_group"].map(
-        {k: v.value for k, v in rego_simplified_tech_categories.items()}
-    )
+    regos["tech_simple"] = regos["technology_group"].map(rego_simplified_tech_categories)
     regos = add_output_period_columns(regos)
     return regos
 
