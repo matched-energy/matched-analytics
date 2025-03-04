@@ -74,11 +74,6 @@ def groupby_station(regos: pd.DataFrame) -> pd.DataFrame:
 
 
 def groupby_tech_month_holder(regos: pd.DataFrame) -> pd.DataFrame:
-    required_columns = ["tech_simple", "period_start", "current_holder", "rego_gwh", "station_name"]
-    missing_columns = [col for col in required_columns if col not in regos.columns]
-    if missing_columns:
-        raise ValueError(f"Missing required columns: {missing_columns}")
-
     # Extract month from period_start for grouping
     regos = regos.copy()
     regos["month"] = regos["period_start"].dt.to_period("M")
