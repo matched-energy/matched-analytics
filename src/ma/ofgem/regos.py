@@ -84,7 +84,6 @@ def groupby_tech_month_holder(regos: pd.DataFrame) -> pd.DataFrame:
     regos["month"] = regos["period_start"].dt.to_period("M")
 
     # Groupby tech, month, and holder
-    # TODO: Explore rego holder -> supplier mapping
     regos_by_tech_month_holder = (
         regos.groupby(["tech_simple", "month", "current_holder"])
         .agg(
