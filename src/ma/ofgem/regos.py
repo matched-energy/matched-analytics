@@ -1,38 +1,50 @@
 from pathlib import Path
-from typing import List, Optional
+from typing import Optional, List
 
 import numpy as np
 import pandas as pd
 
+from ma.ofgem.enums import RegoCompliancePeriod, RegoScheme, RegoStatus
 from ma.ofgem.schema_regos import rego_schema_on_load, transform_regos_schema
 from ma.utils.pandas import apply_schema
 
 
 def load(
     regos_path: Path,
-    holders: Optional[List[str]] = None,
-    statuses: Optional[List[str]] = ["Redeemed"],
-    schemes: Optional[List[str]] = ["REGO"],
+    holders: Optional[list[str]] = None,
+    statuses: Optional[list[RegoStatus]] = [RegoStatus.REDEEMED],
+    schemes: Optional[list[RegoScheme]] = [RegoScheme.REGO],
+    reporting_period: Optional[RegoCompliancePeriod] = None,
 ) -> pd.DataFrame:
     regos = pd.read_csv(regos_path, skiprows=4, header=None)
     regos = apply_schema(regos, rego_schema_on_load, transform_regos_schema)
-    regos = filter(regos, holders=holders, statuses=statuses, schemes=schemes)
+    regos = filter(regos, holders=holders, statuses=statuses, schemes=schemes, reporting_period=reporting_period)
     return regos
 
 
 def filter(
     regos: pd.DataFrame,
-    holders: Optional[List[str]] = None,
-    statuses: Optional[List[str]] = None,  # "Redeemed",
-    schemes: Optional[List[str]] = None,  # "REGO",
+    holders: Optional[list[str]] = None,
+    statuses: Optional[list[RegoStatus]] = None,
+    schemes: Optional[list[RegoScheme]] = [RegoScheme.REGO],
+    reporting_period: Optional[RegoCompliancePeriod] = None,
 ) -> pd.DataFrame:
     filters = []
     if holders:
         filters.append((regos["current_holder"].isin(holders)))
+
     if statuses:
         filters.append(regos["certificate_status"].isin(statuses))
+
     if schemes:
         filters.append(regos["scheme"].isin(schemes))
+
+    if reporting_period:
+        start_date, end_date = reporting_period.date_range
+        period_start = pd.Timestamp(start_date)
+        period_end = pd.Timestamp(end_date)
+        period_filter = (regos["period_start"] >= period_start) & (regos["period_end"] <= period_end)
+        filters.append(period_filter)
 
     if not filters:
         return regos

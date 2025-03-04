@@ -5,6 +5,7 @@ import pytest
 from pytest import approx
 
 import data.register
+from ma.ofgem.enums import RegoCompliancePeriod, RegoStatus
 import ma.ofgem.regos
 
 
@@ -27,17 +28,36 @@ def test_load_NON_DEFAULT_FILTERING() -> None:
     )
 
     assert (
-        len(ma.ofgem.regos.load(data.register.REGOS_APR2022_MAR2023_SUBSET, holders=None, statuses=["Redeemed"])) == 220
+        len(
+            ma.ofgem.regos.load(
+                data.register.REGOS_APR2022_MAR2023_SUBSET, holders=None, statuses=[RegoStatus.REDEEMED]
+            )
+        )
+        == 220
     )
 
     assert (
         len(
             ma.ofgem.regos.load(
-                data.register.REGOS_APR2022_MAR2023_SUBSET, holders=None, statuses=["Issued", "Retired", "Expired"]
+                data.register.REGOS_APR2022_MAR2023_SUBSET,
+                holders=None,
+                statuses=[RegoStatus.ISSUED, RegoStatus.RETIRED, RegoStatus.EXPIRED],
             )
         )
         == 107
     )
+
+
+def test_filter_reporting_period() -> None:
+    regos = ma.ofgem.regos.load(data.register.REGOS_APR2022_MAR2023_SUBSET)
+    regos_filtered = ma.ofgem.regos.filter(regos, reporting_period=RegoCompliancePeriod.CP20)
+    assert len(regos_filtered) == 0  # no regos with period_start in Apr 2021 in the subset
+
+    # Create new df and insert a new row for CP20 (Apr 2021-Mar 2022)
+    new_row = regos.iloc[0].copy()
+    new_row["period_start"], new_row["period_end"] = pd.Timestamp("2021-04-01"), pd.Timestamp("2022-03-31")
+    regos_filtered = ma.ofgem.regos.filter(pd.DataFrame([new_row]), reporting_period=RegoCompliancePeriod.CP20)
+    assert len(regos_filtered) == 1
 
 
 def test_groupby_station() -> None:
