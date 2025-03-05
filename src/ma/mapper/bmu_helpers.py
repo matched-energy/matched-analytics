@@ -4,7 +4,7 @@ from typing import Dict
 
 import pandas as pd
 
-import ma.elexon.S0142.bmu_vols
+import ma.elexon.metering_data
 from ma.mapper.common import MappingException
 
 
@@ -29,7 +29,7 @@ def get_bmu_volumes_by_month(
     bm_ids: list,
     S0142_csv_dir: Path,
 ) -> pd.DataFrame:
-    half_hourly_vols = ma.elexon.S0142.bmu_vols.process_directory(
+    half_hourly_vols = ma.elexon.metering_data.process_directory(
         input_dir=S0142_csv_dir / Path(bsc_lead_party_id),
         bsc_lead_party_id=bsc_lead_party_id,
         bm_regex=None,
