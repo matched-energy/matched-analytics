@@ -1,10 +1,12 @@
 import logging
+import os
 import sys
 from pathlib import Path
 from typing import Dict, Union
 
 import numpy as np
 import yaml
+from dotenv import load_dotenv
 from yaml import Dumper, ScalarNode
 
 
@@ -58,3 +60,11 @@ def to_yaml_text(dictionary: Dict) -> str:
 def to_yaml_file(dictionary: Dict, path: Path) -> None:
     with open(path, "w") as file:
         file.write(to_yaml_text(dictionary))
+
+
+def get_dot_env(key: str) -> str:
+    load_dotenv()
+    value = os.getenv(key, None)
+    if value is None:
+        raise Exception(f".env key {key} is None")
+    return value
