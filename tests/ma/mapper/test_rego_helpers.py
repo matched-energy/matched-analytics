@@ -22,7 +22,7 @@ def test_get_rego_station_volume_by_month() -> None:
     assert len(volumes_by_month) == 12
 
     # 6 months
-    regos_half_year = regos[regos["period_start"].dt.month <= 6]
+    regos_half_year = regos[regos["start_year_month"].dt.month <= 6]
     volumes_by_month = ma.mapper.rego_helpers.get_rego_station_volume_by_month(
         regos_half_year, "Drax Power Station (REGO)"
     )
