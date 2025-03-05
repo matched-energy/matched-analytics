@@ -68,7 +68,7 @@ def get_bsc_df(
     return bsc_df.rename(columns=column_map)
 
 
-def get_bsc_df_map(S0142_df: pd.DataFrame, bsc_party_ids: list[str]) -> Generator[Tuple[str, pd.DataFrame]]:
+def get_bsc_df_map(S0142_df: pd.DataFrame, bsc_party_ids: list[str]) -> Generator[Tuple[str, pd.DataFrame], None, None]:
     for row_number, row in enumerate(S0142_df.iterrows()):
         row_data = row[1]
         if row_data[0] == "BPH":  # Look for BPH section
@@ -80,7 +80,7 @@ def get_bsc_df_map(S0142_df: pd.DataFrame, bsc_party_ids: list[str]) -> Generato
                 yield bsc_party_id, bsc_df
 
 
-def process_file(input_path: Path, bsc_party_ids: list[str]) -> Generator[Tuple[str, pd.DataFrame]]:
+def process_file(input_path: Path, bsc_party_ids: list[str]) -> Generator[Tuple[str, pd.DataFrame], None, None]:
     df = pd.read_csv(
         input_path,
         compression="gzip",
