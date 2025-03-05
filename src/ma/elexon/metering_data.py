@@ -1,12 +1,14 @@
+import argparse
 import os
-import sys
 from pathlib import Path
 from typing import Optional
 
 import numpy as np
 import pandas as pd
+import plotly.graph_objects as go
 
-from ma.elexon.S0142.schema_bmu_vols import bmu_vols_schema_on_load, transform_bmu_vols_schema
+from ma.elexon.schema_metering_data import bmu_vols_schema_on_load, transform_bmu_vols_schema
+from ma.utils.misc import truncate_string
 from ma.utils.pandas import apply_schema
 
 
@@ -77,5 +79,38 @@ def process_directory(
     return concatenated_df
 
 
+def get_fig(metering_data: pd.DataFrame) -> go.Figure:
+    fig = go.Figure()
+
+    for bm_unit_id in metering_data["bm_unit_id"].unique():
+        bm_unit_data = metering_data[metering_data["bm_unit_id"] == bm_unit_id]
+
+        fig.add_trace(
+            go.Scatter(
+                x=bm_unit_data["settlement_datetime"],
+                y=bm_unit_data["bm_unit_metered_volume_mwh"],
+                mode="lines",
+                name=truncate_string(bm_unit_id),
+            )
+        )
+
+    fig.update_layout(
+        plot_bgcolor="white",
+        paper_bgcolor="white",
+        xaxis=dict(showgrid=False),
+        yaxis=dict(showgrid=False),
+        title="bm_unit_metered_volume vs settlement_datetime",
+        showlegend=True,
+    )
+
+    return fig
+
+
 if __name__ == "__main__":
-    process_directory(input_dir=Path(sys.argv[1]), bsc_lead_party_id=sys.argv[2], output_path=Path(sys.argv[3]))
+    parser = argparse.ArgumentParser()
+    parser.add_argument("input_dir", type=Path)
+    parser.add_argument("bsc_lead_party_id", type=str)
+    parser.add_argument("output_path", type=Path)
+    args = parser.parse_args()
+
+    process_directory(input_dir=args.input_dir, bsc_lead_party_id=args.bsc_lead_party_id, output_path=args.output_path)
