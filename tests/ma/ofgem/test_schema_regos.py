@@ -1,8 +1,8 @@
 from typing import List, TypedDict
 
 import pandas as pd
+import pytest
 
-import data.register
 import ma.ofgem.regos
 from ma.ofgem.schema_regos import add_output_period_columns, parse_date_range, rego_schema_on_load
 from ma.utils.pandas import apply_schema
@@ -59,6 +59,22 @@ def test_parse_data_range_EXPECTED_FORMAT() -> None:
     """
     regos = ma.ofgem.regos.load(SUBSET)
     assert regos[~regos["output_period"].str.contains(" - |-|/", na=False)].empty
+
+
+def test_parse_output_period_NON_FIRST_OR_LAST_DAY_OF_MONTH() -> None:
+    regos_raw = pd.read_csv(SUBSET, skiprows=4, header=None)
+    regos_raw.columns = pd.Index(rego_schema_on_load.keys())
+    regos_raw["output_period"] = "02/04/2022 - 30/04/2022"
+    with pytest.raises(ValueError):
+        add_output_period_columns(regos_raw)
+
+    regos_raw["output_period"] = "01/04/2022 - 2/04/2022"
+    with pytest.raises(ValueError):
+        add_output_period_columns(regos_raw)
+
+    regos_raw["output_period"] = "01/04/2022 - 30/04/2022"
+    regos = add_output_period_columns(regos_raw)
+    assert len(regos) == len(regos_raw)
 
 
 def test_parse_output_period() -> None:
