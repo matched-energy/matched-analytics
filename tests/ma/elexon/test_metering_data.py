@@ -12,7 +12,7 @@ def wrapper_process_directory(
     bm_regex: Optional[str] = None,
     bm_ids: Optional[List[str]] = None,
 ) -> pd.DataFrame:
-    bm_vols = metering_data.process_directory(
+    bm_vols = metering_data.load_dir(
         input_dir=data.register.S0142_CSV_DIR,
         bsc_lead_party_id="GOLD",
         aggregate_bms=aggregate_bms,

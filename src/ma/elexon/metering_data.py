@@ -34,7 +34,7 @@ def segregate_import_exports(df: pd.DataFrame) -> pd.DataFrame:
     return updated_df
 
 
-def load(
+def load_file(
     file_path: Path,
     bm_regex: Optional[str] = "^2__",
     bm_ids: Optional[list] = None,
@@ -49,34 +49,23 @@ def load(
     return bmu_vols
 
 
-def process_directory(
+def load_dir(
     input_dir: Path,
     bsc_lead_party_id: str,
     bm_regex: Optional[str] = "^2__",
     bm_ids: Optional[list] = None,
     aggregate_bms: bool = True,
-    prefixes: Optional[list[str]] = None,
-    output_path: Optional[Path] = None,
+    filename_prefixes: Optional[list[str]] = None,
 ) -> pd.DataFrame:
-    # Process all files
     all_bmu_vols = [
-        load(input_dir / entry.name, bm_regex=bm_regex, bm_ids=bm_ids, aggregate_bms=aggregate_bms)
+        load_file(input_dir / entry.name, bm_regex=bm_regex, bm_ids=bm_ids, aggregate_bms=aggregate_bms)
         for entry in os.scandir(input_dir)
         if entry.is_file()
         and entry.name.endswith(".csv")
         and bsc_lead_party_id in entry.name
-        and (prefixes is None or any(entry.name.startswith(p) for p in prefixes))
+        and (filename_prefixes is None or any(entry.name.startswith(p) for p in filename_prefixes))
     ]
-
-    # Concatenate
-    concatenated_df = pd.concat(all_bmu_vols).sort_values("settlement_datetime")
-
-    # Persist
-    if output_path:
-        concatenated_df.to_csv(output_path, index=False)
-
-    # Return
-    return concatenated_df
+    return pd.concat(all_bmu_vols).sort_values("settlement_datetime")
 
 
 def get_fig(metering_data: pd.DataFrame) -> go.Figure:
@@ -113,4 +102,5 @@ if __name__ == "__main__":
     parser.add_argument("output_path", type=Path)
     args = parser.parse_args()
 
-    process_directory(input_dir=args.input_dir, bsc_lead_party_id=args.bsc_lead_party_id, output_path=args.output_path)
+    metering_data = load_dir(input_dir=args.input_dir, bsc_lead_party_id=args.bsc_lead_party_id)
+    metering_data.to_csv(args.output_path, index=False)
