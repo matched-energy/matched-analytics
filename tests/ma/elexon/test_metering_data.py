@@ -4,8 +4,7 @@ import pandas as pd
 from pytest import approx
 
 import data.register
-import ma.elexon.S0142.plot as plot
-import ma.elexon.S0142.bmu_vols as bmu_vols
+import ma.elexon.metering_data as metering_data
 
 
 def wrapper_process_directory(
@@ -13,7 +12,7 @@ def wrapper_process_directory(
     bm_regex: Optional[str] = None,
     bm_ids: Optional[List[str]] = None,
 ) -> pd.DataFrame:
-    bm_vols = bmu_vols.process_directory(
+    bm_vols = metering_data.process_directory(
         input_dir=data.register.S0142_CSV_DIR,
         bsc_lead_party_id="GOLD",
         aggregate_bms=aggregate_bms,
@@ -45,4 +44,4 @@ def test_filtering_and_grouping() -> None:
 
 def test_plot() -> None:
     load = wrapper_process_directory(aggregate_bms=True)
-    plot.get_fig(load)
+    metering_data.get_fig(load)
