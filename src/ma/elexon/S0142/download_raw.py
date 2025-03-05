@@ -1,24 +1,15 @@
 import datetime
-import os
 import sys
 from pathlib import Path
 
 import httpx
 import pandas as pd
-from dotenv import load_dotenv
 
 import ma.utils.io
 
 LOG = ma.utils.io.get_logger(__name__)
 
-## Get Elexon API key
-try:
-    load_dotenv()
-    API_KEY = os.getenv("ELEXON_API_KEY")
-    assert API_KEY is not None
-except AssertionError:
-    raise Exception("Unable to load ELEXON_API_KEY from .env file")
-
+API_KEY = ma.utils.io.get_dot_env("ELEXON_API_KEY")
 BASE_URL = "https://downloads.elexonportal.co.uk/p114"
 
 
