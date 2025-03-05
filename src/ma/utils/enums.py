@@ -1,10 +1,10 @@
 # technology enums
 
 
-from enum import Enum
+from enum import StrEnum
 
 
-class ProductionTechEnum(Enum):
+class ProductionTechEnum(StrEnum):
     GAS = "gas"
     COAL = "coal"
     NUCLEAR = "nuclear"

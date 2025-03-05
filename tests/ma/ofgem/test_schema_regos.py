@@ -1,11 +1,13 @@
 from typing import List, TypedDict
 
 import pandas as pd
+import pytest
 
-import data.register
 import ma.ofgem.regos
 from ma.ofgem.schema_regos import add_output_period_columns, parse_date_range, rego_schema_on_load
 from ma.utils.pandas import apply_schema
+
+from data.register import REGOS_APR2022_MAR2023_SUBSET as SUBSET
 
 
 def test_parse_date_range() -> None:
@@ -55,20 +57,36 @@ def test_parse_data_range_EXPECTED_FORMAT() -> None:
     * 2022 - 2023
     * Apr-2022
     """
-    regos = ma.ofgem.regos.load(data.register.REGOS_APR2022_MAR2023_SUBSET)
+    regos = ma.ofgem.regos.load(SUBSET)
     assert regos[~regos["output_period"].str.contains(" - |-|/", na=False)].empty
 
 
+def test_parse_output_period_NON_FIRST_OR_LAST_DAY_OF_MONTH() -> None:
+    regos_raw = pd.read_csv(SUBSET, skiprows=4, header=None)
+    regos_raw.columns = pd.Index(rego_schema_on_load.keys())
+    regos_raw["output_period"] = "02/04/2022 - 30/04/2022"
+    with pytest.raises(ValueError):
+        add_output_period_columns(regos_raw)
+
+    regos_raw["output_period"] = "01/04/2022 - 2/04/2022"
+    with pytest.raises(ValueError):
+        add_output_period_columns(regos_raw)
+
+    regos_raw["output_period"] = "01/04/2022 - 30/04/2022"
+    regos = add_output_period_columns(regos_raw)
+    assert len(regos) == len(regos_raw)
+
+
 def test_parse_output_period() -> None:
-    regos_raw = pd.read_csv(data.register.REGOS_APR2022_MAR2023_SUBSET, skiprows=4)
+    regos_raw = pd.read_csv(SUBSET, skiprows=4)
     regos = apply_schema(regos_raw, rego_schema_on_load)
     regos = add_output_period_columns(regos)
     assert len(regos)
     assert len(regos) == len(regos_raw)
-    assert set(["period_start", "period_end", "period_months"]) < set(regos.columns)
+    assert set(["start_year_month", "end_year_month", "period_months"]) < set(regos.columns)
 
 
 def test_parse_output_period_EMPTY_DATAFRAME() -> None:
-    regos_raw = pd.read_csv(data.register.REGOS_APR2022_MAR2023_SUBSET, skiprows=4)
+    regos_raw = pd.read_csv(SUBSET, skiprows=4)
     regos = add_output_period_columns(regos_raw[:0])
-    assert set(["period_start", "period_end", "period_months"]) < set(regos.columns)
+    assert set(["start_year_month", "end_year_month", "period_months"]) < set(regos.columns)

@@ -5,6 +5,7 @@ import pandas as pd
 import pandera as pa
 from dateutil.relativedelta import relativedelta
 
+from ma.utils.enums import ProductionTechEnum
 from ma.utils.pandas import ColumnSchema as CS
 from ma.utils.pandas import DateTimeEngine as DTE
 
@@ -34,24 +35,24 @@ rego_schema_on_load: Dict[str, CS] = dict(
 def transform_regos_schema(regos_raw: pd.DataFrame) -> pd.DataFrame:
     regos = regos_raw.copy()
     regos["rego_gwh"] = regos["mwh_per_certificate"] * regos["certificate_count"] / 1e3
-    regos["tech_simple"] = regos["technology_group"].map(rego_simplified_tech_categories)
+    regos["tech_category"] = regos["technology_group"].map(rego_tech_categories)
     regos = add_output_period_columns(regos)
     return regos
 
 
-rego_simplified_tech_categories = {
-    "Photovoltaic": "SOLAR",
-    "Hydro": "HYDRO",
-    "Wind": "WIND",
-    "Biomass": "BIOMASS",
-    "Biogas": "BIOMASS",
-    "Landfill Gas": "BIOMASS",
-    "On-shore Wind": "WIND",
-    "Hydro 20MW DNC or less": "HYDRO",
-    "Fuelled": "BIOMASS",
-    "Off-shore Wind": "WIND",
-    "Micro Hydro": "HYDRO",
-    "Biomass 50kW DNC or less": "BIOMASS",
+rego_tech_categories = {
+    "Photovoltaic": ProductionTechEnum.SOLAR,
+    "Hydro": ProductionTechEnum.HYDRO,
+    "Wind": ProductionTechEnum.WIND,
+    "Biomass": ProductionTechEnum.BIOMASS,
+    "Biogas": ProductionTechEnum.BIOMASS,
+    "Landfill Gas": ProductionTechEnum.BIOMASS,
+    "On-shore Wind": ProductionTechEnum.WIND,
+    "Hydro 20MW DNC or less": ProductionTechEnum.HYDRO,
+    "Fuelled": ProductionTechEnum.BIOMASS,
+    "Off-shore Wind": ProductionTechEnum.WIND,
+    "Micro Hydro": ProductionTechEnum.HYDRO,
+    "Biomass 50kW DNC or less": ProductionTechEnum.BIOMASS,
 }
 
 
@@ -77,14 +78,26 @@ def parse_date_range(date_str: str) -> Tuple[pd.Timestamp, pd.Timestamp, int]:
     else:
         raise ValueError(r"Invalid date string {}".format(date_str))
 
+    # Check start/end dates are first/last days of month (can be in different months)
+    if (
+        start_dt.day != 1
+        or (end_dt - pd.Timedelta(days=1)).day != ((end_dt - pd.Timedelta(days=1)) + pd.offsets.MonthEnd(0)).day
+    ):
+        raise ValueError(f"{date_str} days are not the first and last days of month")
+
     period_duration = relativedelta(end_dt, start_dt)
+
+    # Check period_duration is less than or equal to 1 year
+    if period_duration.years > 1 or period_duration.months > 12:
+        raise ValueError(f"{date_str} period_duration is more than 12 months")
+
     months_difference = period_duration.years * 12 + period_duration.months
 
     return start_dt, end_dt, months_difference
 
 
 def add_output_period_columns(regos: pd.DataFrame) -> pd.DataFrame:
-    column_names = ["period_start", "period_end", "period_months"]
+    column_names = ["start_year_month", "end_year_month", "period_months"]
     period_columns = pd.DataFrame(columns=column_names)
     if not regos.empty:
         period_columns = regos["output_period"].apply(lambda x: pd.Series(parse_date_range(x)))
