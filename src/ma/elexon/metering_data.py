@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 
-from ma.elexon.schema_metering_data import bmu_vols_schema_on_load, transform_bmu_vols_schema
+from ma.elexon.schema_metering_data import metering_data_schema_on_load, transform_metering_data_schema
 from ma.utils.misc import truncate_string
 from ma.utils.pandas import apply_schema
 
@@ -41,7 +41,7 @@ def load_file(
     aggregate_bms: bool = True,
 ) -> pd.DataFrame:
     bm_vols_raw = pd.read_csv(file_path)
-    bmu_vols = apply_schema(bm_vols_raw, bmu_vols_schema_on_load, transform_bmu_vols_schema)
+    bmu_vols = apply_schema(bm_vols_raw, metering_data_schema_on_load, transform_metering_data_schema)
     bmu_vols = segregate_import_exports(bmu_vols)
     bmu_vols = filter(bmu_vols, bm_regex=bm_regex, bm_ids=bm_ids)
     if aggregate_bms:
@@ -66,6 +66,11 @@ def load_dir(
         and (filename_prefixes is None or any(entry.name.startswith(p) for p in filename_prefixes))
     ]
     return pd.concat(all_bmu_vols).sort_values("settlement_datetime")
+
+
+def rollup_daily(half_hourly_metering_data: pd.DataFrame) -> pd.DataFrame:
+    assert len(half_hourly_metering_data) == 48
+    return half_hourly_metering_data.sum()
 
 
 def get_fig(metering_data: pd.DataFrame) -> go.Figure:
