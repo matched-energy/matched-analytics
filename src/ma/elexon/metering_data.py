@@ -22,7 +22,7 @@ def filter(hh_df: pd.DataFrame, bm_regex: Optional[str] = None, bm_ids: Optional
 
 
 def group_by_datetime(df: pd.DataFrame) -> pd.DataFrame:
-    df_grouped = df.groupby("settlement_datetime").sum(numeric_only=True).reset_index()
+    df_grouped = df.groupby("settlement_datetime").sum(numeric_only=True)
     df_grouped["bm_unit_id"] = ",".join(df["bm_unit_id"].unique())
     return df_grouped
 
@@ -40,13 +40,13 @@ def load_file(
     bm_ids: Optional[list] = None,
     aggregate_bms: bool = True,
 ) -> pd.DataFrame:
-    bm_vols_raw = pd.read_csv(file_path)
-    bmu_vols = apply_schema(bm_vols_raw, metering_data_schema_on_load, transform_metering_data_schema)
-    bmu_vols = segregate_import_exports(bmu_vols)
-    bmu_vols = filter(bmu_vols, bm_regex=bm_regex, bm_ids=bm_ids)
+    metering_data_raw = pd.read_csv(file_path)
+    metering_data = apply_schema(metering_data_raw, metering_data_schema_on_load, transform_metering_data_schema)
+    metering_data = segregate_import_exports(metering_data)
+    metering_data = filter(metering_data, bm_regex=bm_regex, bm_ids=bm_ids)
     if aggregate_bms:
-        bmu_vols = group_by_datetime(bmu_vols)
-    return bmu_vols
+        metering_data = group_by_datetime(metering_data)
+    return metering_data
 
 
 def load_dir(
@@ -66,11 +66,6 @@ def load_dir(
         and (filename_prefixes is None or any(entry.name.startswith(p) for p in filename_prefixes))
     ]
     return pd.concat(all_bmu_vols).sort_values("settlement_datetime")
-
-
-def rollup_daily(half_hourly_metering_data: pd.DataFrame) -> pd.DataFrame:
-    assert len(half_hourly_metering_data) == 48
-    return half_hourly_metering_data.sum()
 
 
 def get_fig(metering_data: pd.DataFrame) -> go.Figure:
