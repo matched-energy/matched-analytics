@@ -23,12 +23,6 @@ def filter(
     return metering_data_half_hourly[mask]
 
 
-def group_by_datetime(metering_data_half_hourly: pd.DataFrame) -> pd.DataFrame:
-    grouped = metering_data_half_hourly.groupby("settlement_datetime").sum(numeric_only=True)
-    grouped["bm_unit_id"] = ",".join(metering_data_half_hourly["bm_unit_id"].unique())
-    return grouped
-
-
 def segregate_import_exports(metering_data_half_hourly: pd.DataFrame) -> pd.DataFrame:
     updated = metering_data_half_hourly.copy()
     updated["bm_unit_metered_volume_+ve_mwh"] = updated["bm_unit_metered_volume_mwh"].clip(lower=0)
@@ -37,37 +31,35 @@ def segregate_import_exports(metering_data_half_hourly: pd.DataFrame) -> pd.Data
 
 
 def load_file(
-    file_path: Path,
+    processed_s0142_path: Path,
     bm_regex: Optional[str] = "^2__",
     bm_ids: Optional[list] = None,
-    aggregate_bms: bool = True,
 ) -> pd.DataFrame:
-    metering_data_raw = pd.read_csv(file_path)
-    metering_data = apply_schema(metering_data_raw, metering_data_schema_on_load, transform_metering_data_schema)
-    metering_data = segregate_import_exports(metering_data)
-    metering_data = filter(metering_data, bm_regex=bm_regex, bm_ids=bm_ids)
-    if aggregate_bms:
-        metering_data = group_by_datetime(metering_data)
-    return metering_data
+    processed_s0142 = pd.read_csv(processed_s0142_path)
+    metering_data_half_hourly = apply_schema(
+        processed_s0142, metering_data_schema_on_load, transform_metering_data_schema
+    )
+    metering_data_half_hourly = segregate_import_exports(metering_data_half_hourly)
+    metering_data_half_hourly = filter(metering_data_half_hourly, bm_regex=bm_regex, bm_ids=bm_ids)
+    return metering_data_half_hourly
 
 
 def load_dir(
-    input_dir: Path,
+    processed_s0142_dir: Path,
     bsc_lead_party_id: str,
     bm_regex: Optional[str] = "^2__",
     bm_ids: Optional[list] = None,
-    aggregate_bms: bool = True,
     filename_prefixes: Optional[list[str]] = None,
 ) -> pd.DataFrame:
-    all_bmu_vols = [
-        load_file(input_dir / entry.name, bm_regex=bm_regex, bm_ids=bm_ids, aggregate_bms=aggregate_bms)
-        for entry in os.scandir(input_dir)
+    metering_data_half_hourly = [
+        load_file(processed_s0142_dir / entry.name, bm_regex=bm_regex, bm_ids=bm_ids)
+        for entry in os.scandir(processed_s0142_dir)
         if entry.is_file()
         and entry.name.endswith(".csv")
         and bsc_lead_party_id in entry.name
         and (filename_prefixes is None or any(entry.name.startswith(p) for p in filename_prefixes))
     ]
-    return pd.concat(all_bmu_vols).sort_values("settlement_datetime")
+    return pd.concat(metering_data_half_hourly).sort_values("settlement_datetime")
 
 
 def get_fig(metering_data: pd.DataFrame) -> go.Figure:
@@ -104,5 +96,5 @@ if __name__ == "__main__":
     parser.add_argument("output_path", type=Path)
     args = parser.parse_args()
 
-    metering_data = load_dir(input_dir=args.input_dir, bsc_lead_party_id=args.bsc_lead_party_id)
+    metering_data = load_dir(processed_s0142_dir=args.input_dir, bsc_lead_party_id=args.bsc_lead_party_id)
     metering_data.to_csv(args.output_path, index=False)
