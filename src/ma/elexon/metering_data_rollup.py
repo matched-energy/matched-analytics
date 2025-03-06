@@ -3,6 +3,12 @@ import pandas as pd
 from ma.utils.enums import TemporalGranularity
 
 
+def rollup_bmus(metering_data_half_hourly: pd.DataFrame) -> pd.DataFrame:
+    grouped = metering_data_half_hourly.groupby("settlement_datetime").sum(numeric_only=True)
+    grouped["bm_unit_id"] = ",".join(metering_data_half_hourly["bm_unit_id"].unique())
+    return grouped
+
+
 def rollup_to_daily(metering_data_half_hourly: pd.DataFrame) -> pd.DataFrame:
     assert isinstance(metering_data_half_hourly.index, pd.DatetimeIndex)  # appease mypy
     days = metering_data_half_hourly.index.to_period("D")
@@ -42,4 +48,5 @@ def rollup_from_daily(metering_data_dataframes: list[pd.DataFrame], granularity:
     monthly[f"{granularity.preceeding.noun}_count"] = len(metering_data_dataframes)
 
     monthly.index = monthly.index.to_timestamp()  # type: ignore
+    return monthly
     return monthly
