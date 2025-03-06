@@ -13,9 +13,8 @@ def wrapper_process_directory(
     bm_ids: Optional[List[str]] = None,
 ) -> pd.DataFrame:
     bm_vols = metering_data.load_dir(
-        input_dir=data.register.S0142_CSV_DIR,
+        processed_s0142_dir=data.register.S0142_CSV_DIR,
         bsc_lead_party_id="GOLD",
-        aggregate_bms=aggregate_bms,
         bm_regex=bm_regex,
         bm_ids=bm_ids,
     )
@@ -23,11 +22,6 @@ def wrapper_process_directory(
 
 
 def test_filtering_and_grouping() -> None:
-    # Aggregated
-    bm_vols = wrapper_process_directory(aggregate_bms=True)
-    assert bm_vols["bm_unit_metered_volume_mwh"].sum() == approx(-6945.599)
-    assert len(bm_vols["bm_unit_id"].unique()) == 1
-
     # Unaggregated BMs
     bm_vols = wrapper_process_directory(aggregate_bms=False)
     assert bm_vols["bm_unit_metered_volume_mwh"].sum() == approx(-6945.599)
