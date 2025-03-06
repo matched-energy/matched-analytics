@@ -12,26 +12,28 @@ from ma.utils.misc import truncate_string
 from ma.utils.pandas import apply_schema
 
 
-def filter(hh_df: pd.DataFrame, bm_regex: Optional[str] = None, bm_ids: Optional[list] = None) -> pd.DataFrame:
-    mask = np.ones(len(hh_df), dtype=bool)
+def filter(
+    metering_data_half_hourly: pd.DataFrame, bm_regex: Optional[str] = None, bm_ids: Optional[list] = None
+) -> pd.DataFrame:
+    mask = np.ones(len(metering_data_half_hourly), dtype=bool)
     if bm_ids:
-        mask &= hh_df["bm_unit_id"].isin(bm_ids)
+        mask &= metering_data_half_hourly["bm_unit_id"].isin(bm_ids)
     if bm_regex:
-        mask &= hh_df["bm_unit_id"].str.contains(bm_regex, regex=True)
-    return hh_df[mask]
+        mask &= metering_data_half_hourly["bm_unit_id"].str.contains(bm_regex, regex=True)
+    return metering_data_half_hourly[mask]
 
 
-def group_by_datetime(df: pd.DataFrame) -> pd.DataFrame:
-    df_grouped = df.groupby("settlement_datetime").sum(numeric_only=True)
-    df_grouped["bm_unit_id"] = ",".join(df["bm_unit_id"].unique())
-    return df_grouped
+def group_by_datetime(metering_data_half_hourly: pd.DataFrame) -> pd.DataFrame:
+    grouped = metering_data_half_hourly.groupby("settlement_datetime").sum(numeric_only=True)
+    grouped["bm_unit_id"] = ",".join(metering_data_half_hourly["bm_unit_id"].unique())
+    return grouped
 
 
-def segregate_import_exports(df: pd.DataFrame) -> pd.DataFrame:
-    updated_df = df.copy()
-    updated_df["bm_unit_metered_volume_+ve_mwh"] = updated_df["bm_unit_metered_volume_mwh"].clip(lower=0)
-    updated_df["bm_unit_metered_volume_-ve_mwh"] = updated_df["bm_unit_metered_volume_mwh"].clip(upper=0)
-    return updated_df
+def segregate_import_exports(metering_data_half_hourly: pd.DataFrame) -> pd.DataFrame:
+    updated = metering_data_half_hourly.copy()
+    updated["bm_unit_metered_volume_+ve_mwh"] = updated["bm_unit_metered_volume_mwh"].clip(lower=0)
+    updated["bm_unit_metered_volume_-ve_mwh"] = updated["bm_unit_metered_volume_mwh"].clip(upper=0)
+    return updated
 
 
 def load_file(
@@ -76,7 +78,7 @@ def get_fig(metering_data: pd.DataFrame) -> go.Figure:
 
         fig.add_trace(
             go.Scatter(
-                x=bm_unit_data["settlement_datetime"],
+                x=bm_unit_data.index,
                 y=bm_unit_data["bm_unit_metered_volume_mwh"],
                 mode="lines",
                 name=truncate_string(bm_unit_id),
