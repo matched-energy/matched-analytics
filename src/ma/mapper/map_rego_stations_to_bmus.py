@@ -14,7 +14,7 @@ from ma.mapper.filter_on_aggregate_data import appraise_energy_volumes, appraise
 from ma.mapper.filter_on_bmu_meta_data import get_matching_bmus
 from ma.mapper.rego_helpers import get_generator_profile
 from ma.mapper.summarise_and_score import abbreviate_summary, score_mapping, summarise_profile
-from ma.utils.io import get_logger
+from ma.utils.io import get_logger, from_yaml_file
 
 LOGGER = get_logger("ma.mapper")
 
@@ -119,7 +119,7 @@ def cli(
         ma.ofgem.stations.load_from_dir(accredited_stations_dir),
         ma.elexon.bmus.load(bmus_path),
         bmu_vol_dir,
-        (ma.utils.io.from_yaml_file(expected_mappings_file) if expected_mappings_file else {}),
+        (from_yaml_file(expected_mappings_file) if expected_mappings_file else {}),
         mappings_path,
         abbreviated_mappings_path,
     )
