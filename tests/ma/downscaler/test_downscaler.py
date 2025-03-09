@@ -1,5 +1,5 @@
 import pandas as pd
-from data.register import NESO_FUEL_CKAN_CSV_SUBSET_APR2022_MAR2023, REGOS_MAR2023_SUBSET
+from data.register import NESO_FUEL_CKAN_CSV_SUBSET_APR2022_MAR2023, REGOS_APR2022_MAR2023_SUBSET
 import ma
 from ma.downscaler.downscale_supply_monthly_gen_to_hh import downscale_supply_monthly_gen_to_hh
 import ma.neso.grid_mix
@@ -15,7 +15,7 @@ def test_downscaler() -> None:
 
     # Load the data
     grid_mix_data = ma.neso.grid_mix.load(NESO_FUEL_CKAN_CSV_SUBSET_APR2022_MAR2023)
-    gen_by_supplier_data = ma.ofgem.regos.load(REGOS_MAR2023_SUBSET)
+    gen_by_supplier_data = ma.ofgem.regos.load(REGOS_APR2022_MAR2023_SUBSET)  # noqa: F821
     trimmed_gen_by_supplier_data = gen_by_supplier_data.head(
         3
     )  # Contains three bundles of certs: Drax (biomas and wind) and ACT (wind)
