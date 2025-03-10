@@ -1,7 +1,7 @@
 import copy
 from abc import ABC
 from pathlib import Path
-from typing import Callable, Dict, NotRequired, Optional, TypedDict, Union
+from typing import Callable, Dict, NotRequired, Optional, Tuple, TypedDict, Union
 
 import pandas as pd
 import pandera as pa
@@ -19,7 +19,7 @@ def DateTimeEngine(dayfirst: bool = True) -> pandas_engine.DateTime:
 
 class ColumnSchema(TypedDict):
     old_name: NotRequired[str]  # TODO - remove
-    check: NotRequired[Union[pa.Column, pa.Check]]
+    check: NotRequired[Union[pa.Column, pa.Check, pa.Index]]  # TODO - make required, remove Check?
     keep: NotRequired[bool]
 
 
@@ -58,25 +58,48 @@ class DataFrameAsset(ABC):
     schema: Dict[str, ColumnSchema]
 
     @classmethod
-    def _pandera_schema(cls) -> pa.DataFrameSchema:
-        return pa.DataFrameSchema(
-            {col: cs.get("check") for col, cs in cls.schema.items() if cs.get("check")}, coerce=True, strict=True
+    def _pandera_schema(cls) -> Tuple[Dict, Dict, pa.DataFrameSchema]:
+        columns: Dict = {}
+        index: Dict = {}
+        for col, column_schema in cls.schema.items():
+            check = column_schema["check"]
+            if isinstance(check, pa.Column):
+                columns[col] = check
+            elif isinstance(check, pa.Index):
+                if len(index):
+                    raise ValueError("More than one index column defined")
+                index = {"check": check, "name": col}
+            else:
+                raise ValueError("Columns must be of type pa.Column or pa.Index")
+
+        schema = pa.DataFrameSchema(
+            columns=columns,
+            index=index.get("check"),
+            coerce=True,
+            strict=True,
         )
+        return columns, index, schema
 
     @classmethod
     def from_dataframe(cls, dataframe: pd.DataFrame) -> pd.DataFrame:
         dataframe = copy.deepcopy(dataframe)  # TODO: test
 
+        columns, index, schema = cls._pandera_schema()
+
         # Name columns
-        new_columns = pd.Index(cls.schema.keys())
-        if len(new_columns) != len(dataframe.columns):
+        column_names = pd.Index(columns.keys())
+        if len(columns) != len(dataframe.columns):
             raise AssertionError(
-                f"Dataframe has wrong number of columns: expected ({len(new_columns)} got {len(dataframe.columns)}"
+                f"Dataframe has wrong number of columns: expected ({len(column_names)} got {len(dataframe.columns)}"
             )
-        dataframe.columns = new_columns
+        dataframe.columns = column_names
+
+        # Name index
+        if index_name := index.get("name"):
+            dataframe.index.name = index_name
 
         # Apply schema
-        dataframe = cls._pandera_schema().validate(dataframe)
+        dataframe = schema.validate(dataframe)
 
         # Drop columns
         dataframe = select_columns(
@@ -91,4 +114,5 @@ class DataFrameAsset(ABC):
 
     @classmethod
     def write(cls, dataframe: pd.DataFrame, filepath: Path) -> None:
-        cls._pandera_schema().validate(dataframe).to_csv(filepath)
+        _, _, schema = cls._pandera_schema()
+        schema.validate(dataframe).to_csv(filepath)
