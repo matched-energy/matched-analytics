@@ -24,8 +24,8 @@ def test_downscaler() -> None:
     result = downscale_supply_monthly_gen_to_hh(
         start_datetime=start_datetime,
         end_datetime=end_datetime,
-        grid_mix_by_tech_by_month=grid_mix_data,
-        gen_by_supplier_by_month=trimmed_gen_by_supplier_data,
+        grid_mix_tech_month=grid_mix_data,
+        gen_supplier_month=trimmed_gen_by_supplier_data,
     )
 
     # 48 hours * 31 days * 3 series (ACT wind, Drax wind, Drax Biomass)

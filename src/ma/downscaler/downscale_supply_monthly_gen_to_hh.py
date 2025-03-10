@@ -16,7 +16,7 @@ def _load_and_filter_grid_mix_hh(
     return data_for_time_period
 
 
-def _prepare_gen_by_supplier_by_month(gen_by_supplier_by_month: pd.DataFrame) -> pd.DataFrame:
+def _prepare_gen_supplier_month(gen_by_supplier_by_month: pd.DataFrame) -> pd.DataFrame:
     """
     Prepare supplier generation data for scaling calculation.
 
@@ -137,7 +137,7 @@ def _calculate_scaling_factors(
     return pd.DataFrame(scaling_factors)
 
 
-def _apply_scaling_to_hh_data(grid_mix_hh: pd.DataFrame, scaling_df: pd.DataFrame) -> pd.DataFrame:
+def _apply_scaling_to_hh(grid_mix_hh: pd.DataFrame, scaling_df: pd.DataFrame) -> pd.DataFrame:
     """
     Apply scaling factors to half-hourly grid mix data.
 
@@ -208,21 +208,21 @@ def _apply_scaling_to_hh_data(grid_mix_hh: pd.DataFrame, scaling_df: pd.DataFram
 def downscale_supply_monthly_gen_to_hh(
     start_datetime: pd.Timestamp,
     end_datetime: pd.Timestamp,
-    grid_mix_by_tech_by_month: pd.DataFrame,
-    gen_by_supplier_by_month: pd.DataFrame,
+    grid_mix_tech_month: pd.DataFrame,
+    gen_supplier_month: pd.DataFrame,
 ) -> pd.DataFrame:
     # Step 1: Load and prepare the half-hourly grid mix data
-    grid_mix_hh = _load_and_filter_grid_mix_hh(grid_mix_by_tech_by_month, start_datetime, end_datetime)
+    grid_mix_hh = _load_and_filter_grid_mix_hh(grid_mix_tech_month, start_datetime, end_datetime)
 
     # Step 2: Prepare data for scaling calculation (convert units, align column names, extract year and month)
-    gen_by_supplier_by_month = _prepare_gen_by_supplier_by_month(gen_by_supplier_by_month)
-    grid_mix_by_tech_by_month = _prepare_grid_mix_monthly(grid_mix_by_tech_by_month)
+    gen_supplier_month = _prepare_gen_supplier_month(gen_supplier_month)
+    grid_mix_tech_month = _prepare_grid_mix_monthly(grid_mix_tech_month)
 
     # Step 3: Calculate scaling factors
-    scaling_df = _calculate_scaling_factors(grid_mix_by_tech_by_month, gen_by_supplier_by_month)
+    scaling_df = _calculate_scaling_factors(grid_mix_tech_month, gen_supplier_month)
 
     # Step 4: Apply scaling to half-hourly data
-    result_df = _apply_scaling_to_hh_data(grid_mix_hh, scaling_df)
+    result_df = _apply_scaling_to_hh(grid_mix_hh, scaling_df)
 
     return result_df
 
@@ -311,8 +311,8 @@ def cli(
         result = downscale_supply_monthly_gen_to_hh(
             start_datetime=start_datetime,
             end_datetime=end_datetime,
-            grid_mix_by_tech_by_month=grid_mix_by_month,
-            gen_by_supplier_by_month=gen_by_supplier_by_month,
+            grid_mix_tech_month=grid_mix_by_month,
+            gen_supplier_month=gen_by_supplier_by_month,
         )
 
         if output_path:
