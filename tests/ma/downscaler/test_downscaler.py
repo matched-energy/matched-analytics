@@ -71,7 +71,7 @@ def test_downscaler() -> None:
         assert drax_biomass / total_biomass_at_timestamp == pytest.approx(drax_certs / total_certs)
 
 
-def test_date_range_validation():
+def test_date_range_validation() -> None:
     """Test the date range validation functionality with the actual subset data."""
     # Load the actual subset data
     grid_mix_data = ma.neso.grid_mix.load(NESO_FUEL_CKAN_CSV_SUBSET_APR2022_MAR2023)
