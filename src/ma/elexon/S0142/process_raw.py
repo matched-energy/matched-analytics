@@ -6,7 +6,7 @@ from typing import Dict, Generator, Optional, Tuple
 import pandas as pd
 import pandera as pa
 
-from ma.elexon.metering_data.asset_half_hourly_by_bmu import MeteringDataHalfHourlyByBmu
+from ma.elexon.metering_data.metering_data_by_half_hour_and_bmu import MeteringDataHalfHourlyByBmu
 from ma.utils.pandas import ColumnSchema as CS
 from ma.utils.pandas import DataFrameAsset
 
@@ -162,4 +162,5 @@ def transform_to_half_hourly_by_bmu(processed_s0142: pd.DataFrame) -> pd.DataFra
     output["settlement_datetime"] = output["settlement_date"] + (output["settlement_period"] - 1) * pd.Timedelta(
         minutes=30
     )
+    output = output.reset_index(drop=True).set_index("settlement_datetime")
     return MeteringDataHalfHourlyByBmu.from_dataframe(output)

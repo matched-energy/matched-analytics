@@ -5,7 +5,7 @@ import pandas as pd
 import pandera as pa
 import plotly.graph_objects as go
 
-from ma.elexon.metering_data.metering_data_rollup import MeteringDataHalfHourly, MeteringDataHalfHourlyType
+from ma.elexon.metering_data.metering_data_by_time import MeteringDataHalfHourly, MeteringDataHalfHourlyType
 from ma.utils.misc import truncate_string
 from ma.utils.pandas import ColumnSchema as CS
 from ma.utils.pandas import DataFrameAsset
@@ -38,7 +38,7 @@ class MeteringDataHalfHourlyByBmu(DataFrameAsset):
         bm_unit_applicable_balancing_services_volume=CS(check=pa.Column(float)),
         period_supplier_bm_unit_delivered_volume  	=CS(check=pa.Column(float)),
         period_supplier_bm_unit_non_bm_absvd_volume =CS(check=pa.Column(float)),
-        settlement_datetime                         =CS(check=pa.Column(DTE(dayfirst=False))), # TODO - make index
+        settlement_datetime                         =CS(check=pa.Index(DTE(dayfirst=False))), 
     )
 
     # fmt: on
@@ -77,7 +77,6 @@ def rollup_bmus(half_hourly_by_bmu: MeteringDataHalfHourlyByBmuType) -> pd.DataF
         ]
     ].sum()
     grouped["bmu_count"] = len(half_hourly_by_bmu["bm_unit_id"].unique())
-    grouped.reset_index(inplace=True)  # TODO .set_index("settlement_datetime", drop=True, inplace=True)
     return grouped
 
 
