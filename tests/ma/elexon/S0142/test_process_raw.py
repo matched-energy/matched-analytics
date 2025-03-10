@@ -66,7 +66,3 @@ def test_main(mock_glob: MagicMock, mock_listdir: MagicMock) -> None:
         assert mock_process_file.call_count == 2
         mock_process_file.assert_any_call(Path("/fake/input/S0142_file1.csv.gz"), ["BSC1", "BSC2"])
         mock_process_file.assert_any_call(Path("/fake/input/S0142_file2.csv.gz"), ["BSC1", "BSC2"])
-
-
-if __name__ == "__main__":
-    run_process_file(["PURE"])
