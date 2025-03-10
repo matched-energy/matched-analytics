@@ -1,10 +1,3 @@
-import argparse
-import os
-from pathlib import Path
-from typing import Optional
-
-import numpy as np
-import pandas as pd
 import plotly.graph_objects as go
 
 from ma.elexon.schema_metering_data import metering_data_schema_on_load, transform_metering_data_schema
