@@ -30,7 +30,8 @@ def get_bmu_volumes_by_month(
     bm_ids: list,
     S0142_csv_dir: Path,
 ) -> pd.DataFrame:
-    metering_data_half_hourly = ma.elexon.metering_data.load_dir(
+    # TODO: https://github.com/matched-energy/matched-analytics/issues/9
+    metering_data_half_hourly = ma.elexon.metering_data.load_dir(  # type: ignore
         processed_s0142_dir=S0142_csv_dir / Path(bsc_lead_party_id),
         bsc_lead_party_id=bsc_lead_party_id,
         bm_regex=None,

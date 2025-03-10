@@ -24,7 +24,9 @@ def test_rollup_bmus() -> None:
 
 def test_filter_by_bmu_regex() -> None:
     half_hourly_by_bmu = get_half_hourly_by_bmu()
-    filtered_half_hourly_by_bmu = metering_data_by_half_hour_and_bmu.filter(half_hourly_by_bmu, bm_regex="2__[AB]GESL000")
+    filtered_half_hourly_by_bmu = metering_data_by_half_hour_and_bmu.filter(
+        half_hourly_by_bmu, bm_regex="2__[AB]GESL000"
+    )
     assert len(filtered_half_hourly_by_bmu["bm_unit_id"].unique()) == 2
 
 
