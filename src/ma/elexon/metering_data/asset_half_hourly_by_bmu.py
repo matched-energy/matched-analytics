@@ -45,8 +45,8 @@ class MeteringDataHalfHourlyByBmu(DataFrameAsset):
 
 
 def filter(
-    half_hourly_by_bmu: MeteringDataHalfHourlyType, bm_regex: Optional[str] = None, bm_ids: Optional[list] = None
-) -> MeteringDataHalfHourlyType:
+    half_hourly_by_bmu: MeteringDataHalfHourlyByBmuType, bm_regex: Optional[str] = None, bm_ids: Optional[list] = None
+) -> MeteringDataHalfHourlyByBmuType:
     mask = np.ones(len(half_hourly_by_bmu), dtype=bool)
     if bm_ids:
         mask &= half_hourly_by_bmu["bm_unit_id"].isin(bm_ids)
@@ -55,14 +55,14 @@ def filter(
     return half_hourly_by_bmu[mask]
 
 
-def segregate_import_exports(half_hourly_by_bmu: MeteringDataHalfHourlyType) -> MeteringDataHalfHourlyType:
+def segregate_import_exports(half_hourly_by_bmu: MeteringDataHalfHourlyByBmuType) -> MeteringDataHalfHourlyByBmuType:
     updated = half_hourly_by_bmu.copy()
     updated["bm_unit_metered_volume_+ve_mwh"] = updated["bm_unit_metered_volume_mwh"].clip(lower=0)
     updated["bm_unit_metered_volume_-ve_mwh"] = updated["bm_unit_metered_volume_mwh"].clip(upper=0)
     return updated
 
 
-def rollup_bmus(half_hourly_by_bmu: MeteringDataHalfHourlyType) -> pd.DataFrame:
+def rollup_bmus(half_hourly_by_bmu: MeteringDataHalfHourlyByBmuType) -> pd.DataFrame:
     grouped = half_hourly_by_bmu.groupby("settlement_datetime")[
         [
             "period_bm_unit_balancing_services_volume",
@@ -93,7 +93,7 @@ def transform_to_half_hourly(
     return MeteringDataHalfHourly.from_dataframe(output)
 
 
-def get_fig(half_hourly_by_bmu: MeteringDataHalfHourlyType) -> go.Figure:
+def get_fig(half_hourly_by_bmu: MeteringDataHalfHourlyByBmuType) -> go.Figure:
     fig = go.Figure()
 
     for bm_unit_id in half_hourly_by_bmu["bm_unit_id"].unique():
