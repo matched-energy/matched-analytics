@@ -205,6 +205,75 @@ def _apply_scaling_to_hh(grid_mix_hh: pd.DataFrame, scaling_df: pd.DataFrame) ->
     return result_df
 
 
+def _validate_date_ranges(
+    start_datetime: pd.Timestamp,
+    end_datetime: pd.Timestamp,
+    grid_mix_hh: pd.DataFrame,
+    regos_data: pd.DataFrame,
+) -> bool:
+    """
+    Validates that the requested date range is available in both grid mix and REGOS data.
+
+    Parameters
+    ----------
+    start_datetime : pd.Timestamp
+        The start date for the analysis
+    end_datetime : pd.Timestamp
+        The end date for the analysis (exclusive)
+    grid_mix_hh : pd.DataFrame
+        The half-hourly grid mix data with DatetimeIndex
+    regos_data : pd.DataFrame
+        The REGOS certificate data with a 'month' column
+
+    Returns
+    -------
+    bool
+        True if all checks pass, otherwise raises ValueError with appropriate message
+    """
+    # Validate grid_mix_hh has DatetimeIndex
+    if not isinstance(grid_mix_hh.index, pd.DatetimeIndex):
+        raise ValueError("Grid mix data must have a DatetimeIndex")
+
+    error_messages = []
+
+    # Check grid mix data range
+    grid_min_date = grid_mix_hh.index.min()
+    grid_max_date = grid_mix_hh.index.max()
+
+    if start_datetime < grid_min_date:
+        error_messages.append(
+            f"Start date {start_datetime} is before available grid mix data (starting {grid_min_date})."
+        )
+    if end_datetime > grid_max_date:
+        error_messages.append(f"End date {end_datetime} is after available grid mix data (ending {grid_max_date}).")
+
+    # Check REGOS data range
+    if "month" in regos_data.columns:
+        regos_dates = pd.to_datetime(regos_data["month"])
+        regos_min_date = regos_dates.min()
+        regos_max_date = regos_dates.max()
+
+        if start_datetime < regos_min_date:
+            error_messages.append(
+                f"Start date {start_datetime} is before available REGOS data (starting {regos_min_date})."
+            )
+        if end_datetime > regos_max_date:
+            error_messages.append(f"End date {end_datetime} is after available REGOS data (ending {regos_max_date}).")
+    else:
+        error_messages.append("Could not determine date range in REGOS data (no 'month' column found).")
+
+    # Also verify there's data within the range
+    filtered_grid_mix = grid_mix_hh[(grid_mix_hh.index >= start_datetime) & (grid_mix_hh.index < end_datetime)]
+    if len(filtered_grid_mix) == 0:
+        error_messages.append(f"No grid mix data available within the specified date range.")
+
+    # Return True if validation passed, otherwise raise ValueError with all error messages
+    if error_messages:
+        raise ValueError("\n".join(error_messages))
+
+    return True
+
+
 def downscale_supply_monthly_gen_to_hh(
     start_datetime: pd.Timestamp,
     end_datetime: pd.Timestamp,
@@ -262,45 +331,11 @@ def cli(
         start_datetime = pd.Timestamp(start_date)
         end_datetime = pd.Timestamp(end_date)
 
-        # Assume grid_mix_hh always has a DatetimeIndex
-        if not isinstance(grid_mix_hh.index, pd.DatetimeIndex):
-            raise ValueError("Grid mix data must have a DatetimeIndex")
-
-        # Validate date ranges for both datasets
-        error_occurred = False
-
-        # Check grid mix data range
-        grid_min_date = grid_mix_hh.index.min()
-        grid_max_date = grid_mix_hh.index.max()
-
-        if start_datetime < grid_min_date:
-            click.echo(
-                f"Error: Start date {start_datetime} is before available grid mix data (starting {grid_min_date})."
-            )
-            error_occurred = True
-        if end_datetime > grid_max_date:
-            click.echo(f"Error: End date {end_datetime} is after available grid mix data (ending {grid_max_date}).")
-            error_occurred = True
-
-        # Check REGOS data range
-        if "month" in regos_data.columns:
-            regos_dates = pd.to_datetime(regos_data["month"])
-            regos_min_date = regos_dates.min()
-            regos_max_date = regos_dates.max()
-
-            if start_datetime < regos_min_date:
-                click.echo(
-                    f"Error: Start date {start_datetime} is before available REGOS data (starting {regos_min_date})."
-                )
-                error_occurred = True
-            if end_datetime > regos_max_date:
-                click.echo(f"Error: End date {end_datetime} is after available REGOS data (ending {regos_max_date}).")
-                error_occurred = True
-        else:
-            click.echo("Warning: Could not determine date range in REGOS data (no 'month' column found).")
-
-        # Exit if any errors occurred
-        if error_occurred:
+        # Validate date ranges
+        try:
+            _validate_date_ranges(start_datetime, end_datetime, grid_mix_hh, regos_data)
+        except ValueError as e:
+            click.echo(f"Error: {e}", err=True)
             sys.exit(1)
 
         # Prepare inputs

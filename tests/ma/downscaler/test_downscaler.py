@@ -2,6 +2,7 @@ import pandas as pd
 from data.register import NESO_FUEL_CKAN_CSV_SUBSET_APR2022_MAR2023, REGOS_APR2022_MAR2023_SUBSET
 import ma
 from ma.downscaler.downscale_supply_monthly_gen_to_hh import downscale_supply_monthly_gen_to_hh
+from ma.downscaler.downscale_supply_monthly_gen_to_hh import _validate_date_ranges
 import ma.neso.grid_mix
 import ma.ofgem.regos
 import pytest
@@ -68,3 +69,53 @@ def test_downscaler() -> None:
         total_biomass_at_timestamp = british_gas_biomass + drax_biomass
         assert british_gas_biomass / total_biomass_at_timestamp == pytest.approx(british_gas_certs / total_certs)
         assert drax_biomass / total_biomass_at_timestamp == pytest.approx(drax_certs / total_certs)
+
+
+def test_date_range_validation():
+    """Test the date range validation functionality with the actual subset data."""
+    # Load the actual subset data
+    grid_mix_data = ma.neso.grid_mix.load(NESO_FUEL_CKAN_CSV_SUBSET_APR2022_MAR2023)
+    regos_data = ma.ofgem.regos.load(REGOS_APR2022_MAR2023_SUBSET)
+
+    # Test 1: Invalid start date (2000-01-01 is before the grid mix dataset)
+    invalid_start = pd.Timestamp("2000-01-01")
+    valid_end = pd.Timestamp("2023-03-01")  # End at the latest possible date for REGOS
+
+    with pytest.raises(ValueError) as excinfo:
+        _validate_date_ranges(invalid_start, valid_end, grid_mix_data, regos_data)
+
+    error_msg = str(excinfo.value)
+    assert "Start date 2000-01-01 00:00:00 is before available grid mix data" in error_msg
+    assert "Could not determine date range in REGOS data" in error_msg
+    assert "No grid mix data available within the specified date range" in error_msg
+
+    # Test 2: Invalid end date (2040-01-01 is after both datasets)
+    valid_start = pd.Timestamp("2023-03-01")  # Start at the latest date in both datasets
+    invalid_end = pd.Timestamp("2040-01-01")
+
+    with pytest.raises(ValueError) as excinfo:
+        _validate_date_ranges(valid_start, invalid_end, grid_mix_data, regos_data)
+
+    error_msg = str(excinfo.value)
+    assert "End date 2040-01-01 00:00:00 is after available grid mix data" in error_msg
+    assert "Could not determine date range in REGOS data" in error_msg
+
+    # Test 3: Both invalid start and end dates
+    with pytest.raises(ValueError) as excinfo:
+        _validate_date_ranges(invalid_start, invalid_end, grid_mix_data, regos_data)
+
+    error_msg = str(excinfo.value)
+    assert "Start date 2000-01-01 00:00:00 is before available grid mix data" in error_msg
+    assert "End date 2040-01-01 00:00:00 is after available grid mix data" in error_msg
+    assert "Could not determine date range in REGOS data" in error_msg
+
+    # Test 4: No data in range (choose a range where we know there's no data)
+    # For grid_mix, data only exists in March 2023, so choose a valid month but outside this range
+    no_data_start = pd.Timestamp("2022-06-01")  # In REGOS range but before grid_mix
+    no_data_end = pd.Timestamp("2022-07-01")
+
+    with pytest.raises(ValueError) as excinfo:
+        _validate_date_ranges(no_data_start, no_data_end, grid_mix_data, regos_data)
+
+    error_msg = str(excinfo.value)
+    assert "Start date 2022-06-01 00:00:00 is before available grid mix data" in error_msg
