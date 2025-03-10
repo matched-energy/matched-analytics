@@ -25,7 +25,7 @@ def _prepare_gen_by_supplier_by_month(gen_by_supplier_by_month: pd.DataFrame) ->
     gen_by_supplier_by_month = gen_by_supplier_by_month.copy()
 
     # Convert units and standardize column names
-    gen_by_supplier_by_month["rego_mwh"] = gen_by_supplier_by_month["rego_gwh"] * 1000
+    gen_by_supplier_by_month["rego_mwh"] = gen_by_supplier_by_month["rego_gwh"] * 1000  # Convert GWh to MWh
     gen_by_supplier_by_month = gen_by_supplier_by_month.rename(columns={"tech_category": "tech"})  # Align column names
     gen_by_supplier_by_month["tech"] = gen_by_supplier_by_month["tech"].str.lower()  # Align tech names across dfs
 
@@ -43,10 +43,6 @@ def _prepare_grid_mix_monthly(grid_mix_by_tech_by_month: pd.DataFrame) -> pd.Dat
     """
     grid_mix_monthly = grid_mix_by_tech_by_month.copy()
 
-    # Validate data format
-    if not isinstance(grid_mix_monthly.index, pd.DatetimeIndex):
-        raise ValueError("Grid mix data must have a DatetimeIndex")
-
     # Reset the index to get datetime as a column
     grid_mix_monthly = grid_mix_monthly.reset_index()
 
@@ -56,11 +52,8 @@ def _prepare_grid_mix_monthly(grid_mix_by_tech_by_month: pd.DataFrame) -> pd.Dat
 
     # Group by year and month, sum only numeric columns
     numeric_cols = grid_mix_monthly.select_dtypes(include="number").columns.tolist()
-    # Remove year and month from numeric columns as we need them as groupby keys
-    if "year" in numeric_cols:
-        numeric_cols.remove("year")
-    if "month" in numeric_cols:
-        numeric_cols.remove("month")
+    numeric_cols.remove("year")
+    numeric_cols.remove("month")
 
     # Group by year and month, sum only numeric columns
     grid_mix_monthly = grid_mix_monthly.groupby(["year", "month"])[numeric_cols].sum()
@@ -79,7 +72,6 @@ def _calculate_scaling_factors(
     Takes prepared grid mix and supplier data and calculates the proportion
     of grid generation that should be allocated to each supplier.
     """
-    # Create a DataFrame with one row per tech and month
     scaling_factors = []
 
     for tech in ProductionTechEnum:
@@ -274,18 +266,42 @@ def cli(
         if not isinstance(grid_mix_hh.index, pd.DatetimeIndex):
             raise ValueError("Grid mix data must have a DatetimeIndex")
 
-        # Find available date range
-        available_dates = grid_mix_hh.index
-        min_date = available_dates.min()
-        max_date = available_dates.max()
+        # Validate date ranges for both datasets
+        error_occurred = False
 
-        # Check if the date range is valid
-        if start_datetime < min_date:
-            click.echo(f"Error: Start date {start_datetime} is before available data (starting {min_date}).")
-        if end_datetime > max_date:
-            click.echo(f"Error: End date {end_datetime} is after available data (ending {max_date}).")
-        if start_datetime < min_date or end_datetime > max_date:
-            sys.exit()
+        # Check grid mix data range
+        grid_min_date = grid_mix_hh.index.min()
+        grid_max_date = grid_mix_hh.index.max()
+
+        if start_datetime < grid_min_date:
+            click.echo(
+                f"Error: Start date {start_datetime} is before available grid mix data (starting {grid_min_date})."
+            )
+            error_occurred = True
+        if end_datetime > grid_max_date:
+            click.echo(f"Error: End date {end_datetime} is after available grid mix data (ending {grid_max_date}).")
+            error_occurred = True
+
+        # Check REGOS data range
+        if "month" in regos_data.columns:
+            regos_dates = pd.to_datetime(regos_data["month"])
+            regos_min_date = regos_dates.min()
+            regos_max_date = regos_dates.max()
+
+            if start_datetime < regos_min_date:
+                click.echo(
+                    f"Error: Start date {start_datetime} is before available REGOS data (starting {regos_min_date})."
+                )
+                error_occurred = True
+            if end_datetime > regos_max_date:
+                click.echo(f"Error: End date {end_datetime} is after available REGOS data (ending {regos_max_date}).")
+                error_occurred = True
+        else:
+            click.echo("Warning: Could not determine date range in REGOS data (no 'month' column found).")
+
+        # Exit if any errors occurred
+        if error_occurred:
+            sys.exit(1)
 
         # Prepare inputs
         grid_mix_by_month = ma.neso.grid_mix.groupby_tech_and_month(grid_mix_hh)
