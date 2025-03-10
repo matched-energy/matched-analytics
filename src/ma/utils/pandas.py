@@ -18,12 +18,12 @@ def DateTimeEngine(dayfirst: bool = True) -> pandas_engine.DateTime:
 
 
 class ColumnSchema(TypedDict):
-    old_name: NotRequired[str]  # TODO - remove
-    check: NotRequired[Union[pa.Column, pa.Check, pa.Index]]  # TODO - make required, remove Check?
+    old_name: NotRequired[str]  # TODO - remove https://github.com/matched-energy/matched-analytics/issues/9
+    check: NotRequired[Union[pa.Column, pa.Check, pa.Index]]  # TODO - make required, remove Check? issues/9
     keep: NotRequired[bool]
 
 
-# TODO - remove
+# TODO - https://github.com/matched-energy/matched-analytics/issues/9
 def apply_schema(
     df: pd.DataFrame, schema: Dict[str, ColumnSchema], transform: Optional[Callable] = None
 ) -> pd.DataFrame:
@@ -53,7 +53,6 @@ def apply_schema(
     return df
 
 
-# TODO - test
 class DataFrameAsset(ABC):
     schema: Dict[str, ColumnSchema]
     from_file_with_index: bool = True
@@ -83,7 +82,7 @@ class DataFrameAsset(ABC):
 
     @classmethod
     def from_dataframe(cls, dataframe: pd.DataFrame) -> pd.DataFrame:
-        dataframe = copy.deepcopy(dataframe)  # TODO: test
+        dataframe = copy.deepcopy(dataframe)  # TODO: https://github.com/matched-energy/matched-analytics/issues/9
 
         columns, index, schema = cls._pandera_schema()
 
