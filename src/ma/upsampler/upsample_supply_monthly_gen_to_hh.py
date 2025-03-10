@@ -6,25 +6,21 @@ import click
 
 import ma.neso.grid_mix
 import ma.ofgem.regos
-from ma.utils.enums import ProductionTechEnum
 
 
-def _prepare_gen_supplier_month(gen_by_supplier_by_month: pd.DataFrame) -> pd.DataFrame:
+def _prepare_gen_supplier_month(rego_holder: str, gen_by_supplier_by_month: pd.DataFrame) -> pd.DataFrame:
     """
     Prepare supplier generation data for scaling calculation.
 
-    Converts units, aligns column names, and extracts year and month information.
+    Filters the data to the specified rego holder reference and converts units, aligns column names, and extracts year and month information.
     """
     gen_by_supplier_by_month = gen_by_supplier_by_month.copy()
-
-    # Convert units and standardize column names
+    gen_by_supplier_by_month = ma.ofgem.regos.filter(gen_by_supplier_by_month, holders=[rego_holder])  # Filter holder
     gen_by_supplier_by_month["rego_mwh"] = gen_by_supplier_by_month["rego_gwh"] * 1000  # Convert GWh to MWh
     gen_by_supplier_by_month = gen_by_supplier_by_month.rename(columns={"tech_category": "tech"})  # Align column names
     gen_by_supplier_by_month["tech"] = gen_by_supplier_by_month["tech"].str.lower()  # Align tech names across dfs
-
     gen_by_supplier_by_month["year"] = gen_by_supplier_by_month["start_year_month"].dt.year
     gen_by_supplier_by_month["month_num"] = gen_by_supplier_by_month["start_year_month"].dt.month
-
     return gen_by_supplier_by_month
 
 
@@ -60,79 +56,52 @@ def _calculate_scaling_factors(
     grid_mix_by_tech_by_month: pd.DataFrame, supply_gen_by_month: pd.DataFrame
 ) -> pd.DataFrame:
     """
-    Calculate scaling factors for each technology and supplier.
+    Calculate scaling factors for each technology and supplier using vectorized operations.
 
     Takes prepared grid mix and supplier data and calculates the proportion
     of grid generation that should be allocated to each supplier.
     """
-    scaling_factors = []
+    grid_mix_pivoted = grid_mix_by_tech_by_month.copy()
+    tech_columns = [col for col in grid_mix_pivoted.columns if col.endswith("_mwh")]
 
-    for tech in ProductionTechEnum:
-        tech_name = tech.value
-        tech_col = f"{tech_name}_mwh"
+    # Create a copy of the supplier data to avoid modifying the original
+    supply_gen = supply_gen_by_month.copy()
+    supply_gen = supply_gen.rename(columns={"month_num": "month"})  # required for joining
 
-        if tech_col not in grid_mix_by_tech_by_month.columns:
-            continue
+    # Select only the technology columns and year/month
+    tech_data = grid_mix_pivoted[["year", "month"] + tech_columns].copy()
 
-        # For each month, get the total grid generation for this tech
-        for _, grid_row in grid_mix_by_tech_by_month.iterrows():
-            year = int(grid_row["year"])  # Ensure year is an integer
-            month = int(grid_row["month"])  # Ensure month is an integer
-            grid_total_mwh = grid_row[tech_col]
+    # Convert from wide to long format
+    grid_long = pd.melt(
+        tech_data,
+        id_vars=["year", "month"],
+        value_vars=tech_columns,
+        var_name="tech_column",
+        value_name="grid_total_mwh",
+    )
 
-            # Skip if there's no generation for this tech/month
-            if grid_total_mwh <= 0:
-                continue
+    # Standardise tech names
+    grid_long["tech"] = grid_long["tech_column"].str.replace("_mwh", "")
 
-            # Get corresponding supplier data for this tech and month
-            supplier_rows = supply_gen_by_month[
-                (supply_gen_by_month["year"] == year)
-                & (supply_gen_by_month["month_num"] == month)
-                & (supply_gen_by_month["tech"] == tech_name)
-            ]
+    # Merge with supplier data
+    merged_data = pd.merge(
+        supply_gen[["year", "month", "tech", "current_holder", "rego_mwh"]],
+        grid_long[["year", "month", "tech", "grid_total_mwh"]],
+        on=["year", "month", "tech"],
+        how="inner",
+    )
 
-            # Calculate scaling factor for each supplier
-            for _, supplier_row in supplier_rows.iterrows():
-                supplier = supplier_row["current_holder"]
-                supplier_mwh = supplier_row["rego_mwh"]
-                scaling_factor = supplier_mwh / grid_total_mwh
+    # Calculate scaling factors in a vectorized way
+    merged_data["scaling_factor"] = merged_data["rego_mwh"] / merged_data["grid_total_mwh"]
 
-                # For a given tech and month, the sum of the scaling factors for all suppliers should be 1
-                # Raise error if scaling factor is greater than 1
-                if scaling_factor > 1:
-                    raise ValueError(
-                        f"Scaling factor for {tech_name} in {year}-{month} for supplier {supplier} is greater than 1: {scaling_factor}"
-                    )
-
-                # Skip records with zero generation
-                if supplier_mwh <= 0:
-                    continue
-
-                # Create a row for this tech/month/supplier
-                scaling_factors.append(
-                    {
-                        "year": year,
-                        "month": month,
-                        "tech": tech_name,
-                        "supplier": supplier,
-                        "grid_total_mwh": grid_total_mwh,
-                        "supplier_mwh": supplier_mwh,
-                        "scaling_factor": supplier_mwh / grid_total_mwh,
-                    }
-                )
-
-    if not scaling_factors:
-        # Handle the case where there were no valid scaling factors
-        return pd.DataFrame(
-            columns=["year", "month", "tech", "supplier", "grid_total_mwh", "supplier_mwh", "scaling_factor"]
-        )
-
-    return pd.DataFrame(scaling_factors)
+    # Rename columns to match expected output format
+    result_df = merged_data.rename(columns={"current_holder": "supplier", "rego_mwh": "supplier_mwh"})
+    return result_df[["year", "month", "tech", "supplier", "grid_total_mwh", "supplier_mwh", "scaling_factor"]]
 
 
 def _apply_scaling_to_hh(grid_mix_hh: pd.DataFrame, scaling_df: pd.DataFrame) -> pd.DataFrame:
     """
-    Apply scaling factors to half-hourly grid mix data.
+    Apply scaling factors to half-hourly grid mix data using vectorized operations.
 
     Creates a long-format DataFrame with columns for:
     - timestamp: The datetime of the generation
@@ -144,58 +113,42 @@ def _apply_scaling_to_hh(grid_mix_hh: pd.DataFrame, scaling_df: pd.DataFrame) ->
     if scaling_df.empty:
         return pd.DataFrame(columns=["timestamp", "tech", "supplier", "generation_mwh"])
 
-    # Create a list to hold all records
-    records = []
+    grid_hh = grid_mix_hh.copy()
+    scaling = scaling_df.copy()
 
-    # For each half-hour
-    for idx in range(len(grid_mix_hh)):
-        row = grid_mix_hh.iloc[idx]
-        timestamp = grid_mix_hh.index[idx]
-        year = int(timestamp.year)
-        month = int(timestamp.month)
+    # Extract year and month from the timestamp index to enable joining
+    grid_hh = grid_hh.reset_index()
+    grid_hh["year"] = grid_hh["datetime"].dt.year
+    grid_hh["month"] = grid_hh["datetime"].dt.month
+    grid_hh = grid_hh.rename(columns={"datetime": "timestamp"})
 
-        # For each tech
-        for tech in ProductionTechEnum:
-            tech_col = f"{tech}_mwh"
+    # Identify technology columns
+    tech_columns = [col for col in grid_hh.columns if col.endswith("_mwh")]
 
-            if tech_col not in row:
-                continue
+    # Melt the dataframe to convert from wide to long format
+    grid_long = pd.melt(
+        grid_hh,
+        id_vars=["timestamp", "year", "month"],
+        value_vars=tech_columns,
+        var_name="tech_col",
+        value_name="generation_mwh",
+    )
 
-            grid_hh_value = row[tech_col]
+    # Extract technology name from column name
+    grid_long["tech"] = grid_long["tech_col"].str.replace("_mwh", "")
 
-            # Skip if there's no generation for this tech/timestamp
-            if grid_hh_value <= 0:
-                continue
+    # Merge with scaling factors
+    result = pd.merge(
+        grid_long,
+        scaling[["year", "month", "tech", "supplier", "scaling_factor"]],
+        on=["year", "month", "tech"],
+        how="inner",
+    )
 
-            # Find the corresponding scaling factors
-            tech_scaling = scaling_df[
-                (scaling_df["year"] == year) & (scaling_df["month"] == month) & (scaling_df["tech"] == tech)
-            ]
+    # Apply scaling factors to calculate supplier-specific generation
+    result["generation_mwh"] = result["generation_mwh"] * result["scaling_factor"]
 
-            # Apply scaling for each supplier
-            for _, scale_row in tech_scaling.iterrows():
-                supplier = scale_row["supplier"]
-                factor = scale_row["scaling_factor"]
-
-                # Calculate supplier's generation for this timestamp
-                supplier_hh_value = grid_hh_value * factor
-
-                # Add a record
-                records.append(
-                    {
-                        "timestamp": timestamp,
-                        "tech": tech,
-                        "supplier": supplier,
-                        "generation_mwh": supplier_hh_value,
-                    }
-                )
-
-    # Convert records to DataFrame
-    if not records:
-        return pd.DataFrame(columns=["timestamp", "tech", "supplier", "generation_mwh"])
-
-    result_df = pd.DataFrame(records)
-    return result_df
+    return result[["timestamp", "tech", "supplier", "generation_mwh"]]
 
 
 def _validate_date_ranges(
@@ -256,6 +209,7 @@ def _validate_date_ranges(
 
 
 def upsample_supply_monthly_gen_to_hh(
+    rego_holder_reference: str,
     start_datetime: pd.Timestamp,
     end_datetime: pd.Timestamp,
     grid_mix_tech_month: pd.DataFrame,
@@ -265,7 +219,7 @@ def upsample_supply_monthly_gen_to_hh(
     grid_mix_hh = ma.neso.grid_mix.filter(grid_mix_tech_month, start_datetime, end_datetime)
 
     # Step 2: Prepare data for scaling calculation (convert units, align column names, extract year and month)
-    gen_supplier_month = _prepare_gen_supplier_month(gen_supplier_month)
+    gen_supplier_month = _prepare_gen_supplier_month(rego_holder_reference, gen_supplier_month)
     grid_mix_tech_month = _prepare_grid_mix_monthly(grid_mix_tech_month)
 
     # Step 3: Calculate scaling factors
@@ -298,6 +252,7 @@ def upsample_supply_monthly_gen_to_hh(
 def cli(
     grid_mix_path: Path,
     regos_path: Path,
+    rego_holder_reference: str,
     start_date: pd.Timestamp,
     end_date: pd.Timestamp,
     output_path: Optional[Path] = None,
@@ -325,6 +280,7 @@ def cli(
 
         # Run the upsampling
         result = upsample_supply_monthly_gen_to_hh(
+            rego_holder_reference=rego_holder_reference,
             start_datetime=start_datetime,
             end_datetime=end_datetime,
             grid_mix_tech_month=grid_mix_by_month,
