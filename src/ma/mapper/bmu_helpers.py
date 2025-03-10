@@ -5,7 +5,6 @@ from typing import Dict
 import pandas as pd
 
 import ma.elexon.metering_data
-import ma.elexon.metering_data_rollup
 from ma.mapper.common import MappingException
 
 
@@ -37,7 +36,8 @@ def get_bmu_volumes_by_month(
         bm_regex=None,
         bm_ids=bm_ids,
     )
-    metering_data_half_hourly = ma.elexon.metering_data_rollup.rollup_bmus(metering_data_half_hourly)
+    # TODO: https://github.com/matched-energy/matched-analytics/issues/9
+    # metering_data_half_hourly = ma.elexon.metering_data.rollup_bmus(metering_data_half_hourly)
 
     metering_data_monthly = half_hourly_to_monthly_volumes(metering_data_half_hourly)
     metering_data_monthly["bm_unit_metered_volume_gwh"] = metering_data_monthly["bm_unit_metered_volume_mwh"] / 1e3

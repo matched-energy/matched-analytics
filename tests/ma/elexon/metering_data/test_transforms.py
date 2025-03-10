@@ -1,7 +1,6 @@
 import data.register
 import ma.elexon.metering_data.metering_data_by_half_hour_and_bmu
 import ma.elexon.metering_data.metering_data_by_time
-import ma.elexon.metering_data_rollup
 from ma.elexon.S0142 import process_raw
 
 
