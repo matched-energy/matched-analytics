@@ -90,7 +90,7 @@ class DataFrameAsset(ABC):
         column_names = pd.Index(columns.keys())
         if len(columns) != len(dataframe.columns):
             raise AssertionError(
-                f"Dataframe has wrong number of columns: expected ({len(column_names)} got {len(dataframe.columns)}"
+                f"Dataframe has wrong number of columns: expected {len(column_names)} got {len(dataframe.columns)}"
             )
         dataframe.columns = column_names
 
