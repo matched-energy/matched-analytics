@@ -53,6 +53,36 @@ def test_apply_schema_PANDERA_VALIDATION_FAIL() -> None:
         Asset.from_dataframe(copy.deepcopy(DF_RAW))
 
 
+def test_apply_schema_INDEX() -> None:
+    class Asset(DataFrameAsset):
+        schema = dict(col_a=CS(check=pa.Index(int)), col_b=CS(check=pa.Column(str)))
+
+    df_raw = copy.deepcopy(DF_RAW)
+    df_raw.set_index("a", drop=True, inplace=True)
+    df = Asset.from_dataframe(df_raw)
+    assert df.index.name == "col_a"
+    assert df.columns == ["col_b"]
+
+
+def test_apply_schema_INDEX_TYPE_ERROR() -> None:
+    class Asset(DataFrameAsset):
+        schema = dict(col_a=CS(check=pa.Column(int)), col_b=CS(check=pa.Index(int)))
+
+    df_raw = copy.deepcopy(DF_RAW)
+    df_raw.set_index("a", drop=True, inplace=True)
+    with pytest.raises(pa.errors.SchemaError):
+        Asset.from_dataframe(df_raw)
+
+
+def test_apply_schema_TOO_MANY_INDICES() -> None:
+    class Asset(DataFrameAsset):
+        schema = dict(col_a=CS(check=pa.Index(int)), col_b=CS(check=pa.Index(int)))
+
+    df_raw = copy.deepcopy(DF_RAW)
+    with pytest.raises(ValueError, match="More than one index"):
+        Asset.from_dataframe(df_raw)
+
+
 # TODO - delete this
 def test_apply_schema_TRANSFORM() -> None:
     schema = dict(_drop_me=CS(check=pa.Column(int), keep=False), col_b=CS(check=pa.Column(str)))
