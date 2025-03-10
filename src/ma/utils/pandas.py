@@ -56,6 +56,7 @@ def apply_schema(
 # TODO - test
 class DataFrameAsset(ABC):
     schema: Dict[str, ColumnSchema]
+    from_file_with_index: bool = True
 
     @classmethod
     def _pandera_schema(cls) -> Tuple[Dict, Dict, pa.DataFrameSchema]:
@@ -110,7 +111,8 @@ class DataFrameAsset(ABC):
 
     @classmethod
     def from_file(cls, filepath: Path) -> pd.DataFrame:
-        return cls.from_dataframe(pd.read_csv(filepath))
+        df = pd.read_csv(filepath, index_col=0 if cls.from_file_with_index else None)
+        return cls.from_dataframe(df)
 
     @classmethod
     def write(cls, dataframe: pd.DataFrame, filepath: Path) -> None:

@@ -152,6 +152,7 @@ class ProcessedS0142(DataFrameAsset):
         period_supplier_bm_unit_delivered_volume  	=CS(check=pa.Column(float)),
         period_supplier_bm_unit_non_bm_absvd_volume =CS(check=pa.Column(float)),
     )
+    from_file_with_index = False 
     # fmt: on
 
 
