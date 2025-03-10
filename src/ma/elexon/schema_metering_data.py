@@ -1,4 +1,4 @@
-# TODO - remove
+# TODO - https://github.com/matched-energy/matched-analytics/issues/9
 import copy
 from typing import Dict
 

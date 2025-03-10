@@ -28,7 +28,7 @@ def test_rollup_bmus() -> None:
     )
 
 
-# TODO
+# TODO  https://github.com/matched-energy/matched-analytics/issues/9
 # def test_rollup_to_daily() -> None:
 #     metering_data_half_hourly = rollup_bmus(load_file(data.register.S0142_20230330_SF_20230425121906_GOLD_CSV))
 #     metering_data_daily = rollup_to_daily(metering_data_half_hourly)
@@ -49,7 +49,7 @@ def test_rollup_to_daily_multiple_days() -> None:
         rollup_to_daily(data)
 
 
-# TODO
+# TODO https://github.com/matched-energy/matched-analytics/issues/9
 # def test_rollup_from_daily_monthly() -> None:
 #     metering_data_daily_dataframes = [
 #         rollup_to_daily(rollup_bmus(load_file(half_hourly)))
@@ -66,7 +66,7 @@ def test_rollup_to_daily_multiple_days() -> None:
 #     assert metering_data_monthly.loc["2023-03-01", "bm_unit_metered_volume_mwh"] == -6945.599
 
 
-# TODO
+# TODO https://github.com/matched-energy/matched-analytics/issues/9
 # def test_rollup_from_daily_yearly() -> None:
 #     metering_data_daily_dataframes = [
 #         rollup_to_daily(rollup_bmus(load_file(half_hourly)))

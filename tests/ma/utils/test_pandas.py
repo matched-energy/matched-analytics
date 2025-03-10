@@ -83,7 +83,7 @@ def test_apply_schema_TOO_MANY_INDICES() -> None:
         Asset.from_dataframe(df_raw)
 
 
-# TODO - delete this
+# TODO - https://github.com/matched-energy/matched-analytics/issues/9
 def test_apply_schema_TRANSFORM() -> None:
     schema = dict(_drop_me=CS(check=pa.Column(int), keep=False), col_b=CS(check=pa.Column(str)))
 
