@@ -9,13 +9,6 @@ import ma.ofgem.regos
 from ma.utils.enums import ProductionTechEnum
 
 
-def _load_and_filter_grid_mix_hh(
-    grid_mix: pd.DataFrame, start_datetime: pd.Timestamp, end_datetime: pd.Timestamp
-) -> pd.DataFrame:
-    data_for_time_period = ma.neso.grid_mix.filter(grid_mix, start_datetime, end_datetime)
-    return data_for_time_period
-
-
 def _prepare_gen_supplier_month(gen_by_supplier_by_month: pd.DataFrame) -> pd.DataFrame:
     """
     Prepare supplier generation data for scaling calculation.
@@ -237,15 +230,12 @@ def _validate_date_ranges(
     error_messages = []
 
     # Check grid mix data range
-    grid_min_date = grid_mix_hh.index.min()
-    grid_max_date = grid_mix_hh.index.max()
+    if start_datetime < grid_mix_hh.index.min() or end_datetime > grid_mix_hh.index.max():
+        error_messages.append("Date range outside of grid mix data range.")
 
-    if start_datetime < grid_min_date:
-        error_messages.append(
-            f"Start date {start_datetime} is before available grid mix data (starting {grid_min_date})."
-        )
-    if end_datetime > grid_max_date:
-        error_messages.append(f"End date {end_datetime} is after available grid mix data (ending {grid_max_date}).")
+    filtered_grid_mix = grid_mix_hh[(grid_mix_hh.index >= start_datetime) & (grid_mix_hh.index < end_datetime)]
+    if len(filtered_grid_mix) == 0:
+        error_messages.append("No grid mix data available within the specified date range.")
 
     # Check REGOS data range
     if "month" in regos_data.columns:
@@ -253,19 +243,10 @@ def _validate_date_ranges(
         regos_min_date = regos_dates.min()
         regos_max_date = regos_dates.max()
 
-        if start_datetime < regos_min_date:
-            error_messages.append(
-                f"Start date {start_datetime} is before available REGOS data (starting {regos_min_date})."
-            )
-        if end_datetime > regos_max_date:
-            error_messages.append(f"End date {end_datetime} is after available REGOS data (ending {regos_max_date}).")
+        if start_datetime < regos_min_date or end_datetime > regos_max_date:
+            error_messages.append("Date range outside of REGOS data range.")
     else:
         error_messages.append("Could not determine date range in REGOS data (no 'month' column found).")
-
-    # Also verify there's data within the range
-    filtered_grid_mix = grid_mix_hh[(grid_mix_hh.index >= start_datetime) & (grid_mix_hh.index < end_datetime)]
-    if len(filtered_grid_mix) == 0:
-        error_messages.append(f"No grid mix data available within the specified date range.")
 
     # Return True if validation passed, otherwise raise ValueError with all error messages
     if error_messages:
@@ -274,14 +255,14 @@ def _validate_date_ranges(
     return True
 
 
-def downscale_supply_monthly_gen_to_hh(
+def upsample_supply_monthly_gen_to_hh(
     start_datetime: pd.Timestamp,
     end_datetime: pd.Timestamp,
     grid_mix_tech_month: pd.DataFrame,
     gen_supplier_month: pd.DataFrame,
 ) -> pd.DataFrame:
     # Step 1: Load and prepare the half-hourly grid mix data
-    grid_mix_hh = _load_and_filter_grid_mix_hh(grid_mix_tech_month, start_datetime, end_datetime)
+    grid_mix_hh = ma.neso.grid_mix.filter(grid_mix_tech_month, start_datetime, end_datetime)
 
     # Step 2: Prepare data for scaling calculation (convert units, align column names, extract year and month)
     gen_supplier_month = _prepare_gen_supplier_month(gen_supplier_month)
@@ -321,7 +302,7 @@ def cli(
     end_date: pd.Timestamp,
     output_path: Optional[Path] = None,
 ) -> None:
-    """Run the downscaling from the command line."""
+    """Run the upsampling from the command line."""
     try:
         # Load grid mix data first to check date range
         grid_mix_hh = ma.neso.grid_mix.load(grid_mix_path)
@@ -342,8 +323,8 @@ def cli(
         grid_mix_by_month = ma.neso.grid_mix.groupby_tech_and_month(grid_mix_hh)
         gen_by_supplier_by_month = ma.ofgem.regos.groupby_tech_month_holder(regos_data)
 
-        # Run the downscaling
-        result = downscale_supply_monthly_gen_to_hh(
+        # Run the upsampling
+        result = upsample_supply_monthly_gen_to_hh(
             start_datetime=start_datetime,
             end_datetime=end_datetime,
             grid_mix_tech_month=grid_mix_by_month,

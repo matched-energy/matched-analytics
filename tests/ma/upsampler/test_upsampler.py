@@ -1,15 +1,15 @@
 import pandas as pd
 from data.register import NESO_FUEL_CKAN_CSV_SUBSET_APR2022_MAR2023, REGOS_APR2022_MAR2023_SUBSET
 import ma
-from ma.downscaler.downscale_supply_monthly_gen_to_hh import downscale_supply_monthly_gen_to_hh
-from ma.downscaler.downscale_supply_monthly_gen_to_hh import _validate_date_ranges
+from ma.upsampler.upsample_supply_monthly_gen_to_hh import upsample_supply_monthly_gen_to_hh
+from ma.upsampler.upsample_supply_monthly_gen_to_hh import _validate_date_ranges
 import ma.neso.grid_mix
 import ma.ofgem.regos
 import pytest
 
 
-def test_downscaler() -> None:
-    """Test the downscaler function with logical validation."""
+def test_upsampler() -> None:
+    """Test the upsampler function with logical validation."""
     # Test parameters
     start_datetime = pd.Timestamp("2023-03-01")
     end_datetime = pd.Timestamp("2023-04-01")
@@ -21,8 +21,8 @@ def test_downscaler() -> None:
         3
     )  # Contains three bundles of certs: Drax (biomas and wind) and ACT (wind)
 
-    # Run the downscaler
-    result = downscale_supply_monthly_gen_to_hh(
+    # Run the upsampler
+    result = upsample_supply_monthly_gen_to_hh(
         start_datetime=start_datetime,
         end_datetime=end_datetime,
         grid_mix_tech_month=grid_mix_data,
@@ -33,7 +33,7 @@ def test_downscaler() -> None:
     assert len(result) == 4464
 
     # Scaling factor explanation:
-    # The downscaler distributes total generation of each technology (e.g., biomass) among suppliers
+    # The upsampler distributes total generation of each technology (e.g., biomass) among suppliers
     # based on their proportion of REGOs (certificates) for that technology.
 
     # REGO certificate counts:
@@ -85,9 +85,9 @@ def test_date_range_validation() -> None:
         _validate_date_ranges(invalid_start, valid_end, grid_mix_data, regos_data)
 
     error_msg = str(excinfo.value)
-    assert "Start date 2000-01-01 00:00:00 is before available grid mix data" in error_msg
+    assert "Date range outside of grid mix data range." in error_msg
     assert "Could not determine date range in REGOS data" in error_msg
-    assert "No grid mix data available within the specified date range" in error_msg
+    assert "No grid mix data available within the specified date range." in error_msg
 
     # Test 2: Invalid end date (2040-01-01 is after both datasets)
     valid_start = pd.Timestamp("2023-03-01")  # Start at the latest date in both datasets
@@ -97,7 +97,7 @@ def test_date_range_validation() -> None:
         _validate_date_ranges(valid_start, invalid_end, grid_mix_data, regos_data)
 
     error_msg = str(excinfo.value)
-    assert "End date 2040-01-01 00:00:00 is after available grid mix data" in error_msg
+    assert "Date range outside of grid mix data range." in error_msg
     assert "Could not determine date range in REGOS data" in error_msg
 
     # Test 3: Both invalid start and end dates
@@ -105,8 +105,7 @@ def test_date_range_validation() -> None:
         _validate_date_ranges(invalid_start, invalid_end, grid_mix_data, regos_data)
 
     error_msg = str(excinfo.value)
-    assert "Start date 2000-01-01 00:00:00 is before available grid mix data" in error_msg
-    assert "End date 2040-01-01 00:00:00 is after available grid mix data" in error_msg
+    assert "Date range outside of grid mix data range." in error_msg
     assert "Could not determine date range in REGOS data" in error_msg
 
     # Test 4: No data in range (choose a range where we know there's no data)
@@ -118,4 +117,4 @@ def test_date_range_validation() -> None:
         _validate_date_ranges(no_data_start, no_data_end, grid_mix_data, regos_data)
 
     error_msg = str(excinfo.value)
-    assert "Start date 2022-06-01 00:00:00 is before available grid mix data" in error_msg
+    assert "Date range outside of grid mix data range." in error_msg
