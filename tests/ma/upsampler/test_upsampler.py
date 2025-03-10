@@ -82,7 +82,7 @@ def test_upsampler() -> None:
         assert ratio_df["ratio"].mean() == pytest.approx(supplier_total / grid_total, rel=1e-5)
 
 
-def _get_test_validation_data():
+def _get_test_validation_data() -> tuple[pd.DataFrame, pd.DataFrame]:
     """Helper function to load test data for date range validation tests."""
     # Load the actual subset data
     grid_mix_data = ma.neso.grid_mix.load(NESO_FUEL_CKAN_CSV_SUBSET_APR2022_MAR2023)
