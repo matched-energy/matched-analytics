@@ -4,12 +4,15 @@ from typing import Dict
 
 import pandas as pd
 
-import ma.elexon.metering_data
+from ma.elexon.metering_data.metering_data_by_half_hour_and_bmu import MeteringDataHalfHourlyByBmu
+from ma.elexon.S0142.processed_S0142 import ProcessedS0142
 from ma.mapper.common import MappingException
 
 
 def half_hourly_to_monthly_volumes(metering_data_half_hourly: pd.DataFrame) -> pd.DataFrame:
     metering_data_half_hourly = copy.deepcopy(metering_data_half_hourly)
+    assert isinstance(metering_data_half_hourly.index, pd.DatetimeIndex)  # appease mypy
+    metering_data_half_hourly["settlement_datetime"] = metering_data_half_hourly.index
     metering_data_half_hourly["settlement_month"] = metering_data_half_hourly["settlement_datetime"].dt.month
     metering_data_monthly = (
         metering_data_half_hourly.groupby("settlement_month")
@@ -29,16 +32,17 @@ def get_bmu_volumes_by_month(
     bm_ids: list,
     S0142_csv_dir: Path,
 ) -> pd.DataFrame:
-    # TODO: https://github.com/matched-energy/matched-analytics/issues/9
-    metering_data_half_hourly = ma.elexon.metering_data.load_dir(  # type: ignore
-        processed_s0142_dir=S0142_csv_dir / Path(bsc_lead_party_id),
-        bsc_lead_party_id=bsc_lead_party_id,
-        bm_regex=None,
-        bm_ids=bm_ids,
-    )
-    # TODO: https://github.com/matched-energy/matched-analytics/issues/9
-    # metering_data_half_hourly = ma.elexon.metering_data.rollup_bmus(metering_data_half_hourly)
-
+    metering_data_half_hourly = pd.concat(
+        [
+            MeteringDataHalfHourlyByBmu.transform_to_half_hourly(
+                ProcessedS0142.transform_to_half_hourly_by_bmu(ProcessedS0142.from_file(f)),
+                bm_regex=None,
+                bm_ids=bm_ids,
+            )
+            for f in (S0142_csv_dir / Path(bsc_lead_party_id)).iterdir()
+            if f.is_file()
+        ]
+    ).sort_index()
     metering_data_monthly = half_hourly_to_monthly_volumes(metering_data_half_hourly)
     metering_data_monthly["bm_unit_metered_volume_gwh"] = metering_data_monthly["bm_unit_metered_volume_mwh"] / 1e3
     return metering_data_monthly[["bm_unit_metered_volume_gwh"]]
