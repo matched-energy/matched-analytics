@@ -77,7 +77,9 @@ class MeteringDataDaily(DataFrameAsset):
         cls,
         metering_data_dataframes: List[MeteringDataDailyType],
     ) -> MeteringDataMonthlyType:
-        """Rollup a list of daily dataframes to a single monthly dataframe"""
+        """Rollup a list of daily dataframes to a single monthly dataframe.
+
+        All inputs must be in a single month."""
         return _transform_to_monthly_or_yearly(
             metering_data_dataframes,
             TemporalGranularity.MONTHLY,
@@ -97,7 +99,9 @@ class MeteringDataMonthly(MeteringDataHalfHourly):
         cls,
         metering_data_dataframes: List[MeteringDataMonthlyType],
     ) -> MeteringDataYearlyType:
-        """Rollup a list of daily dataframes to a single monthly dataframe"""
+        """Rollup a list of monthly dataframes to a single yearly dataframe.
+
+        All inputs must be in a single year."""
         return _transform_to_monthly_or_yearly(
             metering_data_dataframes,
             TemporalGranularity.YEARLY,
@@ -113,6 +117,24 @@ class MeteringDataYearly(MeteringDataHalfHourly):
     }
 
 
+def _check_time_range(dfs: List[pd.DataFrame], granularity: TemporalGranularity) -> None:
+    combined_index = pd.concat([df.index.to_series() for df in dfs])
+
+    ### Check time range contained within month / year
+    if granularity == TemporalGranularity.MONTHLY:
+        unique_values = combined_index.dt.month.unique()
+        assert len(unique_values) == 1, f"Dataframes span multiple months: {unique_values}"
+    elif granularity == TemporalGranularity.YEARLY:
+        unique_values = combined_index.dt.year.unique()
+        assert len(unique_values) == 1, f"Dataframes span multiple years: {unique_values}"
+    else:
+        raise ValueError("Expect monthly or yearly granularity")
+
+    ### Check no duplicates
+    duplicate_count = combined_index.duplicated().sum()
+    assert not duplicate_count, f"{duplicate_count} duplicated timestamps"
+
+
 def _transform_to_monthly_or_yearly(
     metering_data_dataframes: list[Union[MeteringDataDailyType, MeteringDataMonthlyType]],
     granularity: TemporalGranularity,
@@ -121,6 +143,7 @@ def _transform_to_monthly_or_yearly(
 ) -> Union[MeteringDataMonthlyType, MeteringDataYearlyType]:
     """Rollup a list of daily/monthly dataframes to a singly monthly/yearly dataframe"""
     assert metering_data_dataframes, "Input list must not be empty"
+    _check_time_range(metering_data_dataframes, granularity)
 
     input = pd.concat(metering_data_dataframes)
     assert isinstance(input.index, pd.DatetimeIndex)  # appease mypy
