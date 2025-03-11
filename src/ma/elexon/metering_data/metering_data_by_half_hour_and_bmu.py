@@ -43,76 +43,83 @@ class MeteringDataHalfHourlyByBmu(DataFrameAsset):
     # fmt: on
 
 
-def filter(
-    half_hourly_by_bmu: MeteringDataHalfHourlyByBmuType, bm_regex: Optional[str] = None, bm_ids: Optional[list] = None
-) -> MeteringDataHalfHourlyByBmuType:
-    mask = np.ones(len(half_hourly_by_bmu), dtype=bool)
-    if bm_ids:
-        mask &= half_hourly_by_bmu["bm_unit_id"].isin(bm_ids)
-    if bm_regex:
-        mask &= half_hourly_by_bmu["bm_unit_id"].str.contains(bm_regex, regex=True)
-    return half_hourly_by_bmu[mask]
+    @classmethod
+    def filter(
+        cls,
+        half_hourly_by_bmu: MeteringDataHalfHourlyByBmuType, bm_regex: Optional[str] = None, bm_ids: Optional[list] = None
+    ) -> MeteringDataHalfHourlyByBmuType:
+        mask = np.ones(len(half_hourly_by_bmu), dtype=bool)
+        if bm_ids:
+            mask &= half_hourly_by_bmu["bm_unit_id"].isin(bm_ids)
+        if bm_regex:
+            mask &= half_hourly_by_bmu["bm_unit_id"].str.contains(bm_regex, regex=True)
+        return half_hourly_by_bmu[mask]
 
 
-def segregate_import_exports(half_hourly_by_bmu: MeteringDataHalfHourlyByBmuType) -> MeteringDataHalfHourlyByBmuType:
-    updated = half_hourly_by_bmu.copy()
-    updated["bm_unit_metered_volume_+ve_mwh"] = updated["bm_unit_metered_volume_mwh"].clip(lower=0)
-    updated["bm_unit_metered_volume_-ve_mwh"] = updated["bm_unit_metered_volume_mwh"].clip(upper=0)
-    return updated
+    @classmethod
+    def segregate_import_exports(cls, half_hourly_by_bmu: MeteringDataHalfHourlyByBmuType) -> MeteringDataHalfHourlyByBmuType:
+        updated = half_hourly_by_bmu.copy()
+        updated["bm_unit_metered_volume_+ve_mwh"] = updated["bm_unit_metered_volume_mwh"].clip(lower=0)
+        updated["bm_unit_metered_volume_-ve_mwh"] = updated["bm_unit_metered_volume_mwh"].clip(upper=0)
+        return updated
 
 
-def rollup_bmus(half_hourly_by_bmu: MeteringDataHalfHourlyByBmuType) -> pd.DataFrame:
-    grouped = half_hourly_by_bmu.groupby("settlement_datetime")[
-        [
-            "period_bm_unit_balancing_services_volume",
-            "period_information_imbalance_volume",
-            "period_expected_metered_volume",
-            "bm_unit_metered_volume_mwh",
-            "bm_unit_applicable_balancing_services_volume",
-            "period_supplier_bm_unit_delivered_volume",
-            "period_supplier_bm_unit_non_bm_absvd_volume",
-            "bm_unit_metered_volume_+ve_mwh",
-            "bm_unit_metered_volume_-ve_mwh",
-        ]
-    ].sum()
-    grouped["bmu_count"] = len(half_hourly_by_bmu["bm_unit_id"].unique())
-    return grouped
+    @classmethod
+    def rollup_bmus(cls, half_hourly_by_bmu: MeteringDataHalfHourlyByBmuType) -> pd.DataFrame:
+        grouped = half_hourly_by_bmu.groupby("settlement_datetime")[
+            [
+                "period_bm_unit_balancing_services_volume",
+                "period_information_imbalance_volume",
+                "period_expected_metered_volume",
+                "bm_unit_metered_volume_mwh",
+                "bm_unit_applicable_balancing_services_volume",
+                "period_supplier_bm_unit_delivered_volume",
+                "period_supplier_bm_unit_non_bm_absvd_volume",
+                "bm_unit_metered_volume_+ve_mwh",
+                "bm_unit_metered_volume_-ve_mwh",
+            ]
+        ].sum()
+        grouped["bmu_count"] = len(half_hourly_by_bmu["bm_unit_id"].unique())
+        return grouped
 
 
-def transform_to_half_hourly(
-    half_hourly_by_bmu: MeteringDataHalfHourlyByBmuType,
-    bm_regex: Optional[str] = "^2__",
-    bm_ids: Optional[list] = None,
-) -> MeteringDataHalfHourlyType:
-    """Return daily_by_bsc metering data"""
-    output = segregate_import_exports(half_hourly_by_bmu)
-    output = filter(output, bm_regex=bm_regex, bm_ids=bm_ids)
-    output = rollup_bmus(output)
-    return MeteringDataHalfHourly.from_dataframe(output)
+    @classmethod
+    def transform_to_half_hourly(
+        cls,
+        half_hourly_by_bmu: MeteringDataHalfHourlyByBmuType,
+        bm_regex: Optional[str] = "^2__",
+        bm_ids: Optional[list] = None,
+    ) -> MeteringDataHalfHourlyType:
+        """Return daily_by_bsc metering data"""
+        output = cls.segregate_import_exports(half_hourly_by_bmu)
+        output = cls.filter(output, bm_regex=bm_regex, bm_ids=bm_ids)
+        output = cls.rollup_bmus(output)
+        return MeteringDataHalfHourly.from_dataframe(output)
 
 
-def get_fig(half_hourly_by_bmu: MeteringDataHalfHourlyByBmuType) -> go.Figure:
-    fig = go.Figure()
+    @classmethod
+    def get_fig(cls, half_hourly_by_bmu: MeteringDataHalfHourlyByBmuType) -> go.Figure:
+        fig = go.Figure()
 
-    for bm_unit_id in half_hourly_by_bmu["bm_unit_id"].unique():
-        bm_unit_data = half_hourly_by_bmu[half_hourly_by_bmu["bm_unit_id"] == bm_unit_id]
+        for bm_unit_id in half_hourly_by_bmu["bm_unit_id"].unique():
+            bm_unit_data = half_hourly_by_bmu[half_hourly_by_bmu["bm_unit_id"] == bm_unit_id]
 
-        fig.add_trace(
-            go.Scatter(
-                x=bm_unit_data.index,
-                y=bm_unit_data["bm_unit_metered_volume_mwh"],
-                mode="lines",
-                name=truncate_string(bm_unit_id),
+            fig.add_trace(
+                go.Scatter(
+                    x=bm_unit_data.index,
+                    y=bm_unit_data["bm_unit_metered_volume_mwh"],
+                    mode="lines",
+                    name=truncate_string(bm_unit_id),
+                )
             )
+
+        fig.update_layout(
+            plot_bgcolor="white",
+            paper_bgcolor="white",
+            xaxis=dict(showgrid=False),
+            yaxis=dict(showgrid=False),
+            title="bm_unit_metered_volume vs settlement_datetime",
+            showlegend=True,
         )
 
-    fig.update_layout(
-        plot_bgcolor="white",
-        paper_bgcolor="white",
-        xaxis=dict(showgrid=False),
-        yaxis=dict(showgrid=False),
-        title="bm_unit_metered_volume vs settlement_datetime",
-        showlegend=True,
-    )
-
-    return fig
+        return fig
