@@ -28,8 +28,6 @@ def test_upsampler() -> None:
         gen_supplier_month=trimmed_gen_by_supplier_data,
     )
 
-    # save result to csv
-    result.to_csv("result.csv", index=False)
     assert len(result) == 2832  # 48 half-hours for 31 March and 28 days for February
 
     # TEST 1: Verify that the half-hourly volumes, when aggregated by month,
