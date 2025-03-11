@@ -161,13 +161,13 @@ class ProcessedS0142(DataFrameAsset):
     from_file_with_index = False 
     # fmt: on
 
-
-def transform_to_half_hourly_by_bmu(processed_s0142: ProcessedS0142Type) -> MeteringDataHalfHourlyByBmuType:
-    """Return half_hourly_by_bmu metering data"""
-    output = ProcessedS0142.from_dataframe(processed_s0142)
-    output["settlement_date"] = pd.to_datetime(output["settlement_date"], dayfirst=True)
-    output["settlement_datetime"] = output["settlement_date"] + (output["settlement_period"] - 1) * pd.Timedelta(
-        minutes=30
-    )
-    output = output.reset_index(drop=True).set_index("settlement_datetime")
-    return MeteringDataHalfHourlyByBmu.from_dataframe(output)
+    @classmethod
+    def transform_to_half_hourly_by_bmu(cls, processed_s0142: ProcessedS0142Type) -> MeteringDataHalfHourlyByBmuType:
+        """Return half_hourly_by_bmu metering data"""
+        output = ProcessedS0142.from_dataframe(processed_s0142)
+        output["settlement_date"] = pd.to_datetime(output["settlement_date"], dayfirst=True)
+        output["settlement_datetime"] = output["settlement_date"] + (output["settlement_period"] - 1) * pd.Timedelta(
+            minutes=30
+        )
+        output = output.reset_index(drop=True).set_index("settlement_datetime")
+        return MeteringDataHalfHourlyByBmu.from_dataframe(output)
