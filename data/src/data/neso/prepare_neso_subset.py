@@ -1,6 +1,6 @@
 # Get a subset of the NEOS data
 
-from data.register import NESO_FUEL_CKAN_CSV_SUBSET_APR2022_MAR2023
+from data.register import NESO_FUEL_CKAN_CSV_SUBSET_FEB2023_MAR2023
 import pandas as pd
 from pathlib import Path
 import argparse
@@ -19,7 +19,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--output_path",
         type=str,
-        default=str(NESO_FUEL_CKAN_CSV_SUBSET_APR2022_MAR2023),
+        default=str(NESO_FUEL_CKAN_CSV_SUBSET_FEB2023_MAR2023),
         help="Path to the output CSV file",
     )
     args = parser.parse_args()

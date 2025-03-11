@@ -6,7 +6,7 @@ from ma.utils.enums import ProductionTechEnum
 
 
 def test_groupby_tech_and_month() -> None:
-    historic_gen = ma.neso.grid_mix.load(data.register.NESO_FUEL_CKAN_CSV_SUBSET_APR2022_MAR2023)
+    historic_gen = ma.neso.grid_mix.load(data.register.NESO_FUEL_CKAN_CSV_SUBSET_FEB2023_MAR2023)
     grouped = ma.neso.grid_mix.groupby_tech_and_month(historic_gen)
 
     # Check that the grouping was done correctly, and all tech columns exist
