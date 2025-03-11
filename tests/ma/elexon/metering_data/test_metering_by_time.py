@@ -1,3 +1,6 @@
+import pandas as pd
+import pytest
+
 import data.register
 from ma.elexon.metering_data.metering_data_by_half_hour_and_bmu import MeteringDataHalfHourlyByBmu
 from ma.elexon.metering_data.metering_data_by_time import MeteringDataDaily, MeteringDataHalfHourly, MeteringDataMonthly
@@ -39,3 +42,30 @@ def test_transforms() -> None:
     assert len(yearly) == 1
     assert yearly["bm_unit_metered_volume_mwh"].sum() == day_1_s0142_bm_mwh_sum + day_2_s0142_bm_mwh_sum
     assert yearly["month_count"].unique() == 1
+
+
+def test_transform_daily_to_monthly_assert_single_month() -> None:
+    with pytest.raises(AssertionError, match="span multiple"):
+        MeteringDataDaily.transform_to_monthly(
+            [
+                pd.DataFrame({"value": range(48)}, index=pd.date_range(f"2025-{m:02d}-11", periods=48, freq="30T"))
+                for m in [3, 4]
+            ]
+        )
+
+
+def test_transform_monthly_to_yearly_assert_single_year() -> None:
+    with pytest.raises(AssertionError, match="span multiple"):
+        MeteringDataMonthly.transform_to_yearly(
+            [
+                pd.DataFrame({"value": range(30)}, index=pd.date_range(f"{y}-03-01", periods=30, freq="D"))
+                for y in [2025, 2026]
+            ]
+        )
+
+
+def test_transform_assert_no_duplicate_timestamps() -> None:
+    with pytest.raises(AssertionError, match="duplicate"):
+        MeteringDataMonthly.transform_to_yearly(
+            [pd.DataFrame({"value": range(30)}, index=pd.date_range("2025-03-01", periods=30, freq="D"))] * 2
+        )
