@@ -5,7 +5,7 @@ from ma.elexon.metering_data.metering_data_by_half_hour_and_bmu import (
     MeteringDataHalfHourlyByBmu,
     MeteringDataHalfHourlyByBmuType,
 )
-from ma.elexon.S0142.process_raw import ProcessedS0142
+from ma.elexon.S0142.processed_S0142 import ProcessedS0142
 
 
 def get_half_hourly_by_bmu() -> MeteringDataHalfHourlyByBmuType:
