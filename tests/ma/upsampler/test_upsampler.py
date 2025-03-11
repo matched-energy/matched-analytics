@@ -20,6 +20,10 @@ def test_upsampler() -> None:
     gen_by_supplier_data = ma.ofgem.regos.load(REGOS_APR2022_MAR2023_SUBSET)  # noqa: F821
     trimmed_gen_by_supplier_data = gen_by_supplier_data.head(3)
 
+    # save the HH and the gen_by_supplier_data to csv
+    grid_mix_data.to_csv("grid_mix_data.csv", index=False)
+    trimmed_gen_by_supplier_data.to_csv("trimmed_gen_by_supplier_data.csv", index=False)
+
     result = upsample_supply_monthly_gen_to_hh(
         rego_holder_reference=rego_holder_reference,
         start_datetime=start_datetime,
@@ -27,6 +31,9 @@ def test_upsampler() -> None:
         grid_mix_tech_month=grid_mix_data,
         gen_supplier_month=trimmed_gen_by_supplier_data,
     )
+
+    # save the result to csv
+    result.to_csv("result.csv", index=False)
 
     # Expect 48 half-hours * 31 days = 1488 rows
     assert len(result) == 1488
@@ -80,6 +87,25 @@ def test_upsampler() -> None:
         # Calculate grid monthly total and verify ratio
         grid_total = grid_mix_hh[f"{tech}_mwh"].sum()
         assert ratio_df["ratio"].mean() == pytest.approx(supplier_total / grid_total, rel=1e-5)
+
+    # Test 4: specific values - verify biomass scaling works correctly
+    grid_biomass_total_mwh = 1175050.5  # Total biomass in grid for March 2023
+    supplier_biomass_total_mwh = 650422.0  # Drax Energy's biomass generation for March 2023
+    expected_scaling_factor = supplier_biomass_total_mwh / grid_biomass_total_mwh
+
+    # TEST 4A: Verify total sum - the total upsampled generation should match supplier's monthly total
+    biomass_results = result[result["tech"] == "biomass"]["generation_mwh"]
+    assert biomass_results.sum() == pytest.approx(supplier_biomass_total_mwh, rel=1e-5)
+
+    # TEST 4B: Check the scaling output matches expected scaling
+    # Get the first half-hour biomass value from the grid mix
+    grid_first_hh_biomass = grid_mix_data.iloc[0]["biomass_mwh"]  # first HH biomass from grid mix
+
+    # Calculate the actual scaling used for the first half-hour
+    actual_scaling = biomass_results.iloc[0] / grid_first_hh_biomass
+
+    # Verify the actual scaling matches our expected scaling factor
+    assert actual_scaling == pytest.approx(expected_scaling_factor, rel=1e-5)
 
 
 def _get_test_validation_data() -> tuple[pd.DataFrame, pd.DataFrame]:
