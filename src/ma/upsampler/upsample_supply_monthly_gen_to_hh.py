@@ -56,23 +56,23 @@ def _calculate_scaling_factors(
     grid_mix_by_tech_by_month: pd.DataFrame, supply_gen_by_month: pd.DataFrame
 ) -> pd.DataFrame:
     """
-    Calculate scaling factors for each technology and supplier using vectorized operations.
+    Calculate scaling factors for each technology, supplier and month using vectorized operations.
 
     Takes prepared grid mix and supplier data and calculates the proportion
     of grid generation that should be allocated to each supplier.
     """
-    grid_mix_pivoted = grid_mix_by_tech_by_month.copy()
-    tech_columns = [col for col in grid_mix_pivoted.columns if col.endswith("_mwh")]
+    grid_mix = grid_mix_by_tech_by_month.copy()
+    tech_columns = [col for col in grid_mix.columns if col.endswith("_mwh")]
 
     # Create a copy of the supplier data to avoid modifying the original
     supply_gen = supply_gen_by_month.copy()
     supply_gen = supply_gen.rename(columns={"month_num": "month"})  # required for joining
 
     # Select only the technology columns and year/month
-    tech_data = grid_mix_pivoted[["year", "month"] + tech_columns].copy()
+    tech_data = grid_mix[["year", "month"] + tech_columns].copy()
 
     # Convert from wide to long format
-    grid_long = pd.melt(
+    grid_mix_long = pd.melt(
         tech_data,
         id_vars=["year", "month"],
         value_vars=tech_columns,
@@ -81,12 +81,12 @@ def _calculate_scaling_factors(
     )
 
     # Standardise tech names
-    grid_long["tech"] = grid_long["tech_column"].str.replace("_mwh", "")
+    grid_mix_long["tech"] = grid_mix_long["tech_column"].str.replace("_mwh", "")
 
     # Merge with supplier data
     merged_data = pd.merge(
         supply_gen[["year", "month", "tech", "current_holder", "rego_mwh"]],
-        grid_long[["year", "month", "tech", "grid_total_mwh"]],
+        grid_mix_long[["year", "month", "tech", "grid_total_mwh"]],
         on=["year", "month", "tech"],
         how="inner",
     )
@@ -236,6 +236,11 @@ def upsample_supply_monthly_gen_to_hh(
     "--grid-mix-path", type=click.Path(exists=True, path_type=Path), help="Path to the grid mix data CSV file"
 )
 @click.option("--regos-path", type=click.Path(exists=True, path_type=Path), help="Path to the REGOS data CSV file")
+@click.option(
+    "--rego-holder-reference",
+    type=str,
+    help="The reference for the REGOS holder to be scaled",
+)
 @click.option(
     "--start-date",
     type=click.DateTime(formats=["%Y-%m-%d"]),

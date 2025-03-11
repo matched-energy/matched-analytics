@@ -20,10 +20,6 @@ def test_upsampler() -> None:
     gen_by_supplier_data = ma.ofgem.regos.load(REGOS_APR2022_MAR2023_SUBSET)  # noqa: F821
     trimmed_gen_by_supplier_data = gen_by_supplier_data.head(3)
 
-    # save the HH and the gen_by_supplier_data to csv
-    grid_mix_data.to_csv("grid_mix_data.csv", index=False)
-    trimmed_gen_by_supplier_data.to_csv("trimmed_gen_by_supplier_data.csv", index=False)
-
     result = upsample_supply_monthly_gen_to_hh(
         rego_holder_reference=rego_holder_reference,
         start_datetime=start_datetime,
@@ -31,9 +27,6 @@ def test_upsampler() -> None:
         grid_mix_tech_month=grid_mix_data,
         gen_supplier_month=trimmed_gen_by_supplier_data,
     )
-
-    # save the result to csv
-    result.to_csv("result.csv", index=False)
 
     # Expect 48 half-hours * 31 days = 1488 rows
     assert len(result) == 1488
