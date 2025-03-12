@@ -6,10 +6,7 @@ from typing import Dict, Generator, Optional, Tuple
 import pandas as pd
 import pandera as pa
 
-from ma.elexon.metering_data.metering_data_by_half_hour_and_bmu import (
-    MeteringDataHalfHourlyByBmu,
-    MeteringDataHalfHourlyByBmuType,
-)
+from ma.elexon.metering_data.metering_data_by_half_hour_and_bmu import MeteringDataHalfHourlyByBmu
 from ma.utils.pandas import ColumnSchema as CS
 from ma.utils.pandas import DataFrameAsset
 
@@ -130,9 +127,6 @@ def process_directory(
                     )
 
 
-ProcessedS0142Type = pd.DataFrame
-
-
 class ProcessedS0142(DataFrameAsset):
     # fmt: off
     schema: Dict[str, CS] = dict(
@@ -161,13 +155,12 @@ class ProcessedS0142(DataFrameAsset):
     from_file_with_index = False 
     # fmt: on
 
-    @classmethod
-    def transform_to_half_hourly_by_bmu(cls, processed_s0142: ProcessedS0142Type) -> MeteringDataHalfHourlyByBmuType:
+    def transform_to_half_hourly_by_bmu(self) -> MeteringDataHalfHourlyByBmu:
         """Return half_hourly_by_bmu metering data"""
-        output = ProcessedS0142.from_dataframe(processed_s0142)
+        output = self.to_pandas()
         output["settlement_date"] = pd.to_datetime(output["settlement_date"], dayfirst=True)
         output["settlement_datetime"] = output["settlement_date"] + (output["settlement_period"] - 1) * pd.Timedelta(
             minutes=30
         )
         output = output.reset_index(drop=True).set_index("settlement_datetime")
-        return MeteringDataHalfHourlyByBmu.from_dataframe(output)
+        return MeteringDataHalfHourlyByBmu(output)

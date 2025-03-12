@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 import copy
-from typing import Callable, Dict, List, Union
+from typing import Any, Dict, List, Type
 
 import pandas as pd
 import pandera as pa
@@ -8,11 +10,6 @@ from ma.utils.enums import TemporalGranularity
 from ma.utils.pandas import ColumnSchema as CS
 from ma.utils.pandas import DataFrameAsset
 from ma.utils.pandas import DateTimeEngine as DTE
-
-MeteringDataHalfHourlyType = pd.DataFrame
-MeteringDataDailyType = pd.DataFrame
-MeteringDataMonthlyType = pd.DataFrame
-MeteringDataYearlyType = pd.DataFrame
 
 
 class MeteringDataHalfHourly(DataFrameAsset):
@@ -32,15 +29,14 @@ class MeteringDataHalfHourly(DataFrameAsset):
     }
     # fmt: on
 
-    @classmethod
-    def transform_to_daily(
-        cls,
-        metering_data_half_hourly: MeteringDataHalfHourlyType,
-    ) -> MeteringDataDailyType:
+    def transform_to_daily(self) -> MeteringDataDaily:
         """Rollup a single, half-hourly dataframe to a daily dataframe"""
+        metering_data_half_hourly = self.to_pandas()
         assert isinstance(metering_data_half_hourly.index, pd.DatetimeIndex)  # appease mypy
+        assert len(metering_data_half_hourly) in (46, 48, 50), (  # robust to daylight savings
+            f"Got {len(metering_data_half_hourly)} periods from {metering_data_half_hourly.index.min()} to {metering_data_half_hourly.index.max()}"
+        )
         days = metering_data_half_hourly.index.to_period("D")
-        assert len(days.unique()) == 1, "Data should not span days"
 
         daily_total = (
             metering_data_half_hourly[
@@ -63,7 +59,7 @@ class MeteringDataHalfHourly(DataFrameAsset):
         )
         daily_total["settlement_period_count"] = len(metering_data_half_hourly)
         daily_total.index = pd.Index([days[0]]).to_timestamp()
-        return MeteringDataDaily.from_dataframe(daily_total)
+        return MeteringDataDaily(daily_total)
 
 
 class MeteringDataDaily(DataFrameAsset):
@@ -73,32 +69,26 @@ class MeteringDataDaily(DataFrameAsset):
     }
 
     @classmethod
-    def transform_to_monthly(
-        cls,
-        metering_data_dataframes: List[MeteringDataDailyType],
-    ) -> MeteringDataMonthlyType:
+    def aggregate_to_monthly(cls, metering_data_dataframes: List[pd.DataFrame]) -> MeteringDataMonthly:
         """Rollup a list of daily dataframes to a single monthly dataframe.
 
         All inputs must be in a single month."""
         return _transform_to_monthly_or_yearly(
-            metering_data_dataframes,
-            TemporalGranularity.MONTHLY,
-            "settlement_period_count",
-            MeteringDataMonthly.from_dataframe,
+            metering_data_dataframes, TemporalGranularity.MONTHLY, "settlement_period_count", MeteringDataMonthly
         )
 
 
-class MeteringDataMonthly(MeteringDataHalfHourly):
+class MeteringDataMonthly(DataFrameAsset):
     schema: Dict[str, CS] = {
         **copy.deepcopy(MeteringDataHalfHourly.schema),
         "day_count": CS(check=pa.Column(int)),
     }
 
     @classmethod
-    def transform_to_yearly(
+    def aggregate_to_yearly(
         cls,
-        metering_data_dataframes: List[MeteringDataMonthlyType],
-    ) -> MeteringDataYearlyType:
+        metering_data_dataframes: List[pd.DataFrame],
+    ) -> MeteringDataYearly:
         """Rollup a list of monthly dataframes to a single yearly dataframe.
 
         All inputs must be in a single year."""
@@ -106,11 +96,11 @@ class MeteringDataMonthly(MeteringDataHalfHourly):
             metering_data_dataframes,
             TemporalGranularity.YEARLY,
             "day_count",
-            MeteringDataYearly.from_dataframe,
+            MeteringDataYearly,
         )
 
 
-class MeteringDataYearly(MeteringDataHalfHourly):
+class MeteringDataYearly(DataFrameAsset):
     schema: Dict[str, CS] = {
         **copy.deepcopy(MeteringDataHalfHourly.schema),
         "month_count": CS(check=pa.Column(int)),
@@ -136,11 +126,11 @@ def _check_time_range(dfs: List[pd.DataFrame], granularity: TemporalGranularity)
 
 
 def _transform_to_monthly_or_yearly(
-    metering_data_dataframes: list[Union[MeteringDataDailyType, MeteringDataMonthlyType]],
+    metering_data_dataframes: List[pd.DataFrame],
     granularity: TemporalGranularity,
     drop_column: str,
-    from_dataframe: Callable,
-) -> Union[MeteringDataMonthlyType, MeteringDataYearlyType]:
+    output_class: Type,
+) -> Any:  # Any so that can return MeteringDataMonthly/Yearly
     """Rollup a list of daily/monthly dataframes to a singly monthly/yearly dataframe"""
     assert metering_data_dataframes, "Input list must not be empty"
     _check_time_range(metering_data_dataframes, granularity)
@@ -155,4 +145,4 @@ def _transform_to_monthly_or_yearly(
 
     output.index = output.index.to_timestamp()  # type: ignore
 
-    return from_dataframe(output)
+    return output_class(output)
