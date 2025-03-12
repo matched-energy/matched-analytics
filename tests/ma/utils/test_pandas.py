@@ -14,8 +14,8 @@ def test_apply_schema_TYPED() -> None:
     class Asset(DataFrameAsset):
         schema = dict(col_a=CS(check=pa.Column(int)), col_b=CS(check=pa.Column(str)))
 
-    df = Asset.from_dataframe(copy.deepcopy(DF_RAW))
-    pd.testing.assert_index_equal(df.columns, pd.Index(["col_a", "col_b"]))
+    df = Asset(copy.deepcopy(DF_RAW))
+    pd.testing.assert_index_equal(df.to_pandas().columns, pd.Index(["col_a", "col_b"]))
     assert pd.api.types.is_integer_dtype(df["col_a"])
     assert pd.api.types.is_object_dtype(df["col_b"])
 
@@ -24,7 +24,7 @@ def test_apply_schema_UNTYPED() -> None:
     class Asset(DataFrameAsset):
         schema = dict(col_a=CS(check=pa.Column()), col_b=CS(check=pa.Column()))
 
-    df = Asset.from_dataframe(copy.deepcopy(DF_RAW))
+    df = Asset(copy.deepcopy(DF_RAW))
     assert pd.api.types.is_object_dtype(df["col_a"])
     assert pd.api.types.is_object_dtype(df["col_b"])
 
@@ -33,7 +33,7 @@ def test_apply_schema_DROP_COLUMNS() -> None:
     class Asset(DataFrameAsset):
         schema = dict(col_a=CS(check=pa.Column()), col_b=CS(check=pa.Column(), keep=False))
 
-    df = Asset.from_dataframe(copy.deepcopy(DF_RAW))
+    df = Asset(copy.deepcopy(DF_RAW))
     assert pd.api.types.is_object_dtype(df["col_a"])
 
 
@@ -42,7 +42,7 @@ def test_apply_schema_WRONG_NUMBER_OF_COLUMNS() -> None:
         schema = dict(col_a=CS(check=pa.Column()))
 
     with pytest.raises(AssertionError):
-        Asset.from_dataframe(copy.deepcopy(DF_RAW))
+        Asset(copy.deepcopy(DF_RAW))
 
 
 def test_apply_schema_PANDERA_VALIDATION_FAIL() -> None:
@@ -50,7 +50,7 @@ def test_apply_schema_PANDERA_VALIDATION_FAIL() -> None:
         schema = dict(col_a=CS(check=pa.Column()), col_b=CS(check=pa.Column(int)))
 
     with pytest.raises(pa.errors.SchemaError):
-        Asset.from_dataframe(copy.deepcopy(DF_RAW))
+        Asset(copy.deepcopy(DF_RAW))
 
 
 def test_apply_schema_INDEX() -> None:
@@ -59,9 +59,9 @@ def test_apply_schema_INDEX() -> None:
 
     df_raw = copy.deepcopy(DF_RAW)
     df_raw.set_index("a", drop=True, inplace=True)
-    df = Asset.from_dataframe(df_raw)
-    assert df.index.name == "col_a"
-    assert df.columns == ["col_b"]
+    df = Asset(df_raw)
+    assert df.to_pandas().index.name == "col_a"
+    assert df.to_pandas().columns == ["col_b"]
 
 
 def test_apply_schema_INDEX_TYPE_ERROR() -> None:
@@ -71,16 +71,19 @@ def test_apply_schema_INDEX_TYPE_ERROR() -> None:
     df_raw = copy.deepcopy(DF_RAW)
     df_raw.set_index("a", drop=True, inplace=True)
     with pytest.raises(pa.errors.SchemaError):
-        Asset.from_dataframe(df_raw)
+        Asset(df_raw)
 
 
 def test_apply_schema_TOO_MANY_INDICES() -> None:
     class Asset(DataFrameAsset):
-        schema = dict(col_a=CS(check=pa.Index(int)), col_b=CS(check=pa.Index(int)))
+        schema = dict(
+            ind_a=CS(check=pa.Index(int)),
+            ind_b=CS(check=pa.Index(str)),
+        )
 
     df_raw = copy.deepcopy(DF_RAW)
     with pytest.raises(ValueError, match="More than one index"):
-        Asset.from_dataframe(df_raw)
+        Asset(df_raw)
 
 
 # TODO - https://github.com/matched-energy/matched-analytics/issues/9

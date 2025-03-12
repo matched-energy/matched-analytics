@@ -1,7 +1,7 @@
 import copy
 from abc import ABC
 from pathlib import Path
-from typing import Callable, Dict, NotRequired, Optional, Tuple, TypedDict, Union
+from typing import Any, Callable, Dict, NotRequired, Optional, TypedDict, Union
 
 import pandas as pd
 import pandera as pa
@@ -57,63 +57,75 @@ class DataFrameAsset(ABC):
     schema: Dict[str, ColumnSchema]
     from_file_with_index: bool = True
 
-    @classmethod
-    def _pandera_schema(cls) -> Tuple[Dict, Dict, pa.DataFrameSchema]:
-        columns: Dict = {}
-        index: Dict = {}
-        for col, column_schema in cls.schema.items():
+    def __init__(self, input: Union[pd.DataFrame, Path]):
+        self._set_schema()
+        if isinstance(input, pd.DataFrame):
+            df = input
+        elif isinstance(input, Path):
+            df = self._from_file(input)
+        else:
+            raise TypeError("Expected Pandas dataframe or pathlib.Path")
+        self._df = self._from_dataframe(df)
+
+    def _set_schema(self) -> None:
+        self.columns: Dict = {}
+        self.index: Dict = {}
+        for col, column_schema in self.schema.items():
             check = column_schema["check"]
             if isinstance(check, pa.Column):
-                columns[col] = check
+                self.columns[col] = check
             elif isinstance(check, pa.Index):
-                if len(index):
+                if len(self.index):
                     raise ValueError("More than one index column defined")
-                index = {"check": check, "name": col}
+                self.index = {"check": check, "name": col}
             else:
                 raise ValueError("Columns must be of type pa.Column or pa.Index")
 
-        schema = pa.DataFrameSchema(
-            columns=columns,
-            index=index.get("check"),
+        self.pandera_schema = pa.DataFrameSchema(
+            columns=self.columns,
+            index=self.index.get("check"),
             coerce=True,
             strict=True,
         )
-        return columns, index, schema
 
-    @classmethod
-    def from_dataframe(cls, dataframe: pd.DataFrame) -> pd.DataFrame:
+    def _from_dataframe(self, dataframe: pd.DataFrame) -> pd.DataFrame:
         dataframe = copy.deepcopy(dataframe)  # TODO: https://github.com/matched-energy/matched-analytics/issues/9
 
-        columns, index, schema = cls._pandera_schema()
-
         # Name columns
-        column_names = pd.Index(columns.keys())
-        if len(columns) != len(dataframe.columns):
+        column_names = pd.Index(self.columns.keys())
+        if len(self.columns) != len(dataframe.columns):
             raise AssertionError(
                 f"Dataframe has wrong number of columns: expected {len(column_names)} got {len(dataframe.columns)}"
             )
         dataframe.columns = column_names
 
         # Name index
-        if index_name := index.get("name"):
+        if index_name := self.index.get("name"):
             dataframe.index.name = index_name
 
         # Apply schema
-        dataframe = schema.validate(dataframe)
+        dataframe = self.pandera_schema.validate(dataframe)
 
         # Drop columns
         dataframe = select_columns(
-            dataframe, exclude=[col for col, cs in cls.schema.items() if not cs.get("keep", True)]
+            dataframe, exclude=[col for col, cs in self.schema.items() if not cs.get("keep", True)]
         )
 
         return dataframe
 
-    @classmethod
-    def from_file(cls, filepath: Path) -> pd.DataFrame:
-        df = pd.read_csv(filepath, index_col=0 if cls.from_file_with_index else None)
-        return cls.from_dataframe(df)
+    def _from_file(self, filepath: Path) -> pd.DataFrame:
+        return pd.read_csv(
+            filepath, index_col=0 if self.from_file_with_index else None
+        )  # TODO: Test https://github.com/matched-energy/matched-analytics/issues/9
 
-    @classmethod
-    def write(cls, dataframe: pd.DataFrame, filepath: Path) -> None:
-        _, _, schema = cls._pandera_schema()
-        schema.validate(dataframe).to_csv(filepath)
+    def __getattr__(self, name: str) -> Any:
+        return self._df[name]
+
+    def __getitem__(self, key: str) -> Any:
+        return self._df[key]
+
+    def to_pandas(self) -> pd.DataFrame:
+        return copy.deepcopy(self._df)
+
+    def write(self, filepath: Path) -> None:
+        self.pandera_schema.validate(self._df).to_csv(filepath)
