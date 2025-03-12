@@ -62,10 +62,10 @@ class DataFrameAsset(ABC):
         if isinstance(input, pd.DataFrame):
             df = input
         elif isinstance(input, Path):
-            df = self._from_file(input)
+            df = self._read_from_file(input)
         else:
             raise TypeError("Expected Pandas dataframe or pathlib.Path")
-        self._df = self._from_dataframe(df)
+        self._df = self._init_from_dataframe(df)
 
     def _set_schema(self) -> None:
         self.columns: Dict = {}
@@ -88,7 +88,7 @@ class DataFrameAsset(ABC):
             strict=True,
         )
 
-    def _from_dataframe(self, dataframe: pd.DataFrame) -> pd.DataFrame:
+    def _init_from_dataframe(self, dataframe: pd.DataFrame) -> pd.DataFrame:
         dataframe = copy.deepcopy(dataframe)  # TODO: https://github.com/matched-energy/matched-analytics/issues/9
 
         # Name columns
@@ -113,7 +113,7 @@ class DataFrameAsset(ABC):
 
         return dataframe
 
-    def _from_file(self, filepath: Path) -> pd.DataFrame:
+    def _read_from_file(self, filepath: Path) -> pd.DataFrame:
         return pd.read_csv(
             filepath, index_col=0 if self.from_file_with_index else None
         )  # TODO: Test https://github.com/matched-energy/matched-analytics/issues/9
@@ -124,7 +124,7 @@ class DataFrameAsset(ABC):
     def __getitem__(self, key: str) -> Any:
         return self._df[key]
 
-    def to_pandas(self) -> pd.DataFrame:
+    def df(self) -> pd.DataFrame:
         return copy.deepcopy(self._df)
 
     def write(self, filepath: Path) -> None:

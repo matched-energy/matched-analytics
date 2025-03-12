@@ -157,7 +157,7 @@ class ProcessedS0142(DataFrameAsset):
 
     def transform_to_half_hourly_by_bmu(self) -> MeteringDataHalfHourlyByBmu:
         """Return half_hourly_by_bmu metering data"""
-        output = self.to_pandas()
+        output = self.df()
         output["settlement_date"] = pd.to_datetime(output["settlement_date"], dayfirst=True)
         output["settlement_datetime"] = output["settlement_date"] + (output["settlement_period"] - 1) * pd.Timedelta(
             minutes=30
