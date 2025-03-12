@@ -4,7 +4,7 @@
 from enum import StrEnum
 
 
-class ProductionTechEnum(StrEnum):
+class SupplyTechEnum(StrEnum):
     GAS = "gas"
     COAL = "coal"
     NUCLEAR = "nuclear"

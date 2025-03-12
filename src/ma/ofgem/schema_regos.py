@@ -5,7 +5,7 @@ import pandas as pd
 import pandera as pa
 from dateutil.relativedelta import relativedelta
 
-from ma.utils.enums import ProductionTechEnum
+from ma.utils.enums import SupplyTechEnum
 from ma.utils.pandas import ColumnSchema as CS
 from ma.utils.pandas import DateTimeEngine as DTE
 
@@ -35,24 +35,24 @@ rego_schema_on_load: Dict[str, CS] = dict(
 def transform_regos_schema(regos_raw: pd.DataFrame) -> pd.DataFrame:
     regos = regos_raw.copy()
     regos["rego_gwh"] = regos["mwh_per_certificate"] * regos["certificate_count"] / 1e3
-    regos["tech_category"] = regos["technology_group"].map(rego_tech_categories)
+    regos["tech"] = regos["technology_group"].map(rego_tech_categories)
     regos = add_output_period_columns(regos)
     return regos
 
 
 rego_tech_categories = {
-    "Photovoltaic": ProductionTechEnum.SOLAR,
-    "Hydro": ProductionTechEnum.HYDRO,
-    "Wind": ProductionTechEnum.WIND,
-    "Biomass": ProductionTechEnum.BIOMASS,
-    "Biogas": ProductionTechEnum.BIOMASS,
-    "Landfill Gas": ProductionTechEnum.BIOMASS,
-    "On-shore Wind": ProductionTechEnum.WIND,
-    "Hydro 20MW DNC or less": ProductionTechEnum.HYDRO,
-    "Fuelled": ProductionTechEnum.BIOMASS,
-    "Off-shore Wind": ProductionTechEnum.WIND,
-    "Micro Hydro": ProductionTechEnum.HYDRO,
-    "Biomass 50kW DNC or less": ProductionTechEnum.BIOMASS,
+    "Photovoltaic": SupplyTechEnum.SOLAR,
+    "Hydro": SupplyTechEnum.HYDRO,
+    "Wind": SupplyTechEnum.WIND,
+    "Biomass": SupplyTechEnum.BIOMASS,
+    "Biogas": SupplyTechEnum.BIOMASS,
+    "Landfill Gas": SupplyTechEnum.BIOMASS,
+    "On-shore Wind": SupplyTechEnum.WIND,
+    "Hydro 20MW DNC or less": SupplyTechEnum.HYDRO,
+    "Fuelled": SupplyTechEnum.BIOMASS,
+    "Off-shore Wind": SupplyTechEnum.WIND,
+    "Micro Hydro": SupplyTechEnum.HYDRO,
+    "Biomass 50kW DNC or less": SupplyTechEnum.BIOMASS,
 }
 
 
