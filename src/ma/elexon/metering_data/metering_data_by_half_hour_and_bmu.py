@@ -5,13 +5,11 @@ import pandas as pd
 import pandera as pa
 import plotly.graph_objects as go
 
-from ma.elexon.metering_data.metering_data_by_time import MeteringDataHalfHourly, MeteringDataHalfHourlyType
+from ma.elexon.metering_data.metering_data_by_time import MeteringDataHalfHourly
 from ma.utils.misc import truncate_string
 from ma.utils.pandas import ColumnSchema as CS
 from ma.utils.pandas import DataFrameAsset
 from ma.utils.pandas import DateTimeEngine as DTE
-
-MeteringDataHalfHourlyByBmuType = pd.DataFrame
 
 
 class MeteringDataHalfHourlyByBmu(DataFrameAsset):
@@ -45,10 +43,10 @@ class MeteringDataHalfHourlyByBmu(DataFrameAsset):
     @classmethod
     def filter(
         cls,
-        half_hourly_by_bmu: MeteringDataHalfHourlyByBmuType,
+        half_hourly_by_bmu: pd.DataFrame,
         bm_regex: Optional[str] = None,
         bm_ids: Optional[list] = None,
-    ) -> MeteringDataHalfHourlyByBmuType:
+    ) -> pd.DataFrame:
         mask = np.ones(len(half_hourly_by_bmu), dtype=bool)
         if bm_ids:
             mask &= half_hourly_by_bmu["bm_unit_id"].isin(bm_ids)
@@ -57,16 +55,14 @@ class MeteringDataHalfHourlyByBmu(DataFrameAsset):
         return half_hourly_by_bmu[mask]
 
     @classmethod
-    def segregate_import_exports(
-        cls, half_hourly_by_bmu: MeteringDataHalfHourlyByBmuType
-    ) -> MeteringDataHalfHourlyByBmuType:
+    def segregate_import_exports(cls, half_hourly_by_bmu: pd.DataFrame) -> pd.DataFrame:
         updated = half_hourly_by_bmu.copy()
         updated["bm_unit_metered_volume_+ve_mwh"] = updated["bm_unit_metered_volume_mwh"].clip(lower=0)
         updated["bm_unit_metered_volume_-ve_mwh"] = updated["bm_unit_metered_volume_mwh"].clip(upper=0)
         return updated
 
     @classmethod
-    def rollup_bmus(cls, half_hourly_by_bmu: MeteringDataHalfHourlyByBmuType) -> pd.DataFrame:
+    def rollup_bmus(cls, half_hourly_by_bmu: pd.DataFrame) -> pd.DataFrame:
         grouped = half_hourly_by_bmu.groupby("settlement_datetime")[
             [
                 "period_bm_unit_balancing_services_volume",
@@ -83,21 +79,20 @@ class MeteringDataHalfHourlyByBmu(DataFrameAsset):
         grouped["bmu_count"] = len(half_hourly_by_bmu["bm_unit_id"].unique())
         return grouped
 
-    @classmethod
     def transform_to_half_hourly(
-        cls,
-        half_hourly_by_bmu: MeteringDataHalfHourlyByBmuType,
+        self,
         bm_regex: Optional[str] = "^2__",
         bm_ids: Optional[list] = None,
-    ) -> MeteringDataHalfHourlyType:
+    ) -> MeteringDataHalfHourly:
         """Return daily_by_bsc metering data"""
-        output = cls.segregate_import_exports(half_hourly_by_bmu)
-        output = cls.filter(output, bm_regex=bm_regex, bm_ids=bm_ids)
-        output = cls.rollup_bmus(output)
-        return MeteringDataHalfHourly.from_dataframe(output)
+        output = self.to_pandas()
+        output = type(self).segregate_import_exports(output)
+        output = type(self).filter(output, bm_regex=bm_regex, bm_ids=bm_ids)
+        output = type(self).rollup_bmus(output)
+        return MeteringDataHalfHourly(output)
 
     @classmethod
-    def get_fig(cls, half_hourly_by_bmu: MeteringDataHalfHourlyByBmuType) -> go.Figure:
+    def get_fig(cls, half_hourly_by_bmu: pd.DataFrame) -> go.Figure:
         fig = go.Figure()
 
         for bm_unit_id in half_hourly_by_bmu["bm_unit_id"].unique():
