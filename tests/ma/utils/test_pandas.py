@@ -15,7 +15,7 @@ def test_apply_schema_TYPED() -> None:
         schema = dict(col_a=CS(check=pa.Column(int)), col_b=CS(check=pa.Column(str)))
 
     df = Asset(copy.deepcopy(DF_RAW))
-    pd.testing.assert_index_equal(df.to_pandas().columns, pd.Index(["col_a", "col_b"]))
+    pd.testing.assert_index_equal(df.df().columns, pd.Index(["col_a", "col_b"]))
     assert pd.api.types.is_integer_dtype(df["col_a"])
     assert pd.api.types.is_object_dtype(df["col_b"])
 
@@ -60,8 +60,8 @@ def test_apply_schema_INDEX() -> None:
     df_raw = copy.deepcopy(DF_RAW)
     df_raw.set_index("a", drop=True, inplace=True)
     df = Asset(df_raw)
-    assert df.to_pandas().index.name == "col_a"
-    assert df.to_pandas().columns == ["col_b"]
+    assert df.df().index.name == "col_a"
+    assert df.df().columns == ["col_b"]
 
 
 def test_apply_schema_INDEX_TYPE_ERROR() -> None:

@@ -13,29 +13,29 @@ def test_transforms() -> None:
     day_2_s0142_bm_mwh_sum = day_2_s0142["bm_unit_metered_volume_mwh"].sum()
 
     day_1_half_hourly_by_bmu = day_1_s0142.transform_to_half_hourly_by_bmu()
-    assert len(day_1_half_hourly_by_bmu.to_pandas()) == len(day_1_s0142.to_pandas())
-    assert day_1_half_hourly_by_bmu.to_pandas().index.name == "settlement_datetime"
+    assert len(day_1_half_hourly_by_bmu.df()) == len(day_1_s0142.df())
+    assert day_1_half_hourly_by_bmu.df().index.name == "settlement_datetime"
     assert day_1_half_hourly_by_bmu["bm_unit_metered_volume_mwh"].sum() == day_1_s0142_bm_mwh_sum
     day_2_half_hourly_by_bmu = day_2_s0142.transform_to_half_hourly_by_bmu()
 
     day_1_half_hourly = day_1_half_hourly_by_bmu.transform_to_half_hourly()
-    assert len(day_1_half_hourly.to_pandas()) == 48
+    assert len(day_1_half_hourly.df()) == 48
     assert day_1_half_hourly["bm_unit_metered_volume_mwh"].sum() == day_1_s0142_bm_mwh_sum
     day_2_half_hourly = day_2_half_hourly_by_bmu.transform_to_half_hourly()
 
     day_1_daily = day_1_half_hourly.transform_to_daily()
-    assert len(day_1_daily.to_pandas()) == 1
+    assert len(day_1_daily.df()) == 1
     assert day_1_daily["bm_unit_metered_volume_mwh"].sum() == day_1_s0142_bm_mwh_sum
     assert day_1_daily["settlement_period_count"].unique() == 48
     day_2_daily = day_2_half_hourly.transform_to_daily()
 
-    monthly = MeteringDataDaily.aggregate_to_monthly([day_1_daily.to_pandas(), day_2_daily.to_pandas()])
-    assert len(monthly.to_pandas()) == 1
+    monthly = MeteringDataDaily.aggregate_to_monthly([day_1_daily.df(), day_2_daily.df()])
+    assert len(monthly.df()) == 1
     assert monthly["bm_unit_metered_volume_mwh"].sum() == day_1_s0142_bm_mwh_sum + day_2_s0142_bm_mwh_sum
     assert monthly["day_count"].unique() == 2
 
-    yearly = MeteringDataMonthly.aggregate_to_yearly([monthly.to_pandas()])
-    assert len(yearly.to_pandas()) == 1
+    yearly = MeteringDataMonthly.aggregate_to_yearly([monthly.df()])
+    assert len(yearly.df()) == 1
     assert yearly["bm_unit_metered_volume_mwh"].sum() == day_1_s0142_bm_mwh_sum + day_2_s0142_bm_mwh_sum
     assert yearly["month_count"].unique() == 1
 
@@ -44,7 +44,7 @@ def test_transform_daily_to_monthly_assert_single_month() -> None:
     with pytest.raises(AssertionError, match="span multiple"):
         MeteringDataDaily.aggregate_to_monthly(
             [
-                pd.DataFrame({"value": range(48)}, index=pd.date_range(f"2025-{m:02d}-11", periods=48, freq="30T"))
+                pd.DataFrame({"value": range(48)}, index=pd.date_range(f"2025-{m:02d}-11", periods=48, freq="30min"))
                 for m in [3, 4]
             ]
         )
