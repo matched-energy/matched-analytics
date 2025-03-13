@@ -6,7 +6,6 @@ import click
 import pandas as pd
 
 import ma.elexon.bmus
-import ma.ofgem.regos
 import ma.ofgem.stations
 from ma.mapper.bmu_helpers import get_matching_bmus_dict, validate_matching_bmus
 from ma.mapper.common import MappingException
@@ -14,14 +13,15 @@ from ma.mapper.filter_on_aggregate_data import appraise_energy_volumes, appraise
 from ma.mapper.filter_on_bmu_meta_data import get_matching_bmus
 from ma.mapper.rego_helpers import get_generator_profile
 from ma.mapper.summarise_and_score import abbreviate_summary, score_mapping, summarise_profile
-from ma.utils.io import get_logger, from_yaml_file
+from ma.ofgem.regos import RegosProcessed, RegosRaw
+from ma.utils.io import from_yaml_file, get_logger
 
 LOGGER = get_logger("ma.mapper")
 
 
 def map_station(
     rego_station_name: str,
-    regos: pd.DataFrame,
+    regos: RegosProcessed,
     accredited_stations: pd.DataFrame,
     bmus: pd.DataFrame,
     S0142_csv_dir: Path,
@@ -61,7 +61,7 @@ def map_station(
 def map_station_range(
     start: int,
     stop: int,
-    regos: pd.DataFrame,
+    regos: RegosProcessed,
     accredited_stations: pd.DataFrame,
     bmus: pd.DataFrame,
     bmu_vol_dir: Path,
@@ -69,7 +69,7 @@ def map_station_range(
     mappings_path: Optional[Path] = None,
     abbreviated_mappings_path: Optional[Path] = None,
 ) -> pd.DataFrame:
-    regos_by_station = ma.ofgem.regos.groupby_station(regos)
+    regos_by_station = regos.groupby_station()
     summaries = []
     for i in range(start, stop):
         summaries.append(
@@ -115,7 +115,7 @@ def cli(
     map_station_range(
         start,
         stop,
-        ma.ofgem.regos.load(regos_path),
+        RegosRaw(regos_path).transform_to_regos_processed(),
         ma.ofgem.stations.load_from_dir(accredited_stations_dir),
         ma.elexon.bmus.load(bmus_path),
         bmu_vol_dir,

@@ -9,8 +9,9 @@ from pandas.testing import assert_frame_equal
 import data.register
 import ma.elexon.bmus
 import ma.mapper.map_rego_stations_to_bmus
-import ma.ofgem.regos
 import ma.ofgem.stations
+from ma.ofgem.enums import RegoStatus
+from ma.ofgem.regos import RegosProcessed, RegosRaw
 
 monthly_vols = {
     "DRAX": {
@@ -115,12 +116,14 @@ def mock_get(
 
 
 def test_end_to_end() -> None:
+    regos = RegosRaw(data.register.REGOS_APR2022_MAR2023_SUBSET).transform_to_regos_processed()
+    regos = RegosProcessed(regos.filter(statuses=[RegoStatus.REDEEMED]))
     with patch("ma.mapper.filter_on_aggregate_data.get_bmu_volumes_by_month") as get_vols:
         get_vols.side_effect = mock_get
         mappings = ma.mapper.map_rego_stations_to_bmus.map_station_range(
             start=0,
             stop=3,
-            regos=ma.ofgem.regos.load(data.register.REGOS_APR2022_MAR2023_SUBSET),
+            regos=regos,
             accredited_stations=ma.ofgem.stations.load_from_dir(data.register.REGO_ACCREDITED_STATIONS_DIR),
             bmus=ma.elexon.bmus.load(data.register.BMUNITS_SUBSET),
             bmu_vol_dir=Path("/mocked"),

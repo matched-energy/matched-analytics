@@ -3,11 +3,13 @@ from typing import List, TypedDict
 import pandas as pd
 import pytest
 
-import ma.ofgem.regos
-from ma.ofgem.schema_regos import add_output_period_columns, parse_date_range, rego_schema_on_load
-from ma.utils.pandas import apply_schema
+import data.register
+from ma.ofgem.regos import RegosRaw
+from ma.ofgem.schema_regos import add_output_period_columns, rego_schema_on_load
 
-from data.register import REGOS_APR2022_MAR2023_SUBSET as SUBSET
+
+def get_regos() -> RegosRaw:
+    return RegosRaw(data.register.REGOS_APR2022_MAR2023_SUBSET)
 
 
 def test_parse_date_range() -> None:
@@ -44,8 +46,9 @@ def test_parse_date_range() -> None:
         },
     ]
 
+    regos = get_regos()
     for test_case in test_cases:
-        start, end, months_difference = parse_date_range(date_str=test_case["rego_format"])
+        start, end, months_difference = regos.parse_date_range(date_str=test_case["rego_format"])
         assert start == pd.to_datetime(test_case["expected_start"])
         assert end == pd.to_datetime(test_case["expected_end"])
         assert months_difference == test_case["expected_duration_months"]
@@ -57,36 +60,27 @@ def test_parse_data_range_EXPECTED_FORMAT() -> None:
     * 2022 - 2023
     * Apr-2022
     """
-    regos = ma.ofgem.regos.load(SUBSET)
+    regos = get_regos()
     assert regos[~regos["output_period"].str.contains(" - |-|/", na=False)].empty
 
 
 def test_parse_output_period_NON_FIRST_OR_LAST_DAY_OF_MONTH() -> None:
-    regos_raw = pd.read_csv(SUBSET, skiprows=4, header=None)
-    regos_raw.columns = pd.Index(rego_schema_on_load.keys())
-    regos_raw["output_period"] = "02/04/2022 - 30/04/2022"
+    regos_df = get_regos().df()
+    regos_df.columns = pd.Index(rego_schema_on_load.keys())
+    regos_df["output_period"] = "02/04/2022 - 30/04/2022"
     with pytest.raises(ValueError):
-        add_output_period_columns(regos_raw)
+        add_output_period_columns(regos_df)
 
-    regos_raw["output_period"] = "01/04/2022 - 2/04/2022"
+    regos_df["output_period"] = "01/04/2022 - 2/04/2022"
     with pytest.raises(ValueError):
-        add_output_period_columns(regos_raw)
+        add_output_period_columns(regos_df)
 
-    regos_raw["output_period"] = "01/04/2022 - 30/04/2022"
-    regos = add_output_period_columns(regos_raw)
-    assert len(regos) == len(regos_raw)
-
-
-def test_parse_output_period() -> None:
-    regos_raw = pd.read_csv(SUBSET, skiprows=4)
-    regos = apply_schema(regos_raw, rego_schema_on_load)
-    regos = add_output_period_columns(regos)
-    assert len(regos)
-    assert len(regos) == len(regos_raw)
-    assert set(["start_year_month", "end_year_month", "period_months"]) < set(regos.columns)
+    regos_df["output_period"] = "01/04/2022 - 30/04/2022"
+    regos = add_output_period_columns(regos_df)
+    assert len(regos) == len(regos_df)
 
 
 def test_parse_output_period_EMPTY_DATAFRAME() -> None:
-    regos_raw = pd.read_csv(SUBSET, skiprows=4)
-    regos = add_output_period_columns(regos_raw[:0])
-    assert set(["start_year_month", "end_year_month", "period_months"]) < set(regos.columns)
+    regos = RegosRaw(get_regos().df()[:0])
+    regos_df = regos.add_output_period_columns(regos.df()[:0])
+    assert set(["start_year_month", "end_year_month", "period_months"]) < set(regos_df.columns)

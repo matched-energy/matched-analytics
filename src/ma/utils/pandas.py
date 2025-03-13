@@ -1,7 +1,7 @@
 import copy
 from abc import ABC
 from pathlib import Path
-from typing import Any, Callable, Dict, NotRequired, Optional, TypedDict, Union
+from typing import Any, Callable, Dict, Literal, NotRequired, Optional, TypedDict, Union
 
 import pandas as pd
 import pandera as pa
@@ -57,7 +57,7 @@ class DataFrameAsset(ABC):
     schema: Dict[str, ColumnSchema]
     from_file_with_index: bool = True
     from_file_skiprows: int = 0
-    from_file_header: Optional[int] = 1
+    from_file_header: Optional[Union[Literal["infer"], int]] = "infer"
 
     def __init__(self, input: Union[pd.DataFrame, Path]):
         self._set_schema()
