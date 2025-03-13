@@ -7,18 +7,19 @@ import ma
 import ma.neso.grid_mix
 import ma.ofgem.regos
 import pytest
+from pandas import DataFrame, DatetimeIndex
 
 from ma.upsampled_supply_hh.upsampled_supply_hh import upsample_supplier_monthly_supply_to_hh, _validate_date_ranges
 
 
 class UpsamplerIO(TypedDict):
-    result: pd.DataFrame
+    result: DataFrame  # DataFrame with DatetimeIndex
     start_datetime: pd.Timestamp
     end_datetime: pd.Timestamp
-    grid_mix_data: pd.DataFrame
-    grid_mix_hh: pd.DataFrame
-    supply_by_supplier_data: pd.DataFrame
-    trimmed_supply_by_supplier_data: pd.DataFrame
+    grid_mix_data: DataFrame  # DataFrame with DatetimeIndex
+    grid_mix_hh: DataFrame  # DataFrame with DatetimeIndex
+    supply_by_supplier_data: DataFrame
+    trimmed_supply_by_supplier_data: DataFrame
     rego_holder_reference: str
 
 
@@ -46,6 +47,10 @@ def upsampler_io() -> UpsamplerIO:
     # Filter grid mix data for the test period
     grid_mix_hh = ma.neso.grid_mix.filter(grid_mix_data, start_datetime, end_datetime)
 
+    # Assert and validate expected types for type checking
+    assert isinstance(result.index, pd.DatetimeIndex)
+    assert isinstance(grid_mix_hh.index, pd.DatetimeIndex)
+
     return {
         "result": result,
         "grid_mix_data": grid_mix_data,
@@ -61,7 +66,6 @@ def upsampler_io() -> UpsamplerIO:
 def test_upsampled_row_count(upsampler_io: UpsamplerIO) -> None:
     """Test that the upsampled data has the expected number of rows."""
     result = upsampler_io["result"]
-    assert isinstance(result.index, pd.DatetimeIndex), "Expected result to have DatetimeIndex"
     assert len(result) == 2832  # 48 half-hours for 31 March and 28 days for February
 
 
@@ -70,12 +74,17 @@ def test_monthly_aggregation_matches_original(upsampler_io: UpsamplerIO) -> None
     match the original monthly volumes.
     """
     result = upsampler_io["result"]
-    assert isinstance(result.index, pd.DatetimeIndex), "Expected result to have DatetimeIndex"
 
-    # Result only contains Drax, who only have biomass supply
-    feb_mask = (result.index.year == 2023) & (result.index.month == 2)
+    # Use pandas timestamp comparison instead of index attributes
+    feb_start = pd.Timestamp("2023-02-01")
+    feb_end = pd.Timestamp("2023-03-01")
+    mar_start = pd.Timestamp("2023-03-01")
+    mar_end = pd.Timestamp("2023-04-01")
+
+    # Filter by timestamp ranges instead of year/month attributes
+    feb_mask = (result.index >= feb_start) & (result.index < feb_end)
     feb_2023_total = result[feb_mask]["supply_mwh"].sum()
-    mar_mask = (result.index.year == 2023) & (result.index.month == 3)
+    mar_mask = (result.index >= mar_start) & (result.index < mar_end)
     mar_2023_total = result[mar_mask]["supply_mwh"].sum()
 
     # Expected values, calculated in spreadsheet
@@ -91,12 +100,14 @@ def test_march_biomass_total(upsampler_io: UpsamplerIO) -> None:
     should match supplier's monthly total for biomass.
     """
     result = upsampler_io["result"]
-    assert isinstance(result.index, pd.DatetimeIndex), "Expected result to have DatetimeIndex"
+
+    mar_start = pd.Timestamp("2023-03-01")
+    mar_end = pd.Timestamp("2023-04-01")
 
     supplier_biomass_total_mwh = 650422.0  # Drax Energy's biomass generation for March 2023
 
-    # Filter data for March biomass
-    march_mask = (result.index.year == 2023) & (result.index.month == 3)
+    # Filter data for March biomass using timestamp comparison
+    march_mask = (result.index >= mar_start) & (result.index < mar_end)
     march_biomass_results = result[march_mask & (result["tech"] == "biomass")]["supply_mwh"]
 
     # Verify total sum matches expected value
@@ -107,20 +118,21 @@ def test_march_biomass_scaling_factor(upsampler_io: UpsamplerIO) -> None:
     """Check the scaling output matches expected scaling for March biomass."""
     result = upsampler_io["result"]
     grid_mix_hh = upsampler_io["grid_mix_hh"]
-    assert isinstance(result.index, pd.DatetimeIndex), "Expected result to have DatetimeIndex"
-    assert isinstance(grid_mix_hh.index, pd.DatetimeIndex), "Expected grid_mix_hh to have DatetimeIndex"
+
+    mar_start = pd.Timestamp("2023-03-01")
+    mar_end = pd.Timestamp("2023-04-01")
 
     grid_biomass_total_mwh = 1175050.5  # Total biomass in grid for March 2023
     supplier_biomass_total_mwh = 650422.0  # Drax Energy's biomass generation for March 2023
     expected_scaling_factor = supplier_biomass_total_mwh / grid_biomass_total_mwh
 
-    # Filter data for March biomass
-    march_mask = (result.index.year == 2023) & (result.index.month == 3)
+    # Filter data for March biomass using timestamp comparison
+    march_mask = (result.index >= mar_start) & (result.index < mar_end)
     march_biomass_results = result[march_mask & (result["tech"] == "biomass")]
     march_biomass_values = march_biomass_results["supply_mwh"]
 
     # Get the biomass values from the March grid mix
-    march_grid_mask = (grid_mix_hh.index.year == 2023) & (grid_mix_hh.index.month == 3)
+    march_grid_mask = (grid_mix_hh.index >= mar_start) & (grid_mix_hh.index < mar_end)
     march_grid_mix = grid_mix_hh[march_grid_mask]
 
     # Test single point (first half-hour)
