@@ -7,7 +7,7 @@ import ma
 import ma.neso.grid_mix
 import ma.ofgem.regos
 import pytest
-from pandas import DataFrame, DatetimeIndex
+from pandas import DataFrame
 
 from ma.upsampled_supply_hh.upsampled_supply_hh import upsample_supplier_monthly_supply_to_hh, _validate_date_ranges
 
