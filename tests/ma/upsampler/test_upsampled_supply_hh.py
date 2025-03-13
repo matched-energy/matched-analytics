@@ -1,3 +1,4 @@
+from typing import TypedDict
 import numpy as np
 import pandas as pd
 from data.register import NESO_FUEL_CKAN_CSV_SUBSET_FEB2023_MAR2023, REGOS_APR2022_MAR2023_SUBSET
@@ -10,8 +11,19 @@ import pytest
 from ma.upsampled_supply_hh.upsampled_supply_hh import upsample_supplier_monthly_supply_to_hh, _validate_date_ranges
 
 
+class UpsamplerIO(TypedDict):
+    result: pd.DataFrame
+    start_datetime: pd.Timestamp
+    end_datetime: pd.Timestamp
+    grid_mix_data: pd.DataFrame
+    grid_mix_hh: pd.DataFrame
+    supply_by_supplier_data: pd.DataFrame
+    trimmed_supply_by_supplier_data: pd.DataFrame
+    rego_holder_reference: str
+
+
 @pytest.fixture
-def upsampler_io() -> dict[str, pd.DataFrame | str | pd.Timestamp]:
+def upsampler_io() -> UpsamplerIO:
     """Create a fixture with test data for upsampled supply tests."""
     start_datetime = pd.Timestamp("2023-02-01")
     end_datetime = pd.Timestamp("2023-04-01")
@@ -46,17 +58,19 @@ def upsampler_io() -> dict[str, pd.DataFrame | str | pd.Timestamp]:
     }
 
 
-def test_upsampled_row_count(upsampler_io) -> None:
+def test_upsampled_row_count(upsampler_io: UpsamplerIO) -> None:
     """Test that the upsampled data has the expected number of rows."""
     result = upsampler_io["result"]
+    assert isinstance(result.index, pd.DatetimeIndex), "Expected result to have DatetimeIndex"
     assert len(result) == 2832  # 48 half-hours for 31 March and 28 days for February
 
 
-def test_monthly_aggregation_matches_original(upsampler_io) -> None:
+def test_monthly_aggregation_matches_original(upsampler_io: UpsamplerIO) -> None:
     """Verify that the half-hourly volumes, when aggregated by month,
     match the original monthly volumes.
     """
     result = upsampler_io["result"]
+    assert isinstance(result.index, pd.DatetimeIndex), "Expected result to have DatetimeIndex"
 
     # Result only contains Drax, who only have biomass supply
     feb_mask = (result.index.year == 2023) & (result.index.month == 2)
@@ -72,11 +86,12 @@ def test_monthly_aggregation_matches_original(upsampler_io) -> None:
     assert mar_2023_total == drax_mar_biomass
 
 
-def test_march_biomass_total(upsampler_io) -> None:
+def test_march_biomass_total(upsampler_io: UpsamplerIO) -> None:
     """Verify total sum for March - the total upsampled generation
     should match supplier's monthly total for biomass.
     """
     result = upsampler_io["result"]
+    assert isinstance(result.index, pd.DatetimeIndex), "Expected result to have DatetimeIndex"
 
     supplier_biomass_total_mwh = 650422.0  # Drax Energy's biomass generation for March 2023
 
@@ -88,10 +103,12 @@ def test_march_biomass_total(upsampler_io) -> None:
     assert march_biomass_results.sum() == pytest.approx(supplier_biomass_total_mwh, rel=1e-5)
 
 
-def test_march_biomass_scaling_factor(upsampler_io) -> None:
+def test_march_biomass_scaling_factor(upsampler_io: UpsamplerIO) -> None:
     """Check the scaling output matches expected scaling for March biomass."""
     result = upsampler_io["result"]
     grid_mix_hh = upsampler_io["grid_mix_hh"]
+    assert isinstance(result.index, pd.DatetimeIndex), "Expected result to have DatetimeIndex"
+    assert isinstance(grid_mix_hh.index, pd.DatetimeIndex), "Expected grid_mix_hh to have DatetimeIndex"
 
     grid_biomass_total_mwh = 1175050.5  # Total biomass in grid for March 2023
     supplier_biomass_total_mwh = 650422.0  # Drax Energy's biomass generation for March 2023
