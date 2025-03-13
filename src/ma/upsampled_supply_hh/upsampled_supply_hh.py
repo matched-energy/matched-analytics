@@ -241,6 +241,9 @@ def upsample_supplier_monthly_supply_to_hh(
     # Step 4: Apply scaling to half-hourly data
     result_df = _scale_hh_with_fraction_of_grid(grid_mix_hh, scaling_df)
 
+    # Set timestamp as index to make subsequent operations easier
+    result_df = result_df.set_index("timestamp")
+
     if output_path:
         result_df.to_csv(output_path)
         click.echo(f"Results saved to {output_path}")

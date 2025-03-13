@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 from data.register import NESO_FUEL_CKAN_CSV_SUBSET_FEB2023_MAR2023, REGOS_APR2022_MAR2023_SUBSET
 import ma
@@ -9,18 +10,19 @@ import pytest
 from ma.upsampled_supply_hh.upsampled_supply_hh import upsample_supplier_monthly_supply_to_hh, _validate_date_ranges
 
 
-def test_upsampler() -> None:
-    """Test the upsampler function with logical validation."""
-    # Test parameters
+@pytest.fixture
+def upsampler_io():
+    """Create a fixture with test data for upsampled supply tests."""
     start_datetime = pd.Timestamp("2023-02-01")
     end_datetime = pd.Timestamp("2023-04-01")
     rego_holder_reference = "Drax Energy Solutions Limited (Supplier)"
 
     # Load the data
     grid_mix_data = ma.neso.grid_mix.load(NESO_FUEL_CKAN_CSV_SUBSET_FEB2023_MAR2023)
-    supply_by_supplier_data = ma.ofgem.regos.load(REGOS_APR2022_MAR2023_SUBSET)  # noqa: F821
+    supply_by_supplier_data = ma.ofgem.regos.load(REGOS_APR2022_MAR2023_SUBSET)
     trimmed_supply_by_supplier_data = supply_by_supplier_data.head(26)
 
+    # Get upsampled result
     result = upsample_supplier_monthly_supply_to_hh(
         rego_holder_reference=rego_holder_reference,
         start_datetime=start_datetime,
@@ -29,67 +31,93 @@ def test_upsampler() -> None:
         supply_supplier_month=trimmed_supply_by_supplier_data,
     )
 
-    assert len(result) == 2832  # 48 half-hours for 31 March and 28 days for February
-
-    # TEST 1: Verify that the half-hourly volumes, when aggregated by month,
-    # match the original monthly volumes (within a small tolerance)
-    monthly_results = (
-        result.assign(year=result["timestamp"].dt.year, month=result["timestamp"].dt.month)
-        .groupby(["year", "month", "tech", "supplier"])["supply_mwh"]
-        .sum()
-        .reset_index()
-    )
-
-    # Check each month separately
-    for year in monthly_results["year"].unique():
-        for month in monthly_results["month"].unique():
-            total_monthly = monthly_results[(monthly_results["year"] == year) & (monthly_results["month"] == month)][
-                "supply_mwh"
-            ].sum()
-
-            total_original = (
-                supply_by_supplier_data.pipe(lambda df: ma.ofgem.regos.filter(df, holders=[rego_holder_reference]))
-                .query(f"start_year_month.dt.year == {year} and start_year_month.dt.month == {month}")
-                .assign(tech=lambda df: df["tech"].str.lower())
-                .groupby(["tech", "current_holder"])["rego_gwh"]
-                .sum()
-                .sum()
-                * 1000
-            )  # Convert GWh to MWh
-
-            # Check if total sums are equal within a small tolerance for each month
-            assert total_monthly == pytest.approx(total_original), f"Mismatch for {year}-{month}"
-
-    # TEST 2: Verify half-hourly volumes as a fraction of grid mix are invariant and as expected
+    # Filter grid mix data for the test period
     grid_mix_hh = ma.neso.grid_mix.filter(grid_mix_data, start_datetime, end_datetime)
 
-    # Test 3: specific values - verify biomass scaling works correctly for March 2023
-    # Note: These are March-specific values based on the test documentation
+    return {
+        "result": result,
+        "grid_mix_data": grid_mix_data,
+        "grid_mix_hh": grid_mix_hh,
+        "supply_by_supplier_data": supply_by_supplier_data,
+        "trimmed_supply_by_supplier_data": trimmed_supply_by_supplier_data,
+        "rego_holder_reference": rego_holder_reference,
+        "start_datetime": start_datetime,
+        "end_datetime": end_datetime,
+    }
+
+
+def test_upsampled_row_count(upsampler_io):
+    """Test that the upsampled data has the expected number of rows."""
+    result = upsampler_io["result"]
+    assert len(result) == 2832  # 48 half-hours for 31 March and 28 days for February
+
+
+def test_monthly_aggregation_matches_original(upsampler_io):
+    """Verify that the half-hourly volumes, when aggregated by month,
+    match the original monthly volumes.
+    """
+    result = upsampler_io["result"]
+
+    # Result only contains Drax, who only have biomass supply
+    feb_mask = (result.index.year == 2023) & (result.index.month == 2)
+    feb_2023_total = result[feb_mask]["supply_mwh"].sum()
+    mar_mask = (result.index.year == 2023) & (result.index.month == 3)
+    mar_2023_total = result[mar_mask]["supply_mwh"].sum()
+
+    # Expected values, calculated in spreadsheet
+    drax_feb_biomass = 641467
+    drax_mar_biomass = 650422
+
+    assert feb_2023_total == drax_feb_biomass
+    assert mar_2023_total == drax_mar_biomass
+
+
+def test_march_biomass_total(upsampler_io):
+    """Verify total sum for March - the total upsampled generation
+    should match supplier's monthly total for biomass.
+    """
+    result = upsampler_io["result"]
+
+    supplier_biomass_total_mwh = 650422.0  # Drax Energy's biomass generation for March 2023
+
+    # Filter data for March biomass
+    march_mask = (result.index.year == 2023) & (result.index.month == 3)
+    march_biomass_results = result[march_mask & (result["tech"] == "biomass")]["supply_mwh"]
+
+    # Verify total sum matches expected value
+    assert march_biomass_results.sum() == pytest.approx(supplier_biomass_total_mwh, rel=1e-5)
+
+
+def test_march_biomass_scaling_factor(upsampler_io):
+    """Check the scaling output matches expected scaling for March biomass."""
+    result = upsampler_io["result"]
+    grid_mix_hh = upsampler_io["grid_mix_hh"]
+
     grid_biomass_total_mwh = 1175050.5  # Total biomass in grid for March 2023
     supplier_biomass_total_mwh = 650422.0  # Drax Energy's biomass generation for March 2023
     expected_scaling_factor = supplier_biomass_total_mwh / grid_biomass_total_mwh
 
-    # TEST 3A: Verify total sum for March - the total upsampled generation should match supplier's monthly total
-    march_mask = (result["timestamp"].dt.year == 2023) & (result["timestamp"].dt.month == 3)
-    march_biomass_results = result[march_mask & (result["tech"] == "biomass")]["supply_mwh"]
-    assert march_biomass_results.sum() == pytest.approx(supplier_biomass_total_mwh, rel=1e-5)
+    # Filter data for March biomass
+    march_mask = (result.index.year == 2023) & (result.index.month == 3)
+    march_biomass_results = result[march_mask & (result["tech"] == "biomass")]
+    march_biomass_values = march_biomass_results["supply_mwh"]
 
-    # TEST 3B: Check the scaling output matches expected scaling for March
-    # Get the first half-hour biomass value from the March grid mix
-    march_grid_mask = (grid_mix_hh.index.to_series().dt.year == 2023) & (grid_mix_hh.index.to_series().dt.month == 3)
+    # Get the biomass values from the March grid mix
+    march_grid_mask = (grid_mix_hh.index.year == 2023) & (grid_mix_hh.index.month == 3)
     march_grid_mix = grid_mix_hh[march_grid_mask]
-    grid_first_hh_biomass = march_grid_mix["biomass_mwh"].iloc[0]  # first HH biomass from March grid mix
 
-    # Calculate the actual scaling used for the first half-hour of March
-    actual_scaling = march_biomass_results.iloc[0] / grid_first_hh_biomass
-
-    # Verify the actual scaling matches our expected scaling factor
+    # Test single point (first half-hour)
+    grid_first_hh_biomass = march_grid_mix["biomass_mwh"].iloc[0]
+    actual_scaling = march_biomass_values.iloc[0] / grid_first_hh_biomass
     assert actual_scaling == pytest.approx(expected_scaling_factor, rel=1e-5)
+
+    # Test all points - verify ratio is constant across all half-hours
+    ratio = march_biomass_values / march_grid_mix.loc[march_biomass_values.index, "biomass_mwh"]
+    assert np.all(np.isclose(ratio, expected_scaling_factor, rtol=1e-5))
 
 
 def _get_test_validation_data() -> tuple[pd.DataFrame, pd.DataFrame]:
     """Helper function to load test data for date range validation tests."""
-    # Load the actual subset data
     grid_mix_data = ma.neso.grid_mix.load(NESO_FUEL_CKAN_CSV_SUBSET_FEB2023_MAR2023)
     regos_data = ma.ofgem.regos.load(REGOS_APR2022_MAR2023_SUBSET)
     return grid_mix_data, regos_data
