@@ -1,9 +1,14 @@
 import glob
 import os
 from pathlib import Path
-from typing import Generator, Optional, Tuple
+from typing import Dict, Generator, Optional, Tuple
 
 import pandas as pd
+import pandera as pa
+
+from ma.elexon.metering_data.metering_data_by_half_hour_and_bmu import MeteringDataHalfHourlyByBmu
+from ma.utils.pandas import ColumnSchema as CS
+from ma.utils.pandas import DataFrameAsset
 
 # TODO - apply_schema() at this point
 
@@ -120,3 +125,42 @@ def process_directory(
                         output_path_prefix + "_{}.csv".format(bsc),
                         index=False,
                     )
+
+
+class ProcessedS0142(DataFrameAsset):
+    # fmt: off
+    schema: Dict[str, CS] = dict(
+        bsc                                         =CS(check=pa.Column(str)),
+        settlement_date                             =CS(check=pa.Column(str)),
+        settlement_period                           =CS(check=pa.Column(int)),
+        settlement_run_type                         =CS(check=pa.Column(str)),
+        bm_unit_id                                  =CS(check=pa.Column(str)),
+        information_imbalance_cashflow              =CS(check=pa.Column(float)),
+        bm_unit_period_non_delivery_charge          =CS(check=pa.Column(float)),
+        period_fpn                                  =CS(check=pa.Column(float)),
+        period_bm_unit_balancing_services_volume    =CS(check=pa.Column(float)),
+        period_information_imbalance_volume         =CS(check=pa.Column(float)),
+        period_expected_metered_volume              =CS(check=pa.Column(float)),
+        bm_unit_metered_volume_mwh                  =CS(check=pa.Column(float)),
+        period_bm_unit_non_delivered_bid_volume     =CS(check=pa.Column(str)),
+        period_bm_unit_non_delivered_offer_volume   =CS(check=pa.Column(str)),
+        transmission_loss_factor                    =CS(check=pa.Column(float)),
+        transmission_loss_multiplier                =CS(check=pa.Column(float)),
+        trading_unit_name                           =CS(check=pa.Column(str)),
+        total_trading_unit_metered_volume           =CS(check=pa.Column(float)),
+        bm_unit_applicable_balancing_services_volume=CS(check=pa.Column(float)),
+        period_supplier_bm_unit_delivered_volume    =CS(check=pa.Column(float)),
+        period_supplier_bm_unit_non_bm_absvd_volume =CS(check=pa.Column(float)),
+    )
+    from_file_with_index = False 
+    # fmt: on
+
+    def transform_to_half_hourly_by_bmu(self) -> MeteringDataHalfHourlyByBmu:
+        """Return half_hourly_by_bmu metering data"""
+        output = self.df()
+        output["settlement_date"] = pd.to_datetime(output["settlement_date"], dayfirst=True)
+        output["settlement_datetime"] = output["settlement_date"] + (output["settlement_period"] - 1) * pd.Timedelta(
+            minutes=30
+        )
+        output = output.reset_index(drop=True).set_index("settlement_datetime")
+        return MeteringDataHalfHourlyByBmu(output)

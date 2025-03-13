@@ -4,15 +4,18 @@ from typing import Dict
 
 import pandas as pd
 
-import ma.elexon.S0142.bmu_vols
+from ma.elexon.metering_data.metering_data_by_half_hour_and_bmu import MeteringDataHalfHourlyByBmu
+from ma.elexon.S0142.processed_S0142 import ProcessedS0142
 from ma.mapper.common import MappingException
 
 
-def half_hourly_to_monthly_volumes(half_hourly_volumes: pd.DataFrame) -> pd.DataFrame:
-    half_hourly_volumes = copy.deepcopy(half_hourly_volumes)
-    half_hourly_volumes["settlement_month"] = half_hourly_volumes["settlement_datetime"].dt.month
-    monthly_volumes = (
-        half_hourly_volumes.groupby("settlement_month")
+def half_hourly_to_monthly_volumes(metering_data_half_hourly: pd.DataFrame) -> pd.DataFrame:
+    metering_data_half_hourly = copy.deepcopy(metering_data_half_hourly)
+    assert isinstance(metering_data_half_hourly.index, pd.DatetimeIndex)  # appease mypy
+    metering_data_half_hourly["settlement_datetime"] = metering_data_half_hourly.index
+    metering_data_half_hourly["settlement_month"] = metering_data_half_hourly["settlement_datetime"].dt.month
+    metering_data_monthly = (
+        metering_data_half_hourly.groupby("settlement_month")
         .agg(
             {
                 "settlement_datetime": "first",
@@ -21,7 +24,7 @@ def half_hourly_to_monthly_volumes(half_hourly_volumes: pd.DataFrame) -> pd.Data
         )
         .sort_values("settlement_datetime")
     ).set_index("settlement_datetime")
-    return monthly_volumes
+    return metering_data_monthly
 
 
 def get_bmu_volumes_by_month(
@@ -29,18 +32,20 @@ def get_bmu_volumes_by_month(
     bm_ids: list,
     S0142_csv_dir: Path,
 ) -> pd.DataFrame:
-    half_hourly_vols = ma.elexon.S0142.bmu_vols.process_directory(
-        input_dir=S0142_csv_dir / Path(bsc_lead_party_id),
-        bsc_lead_party_id=bsc_lead_party_id,
-        bm_regex=None,
-        bm_ids=bm_ids,
-        aggregate_bms=True,
-        output_path=None,
-    )
-
-    monthly_vols = half_hourly_to_monthly_volumes(half_hourly_vols)
-    monthly_vols["bm_unit_metered_volume_gwh"] = monthly_vols["bm_unit_metered_volume_mwh"] / 1e3
-    return monthly_vols[["bm_unit_metered_volume_gwh"]]
+    metering_data_half_hourly = pd.concat(
+        [
+            MeteringDataHalfHourlyByBmu.transform_to_half_hourly(
+                ProcessedS0142.transform_to_half_hourly_by_bmu(ProcessedS0142.from_file(f)),
+                bm_regex=None,
+                bm_ids=bm_ids,
+            )
+            for f in (S0142_csv_dir / Path(bsc_lead_party_id)).iterdir()
+            if f.is_file()
+        ]
+    ).sort_index()
+    metering_data_monthly = half_hourly_to_monthly_volumes(metering_data_half_hourly)
+    metering_data_monthly["bm_unit_metered_volume_gwh"] = metering_data_monthly["bm_unit_metered_volume_mwh"] / 1e3
+    return metering_data_monthly[["bm_unit_metered_volume_gwh"]]
 
 
 def get_bmu_volume_stats(monthly_vols: pd.DataFrame, bmus_total_net_capacity: float) -> Dict:

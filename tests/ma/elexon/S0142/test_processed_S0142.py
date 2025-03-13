@@ -7,14 +7,13 @@ import pandas as pd
 import pytest
 
 import data.register
-import ma.elexon.S0142.process_raw
-from ma.elexon.S0142 import process_raw
+from ma.elexon.S0142 import processed_S0142
 
 
 def run_process_file(bsc_party_ids: List[str]) -> Dict[str, pd.DataFrame]:
     return {
         bsc_party_id: S0142_df
-        for bsc_party_id, S0142_df in process_raw.process_file(
+        for bsc_party_id, S0142_df in processed_S0142.process_file(
             data.register.S0142_20230330_SF_20230425121906_GZ,
             bsc_party_ids=bsc_party_ids,
         )
@@ -56,8 +55,8 @@ def test_main(mock_glob: MagicMock, mock_listdir: MagicMock) -> None:
     mock_glob.return_value = []
     mock_process_file = MagicMock(return_value=[("BSC1", MagicMock())])
 
-    with patch("ma.elexon.S0142.process_raw.process_file", mock_process_file):
-        ma.elexon.S0142.process_raw.process_directory(
+    with patch("ma.elexon.S0142.processed_S0142.process_file", mock_process_file):
+        processed_S0142.process_directory(
             input_dir=Path("/fake/input"),
             output_dir=Path("/fake/output"),
             bsc_party_ids=["BSC1", "BSC2"],
@@ -66,7 +65,3 @@ def test_main(mock_glob: MagicMock, mock_listdir: MagicMock) -> None:
         assert mock_process_file.call_count == 2
         mock_process_file.assert_any_call(Path("/fake/input/S0142_file1.csv.gz"), ["BSC1", "BSC2"])
         mock_process_file.assert_any_call(Path("/fake/input/S0142_file2.csv.gz"), ["BSC1", "BSC2"])
-
-
-if __name__ == "__main__":
-    run_process_file(["PURE"])
