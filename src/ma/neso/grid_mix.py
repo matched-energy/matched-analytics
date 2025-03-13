@@ -1,5 +1,5 @@
 from pathlib import Path
-from ma.utils.enums import ProductionTechEnum
+from ma.utils.enums import SupplyTechEnum
 from ma.utils.pandas import apply_schema
 from ma.neso.schema_grid_mix import grid_mix_schema_on_load, transform_grid_mix_schema
 import pandas as pd
@@ -46,7 +46,7 @@ def groupby_tech_and_month(grid_mix: pd.DataFrame) -> pd.DataFrame:
     """
     grid_mix = grid_mix.reset_index()
     grid_mix = grid_mix.assign(year=grid_mix["datetime"].dt.year, month=grid_mix["datetime"].dt.month)
-    return grid_mix.groupby(["year", "month"])[[f"{t.value}_mwh" for t in ProductionTechEnum]].sum()
+    return grid_mix.groupby(["year", "month"])[[f"{t.value}_mwh" for t in SupplyTechEnum]].sum()
 
 
 if __name__ == "__main__":

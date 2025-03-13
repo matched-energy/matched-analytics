@@ -19,4 +19,4 @@ REGO_ACCREDITED_STATIONS_DIR = DIR_OFGEM / "rego_accredited_stations"
 
 ### NESO
 DIR_NESO = DATA_DIR_ROOT / "neso"
-NESO_FUEL_CKAN_CSV_SUBSET = DIR_NESO / "df_fuel_ckan_subset.csv"
+NESO_FUEL_CKAN_CSV_SUBSET_FEB2023_MAR2023 = DIR_NESO / "df_fuel_ckan_feb2023_mar2023.csv"

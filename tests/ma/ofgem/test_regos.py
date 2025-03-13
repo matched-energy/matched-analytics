@@ -17,7 +17,7 @@ def test_load() -> None:
         ["Drax Power Station (REGO)", "Triton Knoll Offshore Windfarm", "Walney Extension"]
     )
     assert set(regos["technology_group"]) == set(["Biomass", "Off-shore Wind"])
-    assert set(regos["tech_category"]) == set(["biomass", "wind"])
+    assert set(regos["tech"]) == set(["biomass", "wind"])
     assert regos["rego_gwh"].sum() == approx(17114.284)
 
 
@@ -61,13 +61,13 @@ def test_groupby_station() -> None:
     regos_grouped = ma.ofgem.regos.groupby_station(regos)
     assert len(regos_grouped) == 3
     assert regos_grouped["rego_gwh"].sum() == approx(17114.284)
-    assert set(regos_grouped["tech_category"]) == set(["biomass", "wind"])
+    assert set(regos_grouped["tech"]) == set(["biomass", "wind"])
 
 
 def test_groupby_station_NON_UNIQUE() -> None:
     regos = ma.ofgem.regos.load(data.register.REGOS_APR2022_MAR2023_SUBSET)
     regos_cp = copy.deepcopy(regos)
-    regos_cp["tech_category"] = "☀️"
+    regos_cp["tech"] = "☀️"
     with pytest.raises(AssertionError):
         ma.ofgem.regos.groupby_station(pd.concat([regos, regos_cp], axis=0))
 
@@ -78,19 +78,17 @@ def test_groupby_tech_month_holder() -> None:
     result = ma.ofgem.regos.groupby_tech_month_holder(filtered_regos)
 
     # check shape
-    assert set(result["tech_category"]) == set(["biomass", "wind"])
+    assert set(result["tech"]) == set(["biomass", "wind"])
     assert len(result) == 9
 
     # check values
-    biomass_2022_04 = result[(result["tech_category"] == "biomass") & (result.index == pd.Period("2022-04"))][
-        "rego_gwh"
-    ].values[0]
-    biomass_2023_03 = result[(result["tech_category"] == "biomass") & (result.index == pd.Period("2023-03"))][
-        "rego_gwh"
-    ].values[0]
-    wind_2023_03 = result[(result["tech_category"] == "wind") & (result.index == pd.Period("2023-03"))][
-        "rego_gwh"
-    ].values[0]
+    biomass_2022_04 = result[(result["tech"] == "biomass") & (result.index == pd.Period("2022-04"))]["rego_gwh"].values[
+        0
+    ]
+    biomass_2023_03 = result[(result["tech"] == "biomass") & (result.index == pd.Period("2023-03"))]["rego_gwh"].values[
+        0
+    ]
+    wind_2023_03 = result[(result["tech"] == "wind") & (result.index == pd.Period("2023-03"))]["rego_gwh"].values[0]
 
     assert biomass_2022_04 == 37.199
     assert biomass_2023_03 == 500.000
@@ -101,7 +99,7 @@ def test_expand_multi_month_certificates() -> None:
     """Test that dummy df row spanning multiple months get properly expanded and distributed."""
 
     test_row = {
-        "tech_category": "biomass",
+        "tech": "biomass",
         "current_holder": "Test Company",
         "station_name": "Test Station",
         "rego_gwh": 3.0,  # 3 GWh total across 3 months = 1 GWh per month
@@ -119,7 +117,7 @@ def test_expand_multi_month_certificates() -> None:
     for month in months:
         month_data = result[result.index == month]
         assert not month_data.empty, f"Missing data for {month}"
-        assert month_data["tech_category"].iloc[0] == "biomass"
+        assert month_data["tech"].iloc[0] == "biomass"
         assert month_data["current_holder"].iloc[0] == "Test Company"
         assert month_data["rego_gwh"].iloc[0] == 1
         assert month_data["station_count"].iloc[0] == 1

@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Optional, List
+from typing import Optional
 
 import numpy as np
 import pandas as pd
@@ -59,7 +59,7 @@ def groupby_station(regos: pd.DataFrame) -> pd.DataFrame:
         company_registration_number_unique=("company_registration_number", "nunique"),
         technology_group_unique=("technology_group", "nunique"),
         generation_type_unique=("generation_type", "nunique"),
-        tech_category_unique=("tech_category", "nunique"),
+        tech_category_unique=("tech", "nunique"),
     )
     non_unique_by_station = unique_count_by_station[(unique_count_by_station > 1).any(axis=1)]
     if not non_unique_by_station.empty:
@@ -74,7 +74,7 @@ def groupby_station(regos: pd.DataFrame) -> pd.DataFrame:
             rego_gwh=("rego_gwh", "sum"),
             technology_group=("technology_group", "first"),
             generation_type=("generation_type", "first"),
-            tech_category=("tech_category", "first"),
+            tech=("tech", "first"),
         )
         .sort_values(by="rego_gwh", ascending=False)
     )
@@ -128,12 +128,12 @@ def groupby_tech_month_holder(regos: pd.DataFrame) -> pd.DataFrame:
 
     # Groupby tech, month, and holder
     regos_by_tech_month_holder = (
-        regos.groupby(["tech_category", "month", "current_holder"])
+        regos.groupby(["tech", "month", "current_holder"])
         .agg(
             rego_gwh=("rego_gwh", "sum"),
             station_count=("station_name", "nunique"),
         )
-        .sort_values(by=["tech_category", "month", "current_holder"])
+        .sort_values(by=["tech", "month", "current_holder"])
     )
 
     results = regos_by_tech_month_holder.reset_index().set_index("month")

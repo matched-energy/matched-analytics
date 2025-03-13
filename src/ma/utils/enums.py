@@ -1,6 +1,3 @@
-# technology enums
-
-
 from enum import StrEnum
 
 
@@ -47,7 +44,7 @@ class TemporalGranularity(StrEnum):
         return mappings[self]
 
 
-class ProductionTechEnum(StrEnum):
+class SupplyTechEnum(StrEnum):
     GAS = "gas"
     COAL = "coal"
     NUCLEAR = "nuclear"

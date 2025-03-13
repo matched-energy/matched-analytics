@@ -3,7 +3,7 @@ from typing import Dict
 import pandas as pd
 import pandera as pa
 
-from ma.utils.enums import ProductionTechEnum
+from ma.utils.enums import SupplyTechEnum
 from ma.utils.pandas import ColumnSchema as CS
 from ma.utils.pandas import DateTimeEngine as DTE
 
@@ -47,7 +47,7 @@ grid_mix_schema_on_load: Dict[str, CS] = dict(
 
 def transform_grid_mix_schema(grid_mix: pd.DataFrame) -> pd.DataFrame:
     grid_mix = grid_mix.copy()
-    tech_columns = [t.value for t in ProductionTechEnum]
+    tech_columns = [t.value for t in SupplyTechEnum]
     grid_mix[tech_columns] = grid_mix[tech_columns] / 2  # convert from MW to MWh
     grid_mix.columns = pd.Index([f"{col}_mwh" if col in tech_columns else col for col in grid_mix.columns])
 
