@@ -1,8 +1,9 @@
 from pathlib import Path
 import sys
-from typing import Optional
+from typing import Optional, Union
 import pandas as pd
 import click
+import datetime
 
 import ma.neso.grid_mix
 import ma.ofgem.regos
@@ -225,6 +226,7 @@ def upsample_supplier_monthly_supply_to_hh(
     end_datetime: pd.Timestamp,
     grid_mix_tech_month: pd.DataFrame,
     supply_supplier_month: pd.DataFrame,
+    output_path: Optional[Path] = None,
 ) -> pd.DataFrame:
     # Step 1: Load and prepare the half-hourly grid mix data
     grid_mix_hh = ma.neso.grid_mix.filter(grid_mix_tech_month, start_datetime, end_datetime)
@@ -239,7 +241,67 @@ def upsample_supplier_monthly_supply_to_hh(
     # Step 4: Apply scaling to half-hourly data
     result_df = _scale_hh_with_fraction_of_grid(grid_mix_hh, scaling_df)
 
+    if output_path:
+        result_df.to_csv(output_path)
+        click.echo(f"Results saved to {output_path}")
+    else:
+        click.echo("Results calculated but not saved (no output path provided)")
+
     return result_df
+
+
+def _prepare_upsampling_data(
+    grid_mix_path: Path,
+    regos_path: Path,
+    start_date: Union[str, pd.Timestamp, datetime.datetime],
+    end_date: Union[str, pd.Timestamp, datetime.datetime],
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.Timestamp, pd.Timestamp]:
+    """
+    Prepare data for upsampling by loading, validating, and transforming the input data.
+
+    Parameters
+    ----------
+    grid_mix_path : Path
+        Path to the grid mix data CSV file
+    regos_path : Path
+        Path to the REGOS data CSV file
+    start_date : Union[str, pd.Timestamp, datetime.datetime]
+        The start date for the analysis, will be converted to pd.Timestamp
+    end_date : Union[str, pd.Timestamp, datetime.datetime]
+        The end date for the analysis (exclusive), will be converted to pd.Timestamp
+    exit_on_error : bool, default=False
+        Whether to exit the program on error (intended for CLI use)
+
+    Returns
+    -------
+    tuple[pd.DataFrame, pd.DataFrame, pd.Timestamp, pd.Timestamp]
+        A tuple containing (grid_mix_by_month, supply_by_supplier_by_month, start_datetime, end_datetime)
+
+    Raises
+    ------
+    ValueError
+        If date validation fails and exit_on_error is False
+    """
+    try:
+        # Convert input dates to pandas Timestamp
+        start_datetime = pd.Timestamp(start_date)
+        end_datetime = pd.Timestamp(end_date)
+
+        # Load grid mix and regos data
+        grid_mix_hh = ma.neso.grid_mix.load(grid_mix_path)
+        regos_data = ma.ofgem.regos.load(regos_path)
+
+        # Validate date ranges
+        _validate_date_ranges(start_datetime, end_datetime, grid_mix_hh, regos_data)
+
+        # Prepare inputs
+        grid_mix_by_month = ma.neso.grid_mix.groupby_tech_and_month(grid_mix_hh)
+        supply_by_supplier_by_month = ma.ofgem.regos.groupby_tech_month_holder(regos_data)
+
+        return grid_mix_by_month, supply_by_supplier_by_month, start_datetime, end_datetime
+    except ValueError as e:
+        click.echo(f"Error: {e}", err=True)
+        sys.exit(1)
 
 
 @click.command()
@@ -274,46 +336,21 @@ def cli(
     output_path: Optional[Path] = None,
 ) -> None:
     """Run the upsampling from the command line."""
-    try:
-        # Load grid mix data first to check date range
-        grid_mix_hh = ma.neso.grid_mix.load(grid_mix_path)
-        regos_data = ma.ofgem.regos.load(regos_path)
+    # Prepare data with CLI-appropriate error handling
+    # If the dates are not valid, the function will raise a ValueError and exit the program
+    grid_mix_by_month, supply_by_supplier_by_month, start_datetime, end_datetime = _prepare_upsampling_data(
+        grid_mix_path, regos_path, start_date, end_date
+    )
 
-        # Convert click DateTime to pandas Timestamp
-        start_datetime = pd.Timestamp(start_date)
-        end_datetime = pd.Timestamp(end_date)
-
-        # Validate date ranges
-        try:
-            _validate_date_ranges(start_datetime, end_datetime, grid_mix_hh, regos_data)
-        except ValueError as e:
-            click.echo(f"Error: {e}", err=True)
-            sys.exit(1)
-
-        # Prepare inputs
-        grid_mix_by_month = ma.neso.grid_mix.groupby_tech_and_month(grid_mix_hh)
-        supply_by_supplier_by_month = ma.ofgem.regos.groupby_tech_month_holder(regos_data)
-
-        # Run the upsampling
-        result = upsample_supplier_monthly_supply_to_hh(
-            rego_holder_reference=rego_holder_reference,
-            start_datetime=start_datetime,
-            end_datetime=end_datetime,
-            grid_mix_tech_month=grid_mix_by_month,
-            supply_supplier_month=supply_by_supplier_by_month,
-        )
-
-        if output_path:
-            result.to_csv(output_path)
-            click.echo(f"Results saved to {output_path}")
-        else:
-            click.echo("Results calculated but not saved (no output path provided)")
-
-    except Exception as e:
-        import traceback
-
-        click.echo(f"Error: {e}", err=True)
-        traceback.print_exc()
+    # Run the upsampling
+    upsample_supplier_monthly_supply_to_hh(
+        rego_holder_reference=rego_holder_reference,
+        start_datetime=start_datetime,
+        end_datetime=end_datetime,
+        grid_mix_tech_month=grid_mix_by_month,
+        supply_supplier_month=supply_by_supplier_by_month,
+        output_path=output_path,
+    )
 
 
 if __name__ == "__main__":
