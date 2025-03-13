@@ -31,7 +31,7 @@ class MeteringDataHalfHourly(DataFrameAsset):
 
     def transform_to_daily(self) -> MeteringDataDaily:
         """Rollup a single, half-hourly dataframe to a daily dataframe"""
-        metering_data_half_hourly = self.df()
+        metering_data_half_hourly = self.df
         assert isinstance(metering_data_half_hourly.index, pd.DatetimeIndex)  # appease mypy
         assert len(metering_data_half_hourly) in (46, 48, 50), (  # robust to daylight savings
             f"Got {len(metering_data_half_hourly)} periods from {metering_data_half_hourly.index.min()} to {metering_data_half_hourly.index.max()}"

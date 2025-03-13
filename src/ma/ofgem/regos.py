@@ -56,7 +56,7 @@ class RegosRaw(DataFrameAsset):
     }
 
     def transform_to_regos_processed(self) -> RegosProcessed:
-        regos = self.df()
+        regos = self.df
         regos["rego_gwh"] = regos["mwh_per_certificate"] * regos["certificate_count"] / 1e3
         regos["tech"] = regos["technology_group"].map(self.tech_categories)
         regos = self.add_output_period_columns(regos)
@@ -159,40 +159,36 @@ class RegosProcessed(DataFrameAsset):
     ) -> pd.DataFrame:
         filters = []
         if holders:
-            filters.append((self.df()["current_holder"].isin(holders)))
+            filters.append((self.df["current_holder"].isin(holders)))
 
         if statuses:
-            filters.append(self.df()["certificate_status"].isin(statuses))
+            filters.append(self.df["certificate_status"].isin(statuses))
 
         if schemes:
-            filters.append(self.df()["scheme"].isin(schemes))
+            filters.append(self.df["scheme"].isin(schemes))
 
         if reporting_period:
             start_date, end_date = reporting_period.date_range
             start_year_month = pd.Timestamp(start_date)
             end_year_month = pd.Timestamp(end_date)
-            period_filter = (self.df()["start_year_month"] >= start_year_month) & (
-                self.df()["end_year_month"] < end_year_month
+            period_filter = (self.df["start_year_month"] >= start_year_month) & (
+                self.df["end_year_month"] < end_year_month
             )
             filters.append(period_filter)
 
         if not filters:
-            return self.df()
+            return self.df
         else:
-            return self.df().loc[np.logical_and.reduce(filters)]
+            return self.df.loc[np.logical_and.reduce(filters)]
 
     def groupby_station(self) -> pd.DataFrame:
         # Check columns that are expected to be unique
-        unique_count_by_station = (
-            self.df()
-            .groupby("station_name")
-            .agg(
-                accredition_number_unique=("accreditation_number", "nunique"),
-                company_registration_number_unique=("company_registration_number", "nunique"),
-                technology_group_unique=("technology_group", "nunique"),
-                generation_type_unique=("generation_type", "nunique"),
-                tech_category_unique=("tech", "nunique"),
-            )
+        unique_count_by_station = self.df.groupby("station_name").agg(
+            accredition_number_unique=("accreditation_number", "nunique"),
+            company_registration_number_unique=("company_registration_number", "nunique"),
+            technology_group_unique=("technology_group", "nunique"),
+            generation_type_unique=("generation_type", "nunique"),
+            tech_category_unique=("tech", "nunique"),
         )
         non_unique_by_station = unique_count_by_station[(unique_count_by_station > 1).any(axis=1)]
         if not non_unique_by_station.empty:
@@ -202,8 +198,7 @@ class RegosProcessed(DataFrameAsset):
 
         # Groupby
         regos_by_station = (
-            self.df()
-            .groupby("station_name")
+            self.df.groupby("station_name")
             .agg(
                 accredition_number=("accreditation_number", "first"),
                 company_registration_number=("company_registration_number", "first"),
@@ -229,7 +224,7 @@ class RegosProcessed(DataFrameAsset):
         """
         expanded_rows = []
 
-        for _, row in self.df().iterrows():
+        for _, row in self.df.iterrows():
             # If there's only one month, keep the row as is
             if row["period_months"] == 1:
                 expanded_rows.append(row.to_dict())
@@ -253,7 +248,7 @@ class RegosProcessed(DataFrameAsset):
 
     def groupby_tech_month_holder(self) -> pd.DataFrame:
         # Extract month from start_year_month for grouping
-        regos = self.df()
+        regos = self.df
 
         # Expand certificates that span multiple months
         # Check if period_months exists and there are records with multi-month periods

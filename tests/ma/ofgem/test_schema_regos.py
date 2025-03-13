@@ -65,7 +65,7 @@ def test_parse_data_range_EXPECTED_FORMAT() -> None:
 
 
 def test_parse_output_period_NON_FIRST_OR_LAST_DAY_OF_MONTH() -> None:
-    regos_df = get_regos().df()
+    regos_df = get_regos().df
     regos_df.columns = pd.Index(rego_schema_on_load.keys())
     regos_df["output_period"] = "02/04/2022 - 30/04/2022"
     with pytest.raises(ValueError):
@@ -81,6 +81,6 @@ def test_parse_output_period_NON_FIRST_OR_LAST_DAY_OF_MONTH() -> None:
 
 
 def test_parse_output_period_EMPTY_DATAFRAME() -> None:
-    regos = RegosRaw(get_regos().df()[:0])
-    regos_df = regos.add_output_period_columns(regos.df()[:0])
+    regos = RegosRaw(get_regos().df[:0])
+    regos_df = regos.add_output_period_columns(regos.df[:0])
     assert set(["start_year_month", "end_year_month", "period_months"]) < set(regos_df.columns)

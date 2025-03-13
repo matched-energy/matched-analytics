@@ -131,13 +131,12 @@ class DataFrameAsset(ABC):
 
     def __setattr__(self, name: str, value: Any) -> Any:
         if name == "_df":
-            raise AttributeError(f"Cannot reassign {name}")
+            raise AttributeError(f"Cannot reassign {name}!")
         super().__setattr__(name, value)
 
-    # TODO - make property issues/9
-    # TODO - rename self._df to self.__df_no_update
+    @property
     def df(self) -> pd.DataFrame:
-        return self._df
+        return self._df.copy(deep=True)
 
     def write(self, filepath: Path) -> None:
         self.pandera_schema.validate(self._df).to_csv(filepath)

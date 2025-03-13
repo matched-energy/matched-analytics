@@ -22,7 +22,7 @@ def get_rego_station_volume_stats(
 
 
 def get_generator_profile(rego_station_name: str, regos: RegosProcessed, accredited_stations: pd.DataFrame) -> dict:
-    rego_accreditation_numbers = regos.df()[regos["station_name"] == rego_station_name]["accreditation_number"].unique()
+    rego_accreditation_numbers = regos.df[regos["station_name"] == rego_station_name]["accreditation_number"].unique()
     if not len(rego_accreditation_numbers) == 1:
         raise MappingException(
             f"Found multiple accreditation numbers for {rego_station_name}: {rego_accreditation_numbers}"
@@ -54,7 +54,7 @@ def get_rego_station_volume_by_month(
     rego_station_name: str,
 ) -> pd.DataFrame:
     rego_station_volumes_by_month = (
-        regos.df()[(regos["station_name"] == rego_station_name) & (regos["period_months"] == 1)]
+        regos.df[(regos["station_name"] == rego_station_name) & (regos["period_months"] == 1)]
         .groupby(["start_year_month", "end_year_month", "period_months"])
         .agg(dict(rego_gwh="sum"))
     )

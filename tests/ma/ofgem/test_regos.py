@@ -15,7 +15,7 @@ def get_regos_processed() -> RegosProcessed:
 def test_regos_raw_load() -> None:
     regos = RegosRaw(data.register.REGOS_APR2022_MAR2023_SUBSET)
 
-    assert len(regos.df()) == 327
+    assert len(regos.df) == 327
     assert set(regos["station_name"]) == set(
         ["Drax Power Station (REGO)", "Triton Knoll Offshore Windfarm", "Walney Extension"]
     )
@@ -31,7 +31,7 @@ def test_regos_raw_transform_to_regos_processed() -> None:
 def test_regos_procssed_filter() -> None:
     regos = get_regos_processed()
 
-    assert len(regos.df()) == 327
+    assert len(regos.df) == 327
     assert len(regos.filter(holders=None, statuses=[Status.REDEEMED])) == 220
     assert len(regos.filter(holders=None, statuses=[Status.ISSUED, Status.RETIRED, Status.EXPIRED])) == 107
 
@@ -42,7 +42,7 @@ def test_regos_processed_filter_reporting_period() -> None:
     assert len(regos_filtered) == 0  # no regos with start_year_month in Apr 2021 in the subset
 
     # Create new df and insert a new row for CP20 (Apr 2021-Mar 2022)
-    new_row = regos.df().iloc[0].copy()
+    new_row = regos.df.iloc[0].copy()
     new_row["start_year_month"], new_row["end_year_month"] = pd.Timestamp("2021-04-01"), pd.Timestamp("2022-03-31")
     regos_filtered = RegosProcessed(pd.DataFrame([new_row])).filter(reporting_period=CP.CP20)
     assert len(regos_filtered) == 1
@@ -57,7 +57,7 @@ def test_regos_processed_groupby_station() -> None:
 
 
 def test_regos_processed_groupby_station_NON_UNIQUE() -> None:
-    regos_df = get_regos_processed().df()
+    regos_df = get_regos_processed().df
     with pytest.raises(AssertionError, match="have non-unique values"):
         RegosProcessed(pd.concat([regos_df, regos_df.copy()], axis=0)).groupby_station()
 
@@ -89,7 +89,7 @@ def test_regos_processed_groupby_tech_month_holder() -> None:
 def test_regos_processed_expand_multi_month_certificates() -> None:
     """Test that dummy df row spanning multiple months get properly expanded and distributed."""
 
-    test_regos_df = get_regos_processed().df().iloc[0]
+    test_regos_df = get_regos_processed().df.iloc[0]
     test_regos_df.loc["tech"] = "biomass"
     test_regos_df.loc["current_holder"] = "Test Company"
     test_regos_df.loc["station_name"] = "Test Station"
