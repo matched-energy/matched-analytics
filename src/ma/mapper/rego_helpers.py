@@ -3,6 +3,7 @@ from typing import Dict
 import pandas as pd
 
 from ma.mapper.common import MappingException
+from ma.ofgem.regos import RegosProcessed
 
 
 def get_rego_station_volume_stats(
@@ -20,8 +21,8 @@ def get_rego_station_volume_stats(
     )
 
 
-def get_generator_profile(rego_station_name: str, regos: pd.DataFrame, accredited_stations: pd.DataFrame) -> dict:
-    rego_accreditation_numbers = regos[regos["station_name"] == rego_station_name]["accreditation_number"].unique()
+def get_generator_profile(rego_station_name: str, regos: RegosProcessed, accredited_stations: pd.DataFrame) -> dict:
+    rego_accreditation_numbers = regos.df()[regos["station_name"] == rego_station_name]["accreditation_number"].unique()
     if not len(rego_accreditation_numbers) == 1:
         raise MappingException(
             f"Found multiple accreditation numbers for {rego_station_name}: {rego_accreditation_numbers}"
@@ -49,11 +50,11 @@ def get_generator_profile(rego_station_name: str, regos: pd.DataFrame, accredite
 
 
 def get_rego_station_volume_by_month(
-    regos: pd.DataFrame,
+    regos: RegosProcessed,
     rego_station_name: str,
 ) -> pd.DataFrame:
     rego_station_volumes_by_month = (
-        regos[(regos["station_name"] == rego_station_name) & (regos["period_months"] == 1)]
+        regos.df()[(regos["station_name"] == rego_station_name) & (regos["period_months"] == 1)]
         .groupby(["start_year_month", "end_year_month", "period_months"])
         .agg(dict(rego_gwh="sum"))
     )
