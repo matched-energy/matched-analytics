@@ -1,12 +1,6 @@
-# technology enums
-
-
 from enum import StrEnum
 
 
-<<<<<<< HEAD
-class SupplyTechEnum(StrEnum):
-=======
 class TemporalGranularity(StrEnum):
     HALF_HOURLY = "half-hourly"
     DAILY = "daily"
@@ -50,8 +44,7 @@ class TemporalGranularity(StrEnum):
         return mappings[self]
 
 
-class ProductionTechEnum(StrEnum):
->>>>>>> 35fe217 (Add metering_data_rollup, and associated changes)
+class SupplyTechEnum(StrEnum):
     GAS = "gas"
     COAL = "coal"
     NUCLEAR = "nuclear"
