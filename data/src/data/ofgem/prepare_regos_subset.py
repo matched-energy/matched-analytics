@@ -14,7 +14,7 @@ STATIONS = [
 
 
 def main(input_path: Path, output_path: Path) -> pd.DataFrame:
-    regos_df = RegosRaw(input_path).df()
+    regos_df = RegosRaw(input_path).df
     regos_df = regos_df[regos_df["station_name"].isin(STATIONS)]
     skip_rows = copy.deepcopy(regos_df[:4])
     skip_rows.loc[:, "station_name"] = "SKIPPED_ROW"

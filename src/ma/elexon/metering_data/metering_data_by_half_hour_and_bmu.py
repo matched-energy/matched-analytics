@@ -85,7 +85,7 @@ class MeteringDataHalfHourlyByBmu(DataFrameAsset):
         bm_ids: Optional[list] = None,
     ) -> MeteringDataHalfHourly:
         """Return daily_by_bsc metering data"""
-        output = self.df()
+        output = self.df
         output = type(self).segregate_import_exports(output)
         output = type(self).filter(output, bm_regex=bm_regex, bm_ids=bm_ids)
         output = type(self).rollup_bmus(output)
