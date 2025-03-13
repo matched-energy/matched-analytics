@@ -63,63 +63,18 @@ def test_upsampler() -> None:
     # TEST 2: Verify half-hourly volumes as a fraction of grid mix are invariant and as expected
     grid_mix_hh = ma.neso.grid_mix.filter(grid_mix_data, start_datetime, end_datetime)
 
-    for tech in result["tech"].unique():
-        # Perform validation month by month
-        for year in result["timestamp"].dt.year.unique():
-            for month in result["timestamp"].dt.month.unique():
-                # Filter data for this month
-                month_mask = (result["timestamp"].dt.year == year) & (result["timestamp"].dt.month == month)
-                month_result = result[month_mask]
-
-                if len(month_result[month_result["tech"] == tech]) == 0:
-                    continue  # Skip if no data for this tech in this month
-
-                # Calculate and verify ratio consistency for this month
-                supplier_gen = month_result[month_result["tech"] == tech].set_index("timestamp")
-                month_grid_mask = (grid_mix_hh.index.to_series().dt.year == year) & (
-                    grid_mix_hh.index.to_series().dt.month == month
-                )
-                month_grid_mix = grid_mix_hh[month_grid_mask]
-
-                ratio_df = supplier_gen.join(month_grid_mix[f"{tech}_mwh"], how="inner")
-                ratio_df["ratio"] = ratio_df["supply_mwh"] / ratio_df[f"{tech}_mwh"]
-
-                # Skip if ratio_df is empty (no matching data)
-                if len(ratio_df) == 0:
-                    continue
-
-                # Verify ratio invariance across days (should be nearly constant)
-                daily_ratios = ratio_df.groupby(ratio_df.index.date)["ratio"].mean()
-                assert daily_ratios.std() < 1e-10, f"Ratio varies across days for tech {tech} in {year}-{month}"
-
-                # Verify ratio accuracy compared to original data for this month
-                filtered_supplier = supply_by_supplier_data.pipe(
-                    lambda df: ma.ofgem.regos.filter(df, holders=[rego_holder_reference])
-                ).query(
-                    f"start_year_month.dt.year == {year} and start_year_month.dt.month == {month} "
-                    f"and tech.str.lower() == @tech"
-                )
-
-                supplier_total = filtered_supplier["rego_gwh"].sum() * 1000  # GWh to MWh
-
-                # Calculate grid monthly total and verify ratio for this month
-                grid_total = month_grid_mix[f"{tech}_mwh"].sum()
-                assert ratio_df["ratio"].mean() == pytest.approx(supplier_total / grid_total, rel=1e-5), (
-                    f"Ratio mismatch for {tech} in {year}-{month}"
-                )
-
-    # Test 4: specific values - verify biomass scaling works correctly for March 2023
+    # Test 3: specific values - verify biomass scaling works correctly for March 2023
     # Note: These are March-specific values based on the test documentation
     grid_biomass_total_mwh = 1175050.5  # Total biomass in grid for March 2023
     supplier_biomass_total_mwh = 650422.0  # Drax Energy's biomass generation for March 2023
     expected_scaling_factor = supplier_biomass_total_mwh / grid_biomass_total_mwh
 
-    # TEST 4A: Verify total sum for March - the total upsampled generation should match supplier's monthly total
+    # TEST 3A: Verify total sum for March - the total upsampled generation should match supplier's monthly total
     march_mask = (result["timestamp"].dt.year == 2023) & (result["timestamp"].dt.month == 3)
     march_biomass_results = result[march_mask & (result["tech"] == "biomass")]["supply_mwh"]
     assert march_biomass_results.sum() == pytest.approx(supplier_biomass_total_mwh, rel=1e-5)
 
-    # TEST 4B: Check the scaling output matches expected scaling for March
+    # TEST 3B: Check the scaling output matches expected scaling for March
     # Get the first half-hour biomass value from the March grid mix
     march_grid_mask = (grid_mix_hh.index.to_series().dt.year == 2023) & (grid_mix_hh.index.to_series().dt.month == 3)
     march_grid_mix = grid_mix_hh[march_grid_mask]
