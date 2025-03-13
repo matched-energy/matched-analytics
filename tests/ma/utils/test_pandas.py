@@ -10,6 +10,7 @@ from ma.utils.pandas import DataFrameAsset, apply_schema
 DF_RAW = pd.DataFrame(dict(a=["1"] * 5, b=["foo"] * 5))  # note 'a' is of type str
 
 
+# TODO - rename tests issues/9
 def test_apply_schema_TYPED() -> None:
     class Asset(DataFrameAsset):
         schema = dict(col_a=CS(check=pa.Column(int)), col_b=CS(check=pa.Column(str)))
@@ -27,6 +28,15 @@ def test_apply_schema_UNTYPED() -> None:
     df = Asset(copy.deepcopy(DF_RAW))
     assert pd.api.types.is_object_dtype(df["col_a"])
     assert pd.api.types.is_object_dtype(df["col_b"])
+
+
+def test_immutable_no_reassignment() -> None:
+    class Asset(DataFrameAsset):
+        schema = dict(col_a=CS(check=pa.Column()), col_b=CS(check=pa.Column()))
+
+    df = Asset(copy.deepcopy(DF_RAW))
+    with pytest.raises(AttributeError, match="Cannot reassign _df"):
+        df._df = copy.deepcopy(DF_RAW)
 
 
 def test_apply_schema_DROP_COLUMNS() -> None:
