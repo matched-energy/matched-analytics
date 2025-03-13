@@ -11,7 +11,7 @@ from ma.upsampled_supply_hh.upsampled_supply_hh import upsample_supplier_monthly
 
 
 @pytest.fixture
-def upsampler_io():
+def upsampler_io() -> dict[str, pd.DataFrame | str | pd.Timestamp]:
     """Create a fixture with test data for upsampled supply tests."""
     start_datetime = pd.Timestamp("2023-02-01")
     end_datetime = pd.Timestamp("2023-04-01")
@@ -46,13 +46,13 @@ def upsampler_io():
     }
 
 
-def test_upsampled_row_count(upsampler_io):
+def test_upsampled_row_count(upsampler_io) -> None:
     """Test that the upsampled data has the expected number of rows."""
     result = upsampler_io["result"]
     assert len(result) == 2832  # 48 half-hours for 31 March and 28 days for February
 
 
-def test_monthly_aggregation_matches_original(upsampler_io):
+def test_monthly_aggregation_matches_original(upsampler_io) -> None:
     """Verify that the half-hourly volumes, when aggregated by month,
     match the original monthly volumes.
     """
@@ -72,7 +72,7 @@ def test_monthly_aggregation_matches_original(upsampler_io):
     assert mar_2023_total == drax_mar_biomass
 
 
-def test_march_biomass_total(upsampler_io):
+def test_march_biomass_total(upsampler_io) -> None:
     """Verify total sum for March - the total upsampled generation
     should match supplier's monthly total for biomass.
     """
@@ -88,7 +88,7 @@ def test_march_biomass_total(upsampler_io):
     assert march_biomass_results.sum() == pytest.approx(supplier_biomass_total_mwh, rel=1e-5)
 
 
-def test_march_biomass_scaling_factor(upsampler_io):
+def test_march_biomass_scaling_factor(upsampler_io) -> None:
     """Check the scaling output matches expected scaling for March biomass."""
     result = upsampler_io["result"]
     grid_mix_hh = upsampler_io["grid_mix_hh"]
