@@ -170,6 +170,9 @@ class RegosProcessed(DataFrameAsset):
             return self.df.loc[np.logical_and.reduce(filters)]
 
     def groupby_station(self) -> pd.DataFrame:
+        # Note: this function could become 'transform_to_regos_by_station' if/when we introduce
+        # RegosByStation(DataFrameAsset)
+
         # Check columns that are expected to be unique
         unique_count_by_station = self.df.groupby("station_name").agg(
             accredition_number_unique=("accreditation_number", "nunique"),
