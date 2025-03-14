@@ -144,7 +144,7 @@ class RegosProcessed(DataFrameAsset):
         statuses: Optional[list[RegoStatus]] = None,
         schemes: Optional[list[RegoScheme]] = [RegoScheme.REGO],
         reporting_period: Optional[RegoCompliancePeriod] = None,
-    ) -> pd.DataFrame:
+    ) -> RegosProcessed:
         filters = []
         if holders:
             filters.append((self.df["current_holder"].isin(holders)))
@@ -165,9 +165,9 @@ class RegosProcessed(DataFrameAsset):
             filters.append(period_filter)
 
         if not filters:
-            return self.df
+            return RegosProcessed(self.df)
         else:
-            return self.df.loc[np.logical_and.reduce(filters)]
+            return RegosProcessed(self.df.loc[np.logical_and.reduce(filters)])
 
     def groupby_station(self) -> pd.DataFrame:
         # Note: this function could become 'transform_to_regos_by_station' if/when we introduce
@@ -277,5 +277,5 @@ class RegosByTechMonthHolder(DataFrameAsset):
     def filter(
         self,
         holders: List[str],
-    ) -> pd.DataFrame:
-        return self.df[self.df["current_holder"].isin(holders)]
+    ) -> RegosByTechMonthHolder:
+        return RegosByTechMonthHolder(self.df[self.df["current_holder"].isin(holders)])
