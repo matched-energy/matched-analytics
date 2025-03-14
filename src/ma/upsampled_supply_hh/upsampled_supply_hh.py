@@ -19,7 +19,7 @@ def _prepare_supply_supplier_month(
 
     Filters the data to the specified rego holder reference and converts units, aligns column names, and extracts year and month information.
     """
-    supply_by_supplier_by_month = regos_processed.filter(holders=[rego_holder])
+    supply_by_supplier_by_month = regos_processed.filter(holders=[rego_holder]).df
     supply_by_supplier_by_month["rego_mwh"] = supply_by_supplier_by_month["rego_gwh"] * 1000  # Convert GWh to MWh
     supply_by_supplier_by_month = supply_by_supplier_by_month.rename(columns={"tech": "tech"})  # Align column names
     supply_by_supplier_by_month["tech"] = supply_by_supplier_by_month["tech"].str.lower()  # Align tech names across dfs

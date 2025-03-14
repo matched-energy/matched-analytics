@@ -28,28 +28,28 @@ def test_regos_raw_transform_to_regos_processed() -> None:
     assert regos["rego_gwh"].sum() == approx(18549.931)
 
 
-def test_regos_procssed_filter() -> None:
+def test_regos_processed_filter() -> None:
     regos = get_regos_processed()
 
     assert len(regos.df) == 327
-    assert len(regos.filter(holders=None, statuses=[Status.REDEEMED])) == 220
-    assert len(regos.filter(holders=None, statuses=[Status.ISSUED, Status.RETIRED, Status.EXPIRED])) == 107
+    assert len(regos.filter(holders=None, statuses=[Status.REDEEMED]).df) == 220
+    assert len(regos.filter(holders=None, statuses=[Status.ISSUED, Status.RETIRED, Status.EXPIRED]).df) == 107
 
 
 def test_regos_processed_filter_reporting_period() -> None:
     regos = get_regos_processed()
     regos_filtered = regos.filter(reporting_period=CP.CP20)
-    assert len(regos_filtered) == 0  # no regos with start_year_month in Apr 2021 in the subset
+    assert len(regos_filtered.df) == 0  # no regos with start_year_month in Apr 2021 in the subset
 
     # Create new df and insert a new row for CP20 (Apr 2021-Mar 2022)
     new_row = regos.df.iloc[0].copy()
     new_row["start_year_month"], new_row["end_year_month"] = pd.Timestamp("2021-04-01"), pd.Timestamp("2022-03-31")
     regos_filtered = RegosProcessed(pd.DataFrame([new_row])).filter(reporting_period=CP.CP20)
-    assert len(regos_filtered) == 1
+    assert len(regos_filtered.df) == 1
 
 
 def test_regos_processed_groupby_station() -> None:
-    regos = RegosProcessed(get_regos_processed().filter(statuses=[Status.REDEEMED]))
+    regos = get_regos_processed().filter(statuses=[Status.REDEEMED])
     regos_grouped = regos.groupby_station()
     assert len(regos_grouped) == 3
     assert regos_grouped["rego_gwh"].sum() == approx(17114.284)
@@ -63,7 +63,7 @@ def test_regos_processed_groupby_station_NON_UNIQUE() -> None:
 
 
 def test_regos_processed_transform_to_tech_month_holder() -> None:
-    filtered_regos = RegosProcessed(get_regos_processed().filter(holders=["British Gas Trading Ltd"]))
+    filtered_regos = get_regos_processed().filter(holders=["British Gas Trading Ltd"])
     regos_by_tech_month_holder = filtered_regos.transform_to_regos_by_tech_month_holder()
 
     # check shape

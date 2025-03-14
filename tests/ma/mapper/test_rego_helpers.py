@@ -8,7 +8,7 @@ from ma.ofgem.regos import RegosProcessed, RegosRaw
 
 def get_regos() -> RegosProcessed:
     regos = RegosRaw(data.register.REGOS_APR2022_MAR2023_SUBSET).transform_to_regos_processed()
-    return RegosProcessed(regos.filter(statuses=[RegoStatus.REDEEMED]))
+    return regos.filter(statuses=[RegoStatus.REDEEMED])
 
 
 def test_get_rego_station_volume_stats() -> None:

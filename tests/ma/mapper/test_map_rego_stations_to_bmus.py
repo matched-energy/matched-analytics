@@ -11,7 +11,7 @@ import ma.elexon.bmus
 import ma.mapper.map_rego_stations_to_bmus
 import ma.ofgem.stations
 from ma.ofgem.enums import RegoStatus
-from ma.ofgem.regos import RegosProcessed, RegosRaw
+from ma.ofgem.regos import RegosRaw
 
 monthly_vols = {
     "DRAX": {
@@ -117,7 +117,7 @@ def mock_get(
 
 def test_end_to_end() -> None:
     regos = RegosRaw(data.register.REGOS_APR2022_MAR2023_SUBSET).transform_to_regos_processed()
-    regos = RegosProcessed(regos.filter(statuses=[RegoStatus.REDEEMED]))
+    regos = regos.filter(statuses=[RegoStatus.REDEEMED])
     with patch("ma.mapper.filter_on_aggregate_data.get_bmu_volumes_by_month") as get_vols:
         get_vols.side_effect = mock_get
         mappings = ma.mapper.map_rego_stations_to_bmus.map_station_range(
