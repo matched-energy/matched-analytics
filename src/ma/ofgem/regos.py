@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Dict, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
@@ -273,3 +273,9 @@ class RegosByTechMonthHolder(DataFrameAsset):
         station_count     =CS(check=pa.Column(int)),
     )
     # fmt: on
+
+    def filter(
+        self,
+        holders: List[str],
+    ) -> pd.DataFrame:
+        return self.df[self.df["current_holder"].isin(holders)]
