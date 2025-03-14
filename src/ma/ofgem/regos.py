@@ -138,18 +138,6 @@ class RegosProcessed(DataFrameAsset):
     )
     # fmt: on
 
-    # def load(
-    #     regos_path: Path,
-    #     holders: Optional[list[str]] = None,
-    #     statuses: Optional[list[RegoStatus]] = [RegoStatus.REDEEMED],
-    #     schemes: Optional[list[RegoScheme]] = [RegoScheme.REGO],
-    #     reporting_period: Optional[RegoCompliancePeriod] = None,
-    # ) -> pd.DataFrame:
-    #     regos = pd.read_csv(regos_path, skiprows=4, header=None)
-    #     regos = apply_schema(regos, rego_schema_on_load, transform_regos_schema)
-    #     regos = filter(regos, holders=holders, statuses=statuses, schemes=schemes, reporting_period=reporting_period)
-    #     return regos
-
     def filter(
         self,
         holders: Optional[list[str]] = None,
@@ -246,7 +234,7 @@ class RegosProcessed(DataFrameAsset):
 
         return pd.DataFrame(expanded_rows)
 
-    def groupby_tech_month_holder(self) -> pd.DataFrame:
+    def transform_to_regos_by_tech_month_holder(self) -> RegosByTechMonthHolder:
         # Extract month from start_year_month for grouping
         regos = self.df
 
@@ -268,4 +256,17 @@ class RegosProcessed(DataFrameAsset):
         )
 
         results = regos_by_tech_month_holder.reset_index().set_index("month")
-        return results
+        results.index = results.index.to_timestamp()  # type: ignore
+        return RegosByTechMonthHolder(results)
+
+
+class RegosByTechMonthHolder(DataFrameAsset):
+    # fmt: off
+    schema: Dict[str, CS] = dict( 
+        month             =CS(check=pa.Index(DTE(dayfirst=False))),
+        tech              =CS(check=pa.Column(str)),
+        current_holder    =CS(check=pa.Column(str)),
+        rego_gwh          =CS(check=pa.Column(float)),
+        station_count     =CS(check=pa.Column(int)),
+    )
+    # fmt: on

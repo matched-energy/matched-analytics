@@ -62,23 +62,26 @@ def test_regos_processed_groupby_station_NON_UNIQUE() -> None:
         RegosProcessed(pd.concat([regos_df, regos_df.copy()], axis=0)).groupby_station()
 
 
-def test_regos_processed_groupby_tech_month_holder() -> None:
+def test_regos_processed_transform_to_tech_month_holder() -> None:
     filtered_regos = RegosProcessed(get_regos_processed().filter(holders=["British Gas Trading Ltd"]))
-    regos_by_holder = filtered_regos.groupby_tech_month_holder()
+    regos_by_tech_month_holder = filtered_regos.transform_to_regos_by_tech_month_holder()
 
     # check shape
-    assert set(regos_by_holder["tech"]) == set(["biomass", "wind"])
-    assert len(regos_by_holder) == 9
+    assert set(regos_by_tech_month_holder.df["tech"]) == set(["biomass", "wind"])
+    assert len(regos_by_tech_month_holder.df) == 9
 
     # check values
-    biomass_2022_04 = regos_by_holder[
-        (regos_by_holder["tech"] == "biomass") & (regos_by_holder.index == pd.Period("2022-04"))
+    biomass_2022_04 = regos_by_tech_month_holder.df[
+        (regos_by_tech_month_holder.df["tech"] == "biomass")
+        & (regos_by_tech_month_holder.df.index == pd.Timestamp("2022-04"))
     ]["rego_gwh"].values[0]
-    biomass_2023_03 = regos_by_holder[
-        (regos_by_holder["tech"] == "biomass") & (regos_by_holder.index == pd.Period("2023-03"))
+    biomass_2023_03 = regos_by_tech_month_holder.df[
+        (regos_by_tech_month_holder.df["tech"] == "biomass")
+        & (regos_by_tech_month_holder.df.index == pd.Timestamp("2023-03"))
     ]["rego_gwh"].values[0]
-    wind_2023_03 = regos_by_holder[
-        (regos_by_holder["tech"] == "wind") & (regos_by_holder.index == pd.Period("2023-03"))
+    wind_2023_03 = regos_by_tech_month_holder.df[
+        (regos_by_tech_month_holder.df["tech"] == "wind")
+        & (regos_by_tech_month_holder.df.index == pd.Timestamp("2023-03"))
     ]["rego_gwh"].values[0]
 
     assert biomass_2022_04 == 37.199
@@ -86,7 +89,7 @@ def test_regos_processed_groupby_tech_month_holder() -> None:
     assert wind_2023_03 == 314.075
 
 
-def test_regos_processed_expand_multi_month_certificates() -> None:
+def test_regos_by_tech_month_holder_expand_multi_month_certificates() -> None:
     """Test that dummy df row spanning multiple months get properly expanded and distributed."""
 
     test_regos_df = get_regos_processed().df.iloc[0]
@@ -99,13 +102,13 @@ def test_regos_processed_expand_multi_month_certificates() -> None:
     test_regos_df.loc["period_months"] = 3
     test_regos_df.loc["output_period"] = "01/01/2023 - 31/03/2023"
     test_regos = RegosProcessed(pd.DataFrame([test_regos_df]))
-    result = test_regos.groupby_tech_month_holder()
+    regos_by_tech_month_holder = test_regos.transform_to_regos_by_tech_month_holder()
 
     # Check the result, including each of the three expected months
-    assert len(result) == 3
-    months = [pd.Period("2023-01"), pd.Period("2023-02"), pd.Period("2023-03")]
+    assert len(regos_by_tech_month_holder.df) == 3
+    months = [pd.Timestamp("2023-01"), pd.Timestamp("2023-02"), pd.Timestamp("2023-03")]
     for month in months:
-        month_data = result[result.index == month]
+        month_data = regos_by_tech_month_holder.df[regos_by_tech_month_holder.df.index == month]
         assert not month_data.empty, f"Missing data for {month}"
         assert month_data["tech"].iloc[0] == "biomass"
         assert month_data["current_holder"].iloc[0] == "Test Company"
