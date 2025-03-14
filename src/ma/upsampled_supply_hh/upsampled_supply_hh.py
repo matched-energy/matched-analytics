@@ -1,24 +1,25 @@
-from pathlib import Path
-import sys
-from typing import Optional, Union
-import pandas as pd
-import click
 import datetime
+import sys
+from pathlib import Path
+from typing import Optional, Union
+
+import click
+import pandas as pd
 
 import ma.neso.grid_mix
-import ma.ofgem.regos
+from ma.ofgem.regos import RegosProcessed, RegosRaw
 
 
-def _prepare_supply_supplier_month(rego_holder: str, supply_by_supplier_by_month: pd.DataFrame) -> pd.DataFrame:
+def _prepare_supply_supplier_month(
+    rego_holder: str,
+    regos_processed: RegosProcessed,
+) -> pd.DataFrame:
     """
     Prepare supplier generation data for scaling calculation.
 
     Filters the data to the specified rego holder reference and converts units, aligns column names, and extracts year and month information.
     """
-    supply_by_supplier_by_month = supply_by_supplier_by_month.copy()
-    supply_by_supplier_by_month = ma.ofgem.regos.filter(
-        supply_by_supplier_by_month, holders=[rego_holder]
-    )  # Filter holder
+    supply_by_supplier_by_month = regos_processed.filter(holders=[rego_holder])
     supply_by_supplier_by_month["rego_mwh"] = supply_by_supplier_by_month["rego_gwh"] * 1000  # Convert GWh to MWh
     supply_by_supplier_by_month = supply_by_supplier_by_month.rename(columns={"tech": "tech"})  # Align column names
     supply_by_supplier_by_month["tech"] = supply_by_supplier_by_month["tech"].str.lower()  # Align tech names across dfs
@@ -53,7 +54,7 @@ def _prepare_grid_mix_monthly(grid_mix_by_tech_by_month: pd.DataFrame) -> pd.Dat
 
 
 def _calculate_scaling_factors(
-    grid_mix_by_tech_by_month: pd.DataFrame, supplier_supply_by_month: pd.DataFrame
+    grid_mix_by_tech_by_month: pd.DataFrame, supply_by_supplier_by_month: pd.DataFrame
 ) -> pd.DataFrame:
     """
     Calculate scaling factors for each technology, supplier and month using vectorized operations.
@@ -61,8 +62,7 @@ def _calculate_scaling_factors(
     Takes prepared grid mix and supplier data and calculates the proportion
     of grid generation that should be allocated to each supplier.
     """
-    # Create a copy of the supplier data to avoid modifying the original
-    supplier_supply = supplier_supply_by_month.copy()
+    supplier_supply = supply_by_supplier_by_month.copy()
     supplier_supply = supplier_supply.rename(columns={"month_num": "month"})  # required for joining
 
     grid_mix = grid_mix_by_tech_by_month.copy()
@@ -225,14 +225,14 @@ def upsample_supplier_monthly_supply_to_hh(
     start_datetime: pd.Timestamp,
     end_datetime: pd.Timestamp,
     grid_mix_tech_month: pd.DataFrame,
-    supply_supplier_month: pd.DataFrame,
+    regos_processed: RegosProcessed,
     output_path: Optional[Path] = None,
 ) -> pd.DataFrame:
     # Step 1: Load and prepare the half-hourly grid mix data
     grid_mix_hh = ma.neso.grid_mix.filter(grid_mix_tech_month, start_datetime, end_datetime)
 
     # Step 2: Prepare data for scaling calculation (convert units, align column names, extract year and month)
-    supply_supplier_month = _prepare_supply_supplier_month(rego_holder_reference, supply_supplier_month)
+    supply_supplier_month = _prepare_supply_supplier_month(rego_holder_reference, regos_processed)
     grid_mix_tech_month = _prepare_grid_mix_monthly(grid_mix_tech_month)
 
     # Step 3: Calculate scaling factors
@@ -258,7 +258,7 @@ def _prepare_upsampling_data(
     regos_path: Path,
     start_date: Union[str, pd.Timestamp, datetime.datetime],
     end_date: Union[str, pd.Timestamp, datetime.datetime],
-) -> tuple[pd.DataFrame, pd.DataFrame, pd.Timestamp, pd.Timestamp]:
+) -> tuple[pd.DataFrame, RegosProcessed, pd.Timestamp, pd.Timestamp]:
     """
     Prepare data for upsampling by loading, validating, and transforming the input data.
 
@@ -292,16 +292,18 @@ def _prepare_upsampling_data(
 
         # Load grid mix and regos data
         grid_mix_hh = ma.neso.grid_mix.load(grid_mix_path)
-        regos_data = ma.ofgem.regos.load(regos_path)
+        regos = RegosRaw(regos_path).transform_to_regos_processed()
 
         # Validate date ranges
-        _validate_date_ranges(start_datetime, end_datetime, grid_mix_hh, regos_data)
+        # TODO #18  _validate_date_ranges(start_datetime, end_datetime, grid_mix_hh, regos.df)
 
         # Prepare inputs
-        grid_mix_by_month = ma.neso.grid_mix.groupby_tech_and_month(grid_mix_hh)
-        supply_by_supplier_by_month = ma.ofgem.regos.groupby_tech_month_holder(regos_data)
+        # TODO #18
+        # grid_mix_by_month = ma.neso.grid_mix.groupby_tech_and_month(grid_mix_hh)
+        # regos_by_tech_month_holder = regos.transform_to_regos_by_tech_month_holder()
 
-        return grid_mix_by_month, supply_by_supplier_by_month, start_datetime, end_datetime
+        # TODO #18 return grid_mix_by_month, regos_by_tech_month_holder, start_datetime, end_datetime
+        return grid_mix_hh, regos, start_datetime, end_datetime
     except ValueError as e:
         click.echo(f"Error: {e}", err=True)
         sys.exit(1)
@@ -341,7 +343,7 @@ def cli(
     """Run the upsampling from the command line."""
     # Prepare data with CLI-appropriate error handling
     # If the dates are not valid, the function will raise a ValueError and exit the program
-    grid_mix_by_month, supply_by_supplier_by_month, start_datetime, end_datetime = _prepare_upsampling_data(
+    grid_mix_by_month, regos_processed, start_datetime, end_datetime = _prepare_upsampling_data(
         grid_mix_path, regos_path, start_date, end_date
     )
 
@@ -351,7 +353,7 @@ def cli(
         start_datetime=start_datetime,
         end_datetime=end_datetime,
         grid_mix_tech_month=grid_mix_by_month,
-        supply_supplier_month=supply_by_supplier_by_month,
+        regos_processed=regos_processed,
         output_path=output_path,
     )
 
