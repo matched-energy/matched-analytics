@@ -55,4 +55,3 @@ class SupplyTechEnum(StrEnum):
     OTHER = "other"
     SOLAR = "solar"
     STORAGE = "storage"
-    UNKNOWN = "unknown"
