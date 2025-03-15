@@ -64,7 +64,8 @@ class RegosRaw(DataFrameAsset):
         regos = self.add_output_period_columns(regos)
         return RegosProcessed(regos)
 
-    def parse_date_range(self, date_str: str) -> Tuple[pd.Timestamp, pd.Timestamp, int]:
+    @classmethod
+    def parse_date_range(cls, date_str: str) -> Tuple[pd.Timestamp, pd.Timestamp, int]:
         # e.g. 01/09/2022 - 30/09/2022
         if "/" in date_str:
             start, end = date_str.split(" - ")
@@ -103,11 +104,12 @@ class RegosRaw(DataFrameAsset):
 
         return start_dt, end_dt, months_difference
 
-    def add_output_period_columns(self, regos: pd.DataFrame) -> pd.DataFrame:
+    @classmethod
+    def add_output_period_columns(cls, regos: pd.DataFrame) -> pd.DataFrame:
         column_names = ["start_year_month", "end_year_month", "period_months"]
         period_columns = pd.DataFrame(columns=column_names)
         if not regos.empty:
-            period_columns = regos["output_period"].apply(lambda x: pd.Series(self.parse_date_range(x)))
+            period_columns = regos["output_period"].apply(lambda x: pd.Series(cls.parse_date_range(x)))
             period_columns.columns = pd.Index(column_names)
         return pd.concat([regos, period_columns], axis=1)
 
