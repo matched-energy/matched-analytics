@@ -38,7 +38,7 @@ def get_bmu_volumes_by_month(
                 ProcessedS0142(f).transform_to_half_hourly_by_bmu(),
                 bm_regex=None,
                 bm_ids=bm_ids,
-            ).df()
+            ).df
             for f in (S0142_csv_dir / Path(bsc_lead_party_id)).iterdir()
             if f.is_file()
         ]

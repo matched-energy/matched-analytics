@@ -1,7 +1,7 @@
 import copy
 from abc import ABC
 from pathlib import Path
-from typing import Any, Callable, Dict, NotRequired, Optional, TypedDict, Union
+from typing import Any, Callable, Dict, Literal, NotRequired, Optional, TypedDict, Union
 
 import pandas as pd
 import pandera as pa
@@ -56,6 +56,8 @@ def apply_schema(
 class DataFrameAsset(ABC):
     schema: Dict[str, ColumnSchema]
     from_file_with_index: bool = True
+    from_file_skiprows: int = 0
+    from_file_header: Optional[Union[Literal["infer"], int]] = "infer"
 
     def __init__(self, input: Union[pd.DataFrame, Path]):
         self._set_schema()
@@ -65,7 +67,7 @@ class DataFrameAsset(ABC):
             df = self._read_from_file(input)
         else:
             raise TypeError("Expected Pandas dataframe or pathlib.Path")
-        self._df = self._init_from_dataframe(df)
+        object.__setattr__(self, "_df", self._init_from_dataframe(df))
 
     def _set_schema(self) -> None:
         self.columns: Dict = {}
@@ -115,7 +117,10 @@ class DataFrameAsset(ABC):
 
     def _read_from_file(self, filepath: Path) -> pd.DataFrame:
         return pd.read_csv(
-            filepath, index_col=0 if self.from_file_with_index else None
+            filepath,
+            index_col=0 if self.from_file_with_index else None,
+            skiprows=self.from_file_skiprows,
+            header=self.from_file_header,
         )  # TODO: Test https://github.com/matched-energy/matched-analytics/issues/9
 
     def __getattr__(self, name: str) -> Any:
@@ -124,8 +129,14 @@ class DataFrameAsset(ABC):
     def __getitem__(self, key: str) -> Any:
         return self._df[key]
 
+    def __setattr__(self, name: str, value: Any) -> Any:
+        if name == "_df":
+            raise AttributeError(f"Cannot reassign {name}!")
+        super().__setattr__(name, value)
+
+    @property
     def df(self) -> pd.DataFrame:
-        return copy.deepcopy(self._df)
+        return self._df.copy(deep=True)
 
     def write(self, filepath: Path) -> None:
         self.pandera_schema.validate(self._df).to_csv(filepath)

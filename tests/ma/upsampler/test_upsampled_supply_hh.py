@@ -1,15 +1,19 @@
 from typing import TypedDict
+
 import numpy as np
 import pandas as pd
-from data.register import NESO_FUEL_CKAN_CSV_SUBSET_FEB2023_MAR2023, REGOS_APR2022_MAR2023_SUBSET
-import ma
-
-import ma.neso.grid_mix
-import ma.ofgem.regos
 import pytest
 from pandas import DataFrame
 
-from ma.upsampled_supply_hh.upsampled_supply_hh import upsample_supplier_monthly_supply_to_hh, _validate_date_ranges
+import ma
+import ma.neso.grid_mix
+from data.register import NESO_FUEL_CKAN_CSV_SUBSET_FEB2023_MAR2023, REGOS_APR2022_MAR2023_SUBSET
+from ma.ofgem.regos import RegosProcessed, RegosRaw
+from ma.upsampled_supply_hh.upsampled_supply_hh import _validate_date_ranges, upsample_supplier_monthly_supply_to_hh
+
+
+def get_processed_regos() -> RegosProcessed:
+    return RegosRaw(REGOS_APR2022_MAR2023_SUBSET).transform_to_regos_processed()
 
 
 class UpsamplerIO(TypedDict):
@@ -32,8 +36,8 @@ def upsampler_io() -> UpsamplerIO:
 
     # Load the data
     grid_mix_data = ma.neso.grid_mix.load(NESO_FUEL_CKAN_CSV_SUBSET_FEB2023_MAR2023)
-    supply_by_supplier_data = ma.ofgem.regos.load(REGOS_APR2022_MAR2023_SUBSET)
-    trimmed_supply_by_supplier_data = supply_by_supplier_data.head(26)
+    regos_processed = get_processed_regos()
+    trimmed_regos_processed = RegosProcessed(regos_processed.df.head(26))
 
     # Get upsampled result
     result = upsample_supplier_monthly_supply_to_hh(
@@ -41,7 +45,7 @@ def upsampler_io() -> UpsamplerIO:
         start_datetime=start_datetime,
         end_datetime=end_datetime,
         grid_mix_tech_month=grid_mix_data,
-        supply_supplier_month=trimmed_supply_by_supplier_data,
+        regos_processed=trimmed_regos_processed,
     )
 
     # Filter grid mix data for the test period
@@ -55,8 +59,8 @@ def upsampler_io() -> UpsamplerIO:
         "result": result,
         "grid_mix_data": grid_mix_data,
         "grid_mix_hh": grid_mix_hh,
-        "supply_by_supplier_data": supply_by_supplier_data,
-        "trimmed_supply_by_supplier_data": trimmed_supply_by_supplier_data,
+        "supply_by_supplier_data": regos_processed.df,
+        "trimmed_supply_by_supplier_data": trimmed_regos_processed.df,
         "rego_holder_reference": rego_holder_reference,
         "start_datetime": start_datetime,
         "end_datetime": end_datetime,
@@ -148,8 +152,8 @@ def test_march_biomass_scaling_factor(upsampler_io: UpsamplerIO) -> None:
 def _get_test_validation_data() -> tuple[pd.DataFrame, pd.DataFrame]:
     """Helper function to load test data for date range validation tests."""
     grid_mix_data = ma.neso.grid_mix.load(NESO_FUEL_CKAN_CSV_SUBSET_FEB2023_MAR2023)
-    regos_data = ma.ofgem.regos.load(REGOS_APR2022_MAR2023_SUBSET)
-    return grid_mix_data, regos_data
+    regos_data = get_processed_regos()
+    return grid_mix_data, regos_data.df
 
 
 def test_date_range_validation_invalid_start() -> None:

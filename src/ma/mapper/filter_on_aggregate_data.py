@@ -4,6 +4,7 @@ import pandas as pd
 
 from ma.mapper.bmu_helpers import get_bmu_volume_stats, get_bmu_volumes_by_month
 from ma.mapper.rego_helpers import get_rego_station_volume_by_month, get_rego_station_volume_stats
+from ma.ofgem.regos import RegosProcessed
 
 
 def appraise_rated_power(generator_profile: dict) -> dict:
@@ -16,7 +17,7 @@ def appraise_rated_power(generator_profile: dict) -> dict:
     )
 
 
-def appraise_energy_volumes(generator_profile: dict, regos: pd.DataFrame, S0142_csv_dir: Path) -> dict:
+def appraise_energy_volumes(generator_profile: dict, regos: RegosProcessed, S0142_csv_dir: Path) -> dict:
     # REGO volumes
     rego_monthly_vols = get_rego_station_volume_by_month(
         regos,
