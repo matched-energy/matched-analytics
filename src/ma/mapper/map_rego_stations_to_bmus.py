@@ -13,6 +13,7 @@ from ma.mapper.filter_on_aggregate_data import appraise_energy_volumes, appraise
 from ma.mapper.filter_on_bmu_meta_data import get_matching_bmus
 from ma.mapper.rego_helpers import get_generator_profile
 from ma.mapper.summarise_and_score import abbreviate_summary, score_mapping, summarise_profile
+from ma.ofgem.enums import RegoStatus
 from ma.ofgem.regos import RegosProcessed, RegosRaw
 from ma.utils.io import from_yaml_file, get_logger
 
@@ -115,7 +116,7 @@ def cli(
     map_station_range(
         start,
         stop,
-        RegosRaw(regos_path).transform_to_regos_processed(),
+        RegosRaw(regos_path).transform_to_regos_processed().filter(statuses=[RegoStatus.REDEEMED]),
         ma.ofgem.stations.load_from_dir(accredited_stations_dir),
         ma.elexon.bmus.load(bmus_path),
         bmu_vol_dir,
