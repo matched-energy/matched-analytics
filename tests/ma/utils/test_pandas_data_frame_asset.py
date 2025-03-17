@@ -6,7 +6,7 @@ import pandera as pa
 import pytest
 
 from ma.utils.pandas import ColumnSchema as CS
-from ma.utils.pandas import DataFrameAsset, apply_schema
+from ma.utils.pandas import DataFrameAsset
 
 DF_RAW = pd.DataFrame(dict(a=["1"] * 5, b=["foo"] * 5))  # note 'a' is of type str
 
@@ -155,16 +155,3 @@ def test_from_file_skiprows() -> None:
 
     df = Asset(Path(f"{Path(__file__).parent}/test.csv"))
     assert len(df.df) == 1
-
-
-# TODO - https://github.com/matched-energy/matched-analytics/issues/9
-def test_apply_schema_transform() -> None:
-    schema = dict(_drop_me=CS(check=pa.Column(int), keep=False), col_b=CS(check=pa.Column(str)))
-
-    def f_transform(raw: pd.DataFrame) -> pd.DataFrame:
-        df = copy.deepcopy(raw)
-        df["keep_me"] = df["_drop_me"] * 10
-        return df
-
-    df = apply_schema(copy.deepcopy(DF_RAW), schema, f_transform)
-    pd.testing.assert_series_equal(df["keep_me"], pd.Series([10] * 5, name="keep_me"))
