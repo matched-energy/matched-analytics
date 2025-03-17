@@ -124,7 +124,9 @@ def test_end_to_end() -> None:
             start=0,
             stop=3,
             regos=regos,
-            accredited_stations=ma.ofgem.stations.load_from_dir(data.register.REGO_ACCREDITED_STATIONS_DIR),
+            accredited_stations=ma.ofgem.stations.load_rego_stations_processed_from_dir(
+                data.register.REGO_ACCREDITED_STATIONS_DIR
+            ),
             bmus=ma.elexon.bmus.load(data.register.BMUNITS_SUBSET),
             bmu_vol_dir=Path("/mocked"),
         )

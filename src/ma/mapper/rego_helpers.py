@@ -4,6 +4,7 @@ import pandas as pd
 
 from ma.mapper.common import MappingException
 from ma.ofgem.regos import RegosProcessed
+from ma.ofgem.stations import RegoStationsProcessed
 
 
 def get_rego_station_volume_stats(
@@ -21,7 +22,9 @@ def get_rego_station_volume_stats(
     )
 
 
-def get_generator_profile(rego_station_name: str, regos: RegosProcessed, accredited_stations: pd.DataFrame) -> dict:
+def get_generator_profile(
+    rego_station_name: str, regos: RegosProcessed, accredited_stations: RegoStationsProcessed
+) -> dict:
     rego_accreditation_numbers = regos.df[regos["station_name"] == rego_station_name]["accreditation_number"].unique()
     if not len(rego_accreditation_numbers) == 1:
         raise MappingException(
