@@ -1,7 +1,7 @@
 import copy
 from abc import ABC
 from pathlib import Path
-from typing import Any, Callable, Dict, NotRequired, Optional, TypedDict, Union
+from typing import Any, Dict, NotRequired, TypedDict, Union
 
 import pandas as pd
 import pandera as pa
@@ -18,39 +18,8 @@ def DateTimeEngine(dayfirst: bool = True) -> pandas_engine.DateTime:
 
 
 class ColumnSchema(TypedDict):
-    old_name: NotRequired[str]  # TODO - remove https://github.com/matched-energy/matched-analytics/issues/9
-    check: NotRequired[Union[pa.Column, pa.Check, pa.Index]]  # TODO - make required, remove Check? issues/9
+    check: Union[pa.Column, pa.Check, pa.Index]
     keep: NotRequired[bool]
-
-
-# TODO - https://github.com/matched-energy/matched-analytics/issues/9
-def apply_schema(
-    df: pd.DataFrame, schema: Dict[str, ColumnSchema], transform: Optional[Callable] = None
-) -> pd.DataFrame:
-    df = copy.deepcopy(df)
-
-    # Name columns
-    new_columns = pd.Index(schema.keys())
-    if len(new_columns) != len(df.columns):
-        raise AssertionError(
-            f"Schema & DataFrame have different number of columns ({len(new_columns)} & {len(df.columns)} respectively)"
-        )
-    df.columns = new_columns
-
-    # Validate schema
-    pandera_schema = pa.DataFrameSchema(
-        {col: cs.get("check") for col, cs in schema.items() if cs.get("check")}, coerce=True
-    )
-    df = pandera_schema(df)
-
-    # Transform
-    if transform is not None:
-        df = transform(df)
-
-    # Drop columns
-    df = select_columns(df, exclude=[col for col, cs in schema.items() if not cs.get("keep", True)])
-
-    return df
 
 
 class DataFrameAsset(ABC):
