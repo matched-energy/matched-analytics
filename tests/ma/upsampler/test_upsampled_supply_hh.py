@@ -5,11 +5,14 @@ import pandas as pd
 import pytest
 from pandas import DataFrame
 
-import ma
-import ma.neso.grid_mix
 from data.register import NESO_FUEL_CKAN_CSV_SUBSET_FEB2023_MAR2023, REGOS_APR2022_MAR2023_SUBSET
 from ma.ofgem.regos import RegosProcessed, RegosRaw
-from ma.upsampled_supply_hh.upsampled_supply_hh import _validate_date_ranges, upsample_supplier_monthly_supply_to_hh
+from ma.neso.grid_mix import GridMixProcessed, GridMixRaw
+from ma.upsampled_supply_hh.upsampled_supply_hh import (
+    UpsampledSupplyHalfHourly,
+    _validate_date_ranges,
+    upsample_supplier_monthly_supply_to_hh,
+)
 
 
 def get_processed_regos() -> RegosProcessed:
@@ -17,11 +20,11 @@ def get_processed_regos() -> RegosProcessed:
 
 
 class UpsamplerIO(TypedDict):
-    result: DataFrame  # DataFrame with DatetimeIndex
+    result: UpsampledSupplyHalfHourly
     start_datetime: pd.Timestamp
     end_datetime: pd.Timestamp
-    grid_mix_data: DataFrame  # DataFrame with DatetimeIndex
-    grid_mix_hh: DataFrame  # DataFrame with DatetimeIndex
+    grid_mix_data: GridMixProcessed
+    grid_mix: GridMixProcessed
     supply_by_supplier_data: DataFrame
     trimmed_supply_by_supplier_data: DataFrame
     rego_holder_reference: str
@@ -30,12 +33,12 @@ class UpsamplerIO(TypedDict):
 @pytest.fixture
 def upsampler_io() -> UpsamplerIO:
     """Create a fixture with test data for upsampled supply tests."""
-    start_datetime = pd.Timestamp("2023-02-01")
-    end_datetime = pd.Timestamp("2023-04-01")
+    start_datetime = pd.Timestamp("2023-02-01 00:00")
+    end_datetime = pd.Timestamp("2023-04-01 00:00")
     rego_holder_reference = "Drax Energy Solutions Limited (Supplier)"
 
     # Load the data
-    grid_mix_data = ma.neso.grid_mix.load(NESO_FUEL_CKAN_CSV_SUBSET_FEB2023_MAR2023)
+    grid_mix_data = GridMixRaw(NESO_FUEL_CKAN_CSV_SUBSET_FEB2023_MAR2023).transform_to_grid_mix_processed()
     regos_processed = get_processed_regos()
     trimmed_regos_processed = RegosProcessed(regos_processed.df.head(26))
 
@@ -44,21 +47,21 @@ def upsampler_io() -> UpsamplerIO:
         rego_holder_reference=rego_holder_reference,
         start_datetime=start_datetime,
         end_datetime=end_datetime,
-        grid_mix_tech_month=grid_mix_data,
+        grid_mix=grid_mix_data,
         regos_processed=trimmed_regos_processed,
     )
 
     # Filter grid mix data for the test period
-    grid_mix_hh = ma.neso.grid_mix.filter(grid_mix_data, start_datetime, end_datetime)
+    grid_mix = grid_mix_data.filter(start_datetime, end_datetime)
 
     # Assert and validate expected types for type checking
-    assert isinstance(result.index, pd.DatetimeIndex)
-    assert isinstance(grid_mix_hh.index, pd.DatetimeIndex)
+    assert isinstance(result.df.index, pd.DatetimeIndex)
+    assert isinstance(grid_mix.df.index, pd.DatetimeIndex)
 
     return {
         "result": result,
         "grid_mix_data": grid_mix_data,
-        "grid_mix_hh": grid_mix_hh,
+        "grid_mix": grid_mix,
         "supply_by_supplier_data": regos_processed.df,
         "trimmed_supply_by_supplier_data": trimmed_regos_processed.df,
         "rego_holder_reference": rego_holder_reference,
@@ -70,7 +73,7 @@ def upsampler_io() -> UpsamplerIO:
 def test_upsampled_row_count(upsampler_io: UpsamplerIO) -> None:
     """Test that the upsampled data has the expected number of rows."""
     result = upsampler_io["result"]
-    assert len(result) == 2832  # 48 half-hours for 31 March and 28 days for February
+    assert len(result.df) == 2832  # 48 half-hours for 31 March and 28 days for February
 
 
 def test_monthly_aggregation_matches_original(upsampler_io: UpsamplerIO) -> None:
@@ -79,17 +82,15 @@ def test_monthly_aggregation_matches_original(upsampler_io: UpsamplerIO) -> None
     """
     result = upsampler_io["result"]
 
-    # Use pandas timestamp comparison instead of index attributes
     feb_start = pd.Timestamp("2023-02-01")
     feb_end = pd.Timestamp("2023-03-01")
     mar_start = pd.Timestamp("2023-03-01")
     mar_end = pd.Timestamp("2023-04-01")
 
-    # Filter by timestamp ranges instead of year/month attributes
-    feb_mask = (result.index >= feb_start) & (result.index < feb_end)
-    feb_2023_total = result[feb_mask]["supply_mwh"].sum()
-    mar_mask = (result.index >= mar_start) & (result.index < mar_end)
-    mar_2023_total = result[mar_mask]["supply_mwh"].sum()
+    feb_mask = (result.df.index >= feb_start) & (result.df.index < feb_end)
+    feb_2023_total = result.df[feb_mask]["supply_mwh"].sum()
+    mar_mask = (result.df.index >= mar_start) & (result.df.index < mar_end)
+    mar_2023_total = result.df[mar_mask]["supply_mwh"].sum()
 
     # Expected values, calculated in spreadsheet
     drax_feb_biomass = 641467
@@ -111,8 +112,8 @@ def test_march_biomass_total(upsampler_io: UpsamplerIO) -> None:
     supplier_biomass_total_mwh = 650422.0  # Drax Energy's biomass generation for March 2023
 
     # Filter data for March biomass using timestamp comparison
-    march_mask = (result.index >= mar_start) & (result.index < mar_end)
-    march_biomass_results = result[march_mask & (result["tech"] == "biomass")]["supply_mwh"]
+    march_mask = (result.df.index >= mar_start) & (result.df.index < mar_end)
+    march_biomass_results = result.df[march_mask & (result.df["tech"] == "biomass")]["supply_mwh"]
 
     # Verify total sum matches expected value
     assert march_biomass_results.sum() == pytest.approx(supplier_biomass_total_mwh, rel=1e-5)
@@ -121,7 +122,7 @@ def test_march_biomass_total(upsampler_io: UpsamplerIO) -> None:
 def test_march_biomass_scaling_factor(upsampler_io: UpsamplerIO) -> None:
     """Check the scaling output matches expected scaling for March biomass."""
     result = upsampler_io["result"]
-    grid_mix_hh = upsampler_io["grid_mix_hh"]
+    grid_mix = upsampler_io["grid_mix"]
 
     mar_start = pd.Timestamp("2023-03-01")
     mar_end = pd.Timestamp("2023-04-01")
@@ -131,13 +132,13 @@ def test_march_biomass_scaling_factor(upsampler_io: UpsamplerIO) -> None:
     expected_scaling_factor = supplier_biomass_total_mwh / grid_biomass_total_mwh
 
     # Filter data for March biomass using timestamp comparison
-    march_mask = (result.index >= mar_start) & (result.index < mar_end)
-    march_biomass_results = result[march_mask & (result["tech"] == "biomass")]
+    march_mask = (result.df.index >= mar_start) & (result.df.index < mar_end)
+    march_biomass_results = result.df[march_mask & (result.df["tech"] == "biomass")]
     march_biomass_values = march_biomass_results["supply_mwh"]
 
     # Get the biomass values from the March grid mix
-    march_grid_mask = (grid_mix_hh.index >= mar_start) & (grid_mix_hh.index < mar_end)
-    march_grid_mix = grid_mix_hh[march_grid_mask]
+    march_grid_mask = (grid_mix.df.index >= mar_start) & (grid_mix.df.index < mar_end)
+    march_grid_mix = grid_mix.df[march_grid_mask]
 
     # Test single point (first half-hour)
     grid_first_hh_biomass = march_grid_mix["biomass_mwh"].iloc[0]
@@ -149,11 +150,11 @@ def test_march_biomass_scaling_factor(upsampler_io: UpsamplerIO) -> None:
     assert np.all(np.isclose(ratio, expected_scaling_factor, rtol=1e-5))
 
 
-def _get_test_validation_data() -> tuple[pd.DataFrame, pd.DataFrame]:
+def _get_test_validation_data() -> tuple[GridMixProcessed, RegosProcessed]:
     """Helper function to load test data for date range validation tests."""
-    grid_mix_data = ma.neso.grid_mix.load(NESO_FUEL_CKAN_CSV_SUBSET_FEB2023_MAR2023)
+    grid_mix_data = GridMixRaw(NESO_FUEL_CKAN_CSV_SUBSET_FEB2023_MAR2023).transform_to_grid_mix_processed()
     regos_data = get_processed_regos()
-    return grid_mix_data, regos_data.df
+    return grid_mix_data, regos_data
 
 
 def test_date_range_validation_invalid_start() -> None:
@@ -161,14 +162,14 @@ def test_date_range_validation_invalid_start() -> None:
     grid_mix_data, regos_data = _get_test_validation_data()
 
     invalid_start = pd.Timestamp("2000-01-01")
-    valid_end = pd.Timestamp("2023-03-01")  # End at the latest possible date for REGOS
+    valid_end = pd.Timestamp("2023-03-31")  # End at the latest possible date for REGOS
 
     with pytest.raises(ValueError) as excinfo:
         _validate_date_ranges(invalid_start, valid_end, grid_mix_data, regos_data)
 
     error_msg = str(excinfo.value)
-    assert "Date range outside of grid mix data range." in error_msg
-    assert "Could not determine date range in REGOS data" in error_msg
+    assert "Start date is before the earliest date in the grid mix data." in error_msg
+    assert "Start date is before the earliest date in the REGOS data." in error_msg
 
 
 def test_date_range_validation_invalid_end() -> None:
@@ -182,8 +183,8 @@ def test_date_range_validation_invalid_end() -> None:
         _validate_date_ranges(valid_start, invalid_end, grid_mix_data, regos_data)
 
     error_msg = str(excinfo.value)
-    assert "Date range outside of grid mix data range." in error_msg
-    assert "Could not determine date range in REGOS data" in error_msg
+    assert "End date is after the latest date in the grid mix data." in error_msg
+    assert "End date is after the latest date in the REGOS data." in error_msg
 
 
 def test_date_range_validation_both_invalid() -> None:
@@ -197,8 +198,8 @@ def test_date_range_validation_both_invalid() -> None:
         _validate_date_ranges(invalid_start, invalid_end, grid_mix_data, regos_data)
 
     error_msg = str(excinfo.value)
-    assert "Date range outside of grid mix data range." in error_msg
-    assert "Could not determine date range in REGOS data" in error_msg
+    assert "Start date is before the earliest date in the grid mix data." in error_msg
+    assert "End date is after the latest date in the grid mix data." in error_msg
 
 
 def test_date_range_validation_no_data_in_range() -> None:
@@ -207,32 +208,31 @@ def test_date_range_validation_no_data_in_range() -> None:
 
     # For grid_mix, data only exists in March 2023, so choose a valid month but outside this range
     no_data_start = pd.Timestamp("2022-06-01")  # In REGOS range but before grid_mix
-    no_data_end = pd.Timestamp("2022-07-01")
+    no_data_end = pd.Timestamp("2025-07-01")
 
     with pytest.raises(ValueError) as excinfo:
         _validate_date_ranges(no_data_start, no_data_end, grid_mix_data, regos_data)
 
     error_msg = str(excinfo.value)
-    assert "Date range outside of grid mix data range." in error_msg
+    assert "Start date is before the earliest date in the grid mix data." in error_msg
+    assert "End date is after the latest date in the grid mix data." in error_msg
 
 
 def test_date_range_validation_missing_half_hourly_points() -> None:
     """Test date range validation when there are missing half-hourly data points."""
     grid_mix_data, regos_data = _get_test_validation_data()
-
-    # Create a copy of grid_mix_data with some half-hourly points removed
-    grid_mix_with_gaps = grid_mix_data.copy()
+    grid_mix_with_gaps = GridMixProcessed(grid_mix_data.df)
 
     # Get a valid date range that has data
     valid_start = pd.Timestamp("2023-02-01")
     valid_end = pd.Timestamp("2023-03-01")
 
     # Filter to this range first
-    mask = (grid_mix_with_gaps.index >= valid_start) & (grid_mix_with_gaps.index < valid_end)
+    mask = (grid_mix_with_gaps.df.index >= valid_start) & (grid_mix_with_gaps.df.index < valid_end)
 
     # Remove some specific timestamps to create gaps (drop every 10th point)
-    indices_to_drop = grid_mix_with_gaps[mask].index[::10]
-    grid_mix_with_gaps = grid_mix_with_gaps.drop(indices_to_drop)
+    indices_to_drop = grid_mix_with_gaps.df[mask].index[::10]
+    grid_mix_with_gaps = GridMixProcessed(grid_mix_with_gaps.df.drop(indices_to_drop))
 
     # Now the validation should fail because of missing half-hourly points
     with pytest.raises(ValueError) as excinfo:
