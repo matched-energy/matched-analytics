@@ -28,6 +28,7 @@ class MeteringDataHalfHourly(DataFrameAsset):
         'bmu_count'                                     :CS(check=pa.Column(int)),
     }
     # fmt: on
+    from_file_skiprows = 1
 
     def transform_to_daily(self) -> MeteringDataDaily:
         """Rollup a single, half-hourly dataframe to a daily dataframe"""
@@ -67,6 +68,7 @@ class MeteringDataDaily(DataFrameAsset):
         **copy.deepcopy(MeteringDataHalfHourly.schema),
         "settlement_period_count": CS(check=pa.Column(int)),
     }
+    from_file_skiprows = 1
 
     @classmethod
     def aggregate_to_monthly(cls, metering_data_dataframes: List[pd.DataFrame]) -> MeteringDataMonthly:
@@ -83,6 +85,7 @@ class MeteringDataMonthly(DataFrameAsset):
         **copy.deepcopy(MeteringDataHalfHourly.schema),
         "day_count": CS(check=pa.Column(int)),
     }
+    from_file_skiprows = 1
 
     @classmethod
     def aggregate_to_yearly(
@@ -105,6 +108,7 @@ class MeteringDataYearly(DataFrameAsset):
         **copy.deepcopy(MeteringDataHalfHourly.schema),
         "month_count": CS(check=pa.Column(int)),
     }
+    from_file_skiprows = 1
 
 
 def _check_time_range(dfs: List[pd.DataFrame], granularity: TemporalGranularity) -> None:

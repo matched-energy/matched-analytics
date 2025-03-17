@@ -1,7 +1,7 @@
 import copy
 from abc import ABC
 from pathlib import Path
-from typing import Any, Callable, Dict, Literal, NotRequired, Optional, TypedDict, Union
+from typing import Any, Callable, Dict, NotRequired, Optional, TypedDict, Union
 
 import pandas as pd
 import pandera as pa
@@ -56,8 +56,7 @@ def apply_schema(
 class DataFrameAsset(ABC):
     schema: Dict[str, ColumnSchema]
     from_file_with_index: bool = True
-    from_file_skiprows: int = 0
-    from_file_header: Optional[Union[Literal["infer"], int]] = "infer"
+    from_file_skiprows: int = 0  # TODO - test
 
     def __init__(self, input: Union[pd.DataFrame, Path]):
         self._set_schema()
@@ -120,7 +119,7 @@ class DataFrameAsset(ABC):
             filepath,
             index_col=0 if self.from_file_with_index else None,
             skiprows=self.from_file_skiprows,
-            header=self.from_file_header,
+            header=None,
         )  # TODO: Test https://github.com/matched-energy/matched-analytics/issues/9
 
     def __getattr__(self, name: str) -> Any:

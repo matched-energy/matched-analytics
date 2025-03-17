@@ -38,6 +38,7 @@ class MeteringDataHalfHourlyByBmu(DataFrameAsset):
         period_supplier_bm_unit_non_bm_absvd_volume    =CS(check=pa.Column(float)),
         settlement_datetime                            =CS(check=pa.Index(DTE(dayfirst=False))), 
     )
+    from_file_skiprows=1
     # fmt: on
 
     @classmethod
