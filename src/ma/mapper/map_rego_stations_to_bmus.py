@@ -6,6 +6,7 @@ import click
 import pandas as pd
 
 import ma.elexon.bmus
+import ma.ofgem.regos
 import ma.ofgem.stations
 from ma.mapper.bmu_helpers import get_matching_bmus_dict, validate_matching_bmus
 from ma.mapper.common import MappingException
@@ -15,6 +16,7 @@ from ma.mapper.rego_helpers import get_generator_profile
 from ma.mapper.summarise_and_score import abbreviate_summary, score_mapping, summarise_profile
 from ma.ofgem.enums import RegoStatus
 from ma.ofgem.regos import RegosProcessed, RegosRaw
+from ma.ofgem.stations import RegoStationsProcessed
 from ma.utils.io import from_yaml_file, get_logger
 
 LOGGER = get_logger("ma.mapper")
@@ -23,7 +25,7 @@ LOGGER = get_logger("ma.mapper")
 def map_station(
     rego_station_name: str,
     regos: RegosProcessed,
-    accredited_stations: pd.DataFrame,
+    accredited_stations: RegoStationsProcessed,
     bmus: pd.DataFrame,
     S0142_csv_dir: Path,
     expected_mappings: Optional[dict] = None,
@@ -63,7 +65,7 @@ def map_station_range(
     start: int,
     stop: int,
     regos: RegosProcessed,
-    accredited_stations: pd.DataFrame,
+    accredited_stations: RegoStationsProcessed,
     bmus: pd.DataFrame,
     bmu_vol_dir: Path,
     expected_mappings: Optional[dict] = None,
@@ -117,7 +119,7 @@ def cli(
         start,
         stop,
         RegosRaw(regos_path).transform_to_regos_processed().filter(statuses=[RegoStatus.REDEEMED]),
-        ma.ofgem.stations.load_from_dir(accredited_stations_dir),
+        ma.ofgem.stations.load_rego_stations_processed_from_dir(accredited_stations_dir),
         ma.elexon.bmus.load(bmus_path),
         bmu_vol_dir,
         (from_yaml_file(expected_mappings_file) if expected_mappings_file else {}),
