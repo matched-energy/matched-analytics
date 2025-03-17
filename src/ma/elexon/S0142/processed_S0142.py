@@ -152,8 +152,9 @@ class ProcessedS0142(DataFrameAsset):
         period_supplier_bm_unit_delivered_volume    =CS(check=pa.Column(float)),
         period_supplier_bm_unit_non_bm_absvd_volume =CS(check=pa.Column(float)),
     )
-    from_file_with_index = False 
     # fmt: on
+    from_file_with_index = False
+    from_file_skiprows = 1
 
     def transform_to_half_hourly_by_bmu(self) -> MeteringDataHalfHourlyByBmu:
         """Return half_hourly_by_bmu metering data"""

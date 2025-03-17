@@ -35,10 +35,9 @@ class RegosRaw(DataFrameAsset):
         current_holder              =CS(check=pa.Column(str)),
         company_registration_number =CS(check=pa.Column(str, nullable=True)),
     )
-    from_file_with_index = False
-    from_file_skiprows = 4 
-    from_file_header = None
     # fmt: on
+    from_file_with_index = False
+    from_file_skiprows = 4
 
     tech_categories = {
         "Photovoltaic": SupplyTechEnum.SOLAR,
@@ -141,6 +140,7 @@ class RegosProcessed(DataFrameAsset):
         period_months               =CS(check=pa.Column(int)),
     )
     # fmt: on
+    from_file_skiprows = 1
 
     def filter(
         self,
@@ -277,6 +277,7 @@ class RegosByTechMonthHolder(DataFrameAsset):
         station_count     =CS(check=pa.Column(int)),
     )
     # fmt: on
+    from_file_skiprows = 1
 
     def filter(
         self,
