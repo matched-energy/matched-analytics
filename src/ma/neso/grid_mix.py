@@ -49,7 +49,7 @@ class GridMixRaw(DataFrameAsset):
         FOSSIL_PERC         =CS(check=pa.Column(float), keep=False),
     )
     from_file_with_index = False
-    from_file_skiprows = 0
+    from_file_skiprows = 1
     from_file_header = 0
     # fmt: on
 
