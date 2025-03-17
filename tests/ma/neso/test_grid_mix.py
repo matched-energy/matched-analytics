@@ -7,8 +7,8 @@ from ma.neso.grid_mix import GridMixRaw
 
 
 def test_groupby_tech_and_month() -> None:
-    historic_gen = GridMixRaw(data.register.NESO_FUEL_CKAN_CSV_SUBSET_FEB2023_MAR2023).transform_grid_mix_schema()
-    grouped = historic_gen.groupby_tech_and_month().df
+    historic_gen = GridMixRaw(data.register.NESO_FUEL_CKAN_CSV_SUBSET_FEB2023_MAR2023).transform_to_grid_mix_processed()
+    grouped = historic_gen.transform_to_grid_mix_by_tech_month().df
 
     # Check that the grouping was done correctly, and all tech columns exist
     assert grouped.index.names == ["month"]

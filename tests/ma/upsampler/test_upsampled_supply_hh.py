@@ -24,7 +24,7 @@ class UpsamplerIO(TypedDict):
     start_datetime: pd.Timestamp
     end_datetime: pd.Timestamp
     grid_mix_data: GridMixProcessed
-    grid_mix_hh: GridMixProcessed
+    grid_mix: GridMixProcessed
     supply_by_supplier_data: DataFrame
     trimmed_supply_by_supplier_data: DataFrame
     rego_holder_reference: str
@@ -38,7 +38,7 @@ def upsampler_io() -> UpsamplerIO:
     rego_holder_reference = "Drax Energy Solutions Limited (Supplier)"
 
     # Load the data
-    grid_mix_data = GridMixRaw(NESO_FUEL_CKAN_CSV_SUBSET_FEB2023_MAR2023).transform_grid_mix_schema()
+    grid_mix_data = GridMixRaw(NESO_FUEL_CKAN_CSV_SUBSET_FEB2023_MAR2023).transform_to_grid_mix_processed()
     regos_processed = get_processed_regos()
     trimmed_regos_processed = RegosProcessed(regos_processed.df.head(26))
 
@@ -47,21 +47,21 @@ def upsampler_io() -> UpsamplerIO:
         rego_holder_reference=rego_holder_reference,
         start_datetime=start_datetime,
         end_datetime=end_datetime,
-        grid_mix_hh=grid_mix_data,
+        grid_mix=grid_mix_data,
         regos_processed=trimmed_regos_processed,
     )
 
     # Filter grid mix data for the test period
-    grid_mix_hh = grid_mix_data.filter(start_datetime, end_datetime)
+    grid_mix = grid_mix_data.filter(start_datetime, end_datetime)
 
     # Assert and validate expected types for type checking
     assert isinstance(result.df.index, pd.DatetimeIndex)
-    assert isinstance(grid_mix_hh.df.index, pd.DatetimeIndex)
+    assert isinstance(grid_mix.df.index, pd.DatetimeIndex)
 
     return {
         "result": result,
         "grid_mix_data": grid_mix_data,
-        "grid_mix_hh": grid_mix_hh,
+        "grid_mix": grid_mix,
         "supply_by_supplier_data": regos_processed.df,
         "trimmed_supply_by_supplier_data": trimmed_regos_processed.df,
         "rego_holder_reference": rego_holder_reference,
@@ -122,7 +122,7 @@ def test_march_biomass_total(upsampler_io: UpsamplerIO) -> None:
 def test_march_biomass_scaling_factor(upsampler_io: UpsamplerIO) -> None:
     """Check the scaling output matches expected scaling for March biomass."""
     result = upsampler_io["result"]
-    grid_mix_hh = upsampler_io["grid_mix_hh"]
+    grid_mix = upsampler_io["grid_mix"]
 
     mar_start = pd.Timestamp("2023-03-01")
     mar_end = pd.Timestamp("2023-04-01")
@@ -137,8 +137,8 @@ def test_march_biomass_scaling_factor(upsampler_io: UpsamplerIO) -> None:
     march_biomass_values = march_biomass_results["supply_mwh"]
 
     # Get the biomass values from the March grid mix
-    march_grid_mask = (grid_mix_hh.df.index >= mar_start) & (grid_mix_hh.df.index < mar_end)
-    march_grid_mix = grid_mix_hh.df[march_grid_mask]
+    march_grid_mask = (grid_mix.df.index >= mar_start) & (grid_mix.df.index < mar_end)
+    march_grid_mix = grid_mix.df[march_grid_mask]
 
     # Test single point (first half-hour)
     grid_first_hh_biomass = march_grid_mix["biomass_mwh"].iloc[0]
@@ -152,7 +152,7 @@ def test_march_biomass_scaling_factor(upsampler_io: UpsamplerIO) -> None:
 
 def _get_test_validation_data() -> tuple[GridMixProcessed, RegosProcessed]:
     """Helper function to load test data for date range validation tests."""
-    grid_mix_data = GridMixRaw(NESO_FUEL_CKAN_CSV_SUBSET_FEB2023_MAR2023).transform_grid_mix_schema()
+    grid_mix_data = GridMixRaw(NESO_FUEL_CKAN_CSV_SUBSET_FEB2023_MAR2023).transform_to_grid_mix_processed()
     regos_data = get_processed_regos()
     return grid_mix_data, regos_data
 

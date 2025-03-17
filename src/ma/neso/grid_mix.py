@@ -53,8 +53,8 @@ class GridMixRaw(DataFrameAsset):
     from_file_header = 0
     # fmt: on
 
-    def transform_grid_mix_schema(self) -> GridMixProcessed:
-        grid_mix = self.df.copy()
+    def transform_to_grid_mix_processed(self) -> GridMixProcessed:
+        grid_mix = self.df
         grid_mix.columns = grid_mix.columns.str.lower()  # for readability
 
         tech_columns = [t.value for t in SupplyTechEnum]
@@ -88,7 +88,7 @@ class GridMixProcessed(DataFrameAsset):
         filtered_grid_mix = self.df[(self.df.index >= start_datetime) & (self.df.index < end_datetime)]
         return GridMixProcessed(filtered_grid_mix)
 
-    def groupby_tech_and_month(self) -> GridMixByTechMonth:
+    def transform_to_grid_mix_by_tech_month(self) -> GridMixByTechMonth:
         """
         Group by tech and month, and sum the values. Returns MWh per month for each tech.
         """

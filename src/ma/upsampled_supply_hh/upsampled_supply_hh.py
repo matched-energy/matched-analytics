@@ -38,12 +38,12 @@ def _calculate_scaling_factors(
     of grid generation that should be allocated to each supplier.
     """
 
-    grid_mix = grid_mix_by_tech_by_month.df.copy()
-    tech_columns = [col for col in grid_mix.columns if col.endswith("_mwh")]
+    grid_mix_by_tech_month_df = grid_mix_by_tech_by_month.df
+    tech_columns = [col for col in grid_mix_by_tech_month_df.columns if col.endswith("_mwh")]
 
     # Convert from wide to long format, resetting index to get month as a column
     grid_mix_long = pd.melt(
-        grid_mix.reset_index(),
+        grid_mix_by_tech_month_df.reset_index(),
         id_vars=["month"],
         value_vars=tech_columns,
         var_name="tech_column",
@@ -54,12 +54,12 @@ def _calculate_scaling_factors(
     grid_mix_long["tech"] = grid_mix_long["tech_column"].str.replace("_mwh", "")
 
     # Reset index to get month as a column
-    rego_data = regos_by_tech_month_holder.df.reset_index()
-    rego_data["rego_mwh"] = rego_data["rego_gwh"] * 1000  # Convert GWh to MWh
+    rego_df = regos_by_tech_month_holder.df.reset_index()
+    rego_df["rego_mwh"] = rego_df["rego_gwh"] * 1000  # Convert GWh to MWh
 
     # Merge with supplier data
     merged_data = pd.merge(
-        rego_data[["month", "tech", "current_holder", "rego_mwh"]],
+        rego_df[["month", "tech", "current_holder", "rego_mwh"]],
         grid_mix_long[["month", "tech", "grid_total_mwh"]],
         on=["month", "tech"],
         how="left",
@@ -75,9 +75,7 @@ def _calculate_scaling_factors(
     return result
 
 
-def _scale_hh_with_fraction_of_grid(
-    grid_mix_hh: GridMixProcessed, scaling_df: pd.DataFrame
-) -> UpsampledSupplyHalfHourly:
+def _scale_hh_with_fraction_of_grid(grid_mix: GridMixProcessed, scaling_df: pd.DataFrame) -> UpsampledSupplyHalfHourly:
     """
     Apply scaling factors to half-hourly grid mix data using vectorized operations.
 
@@ -91,21 +89,21 @@ def _scale_hh_with_fraction_of_grid(
     if scaling_df.empty:
         return UpsampledSupplyHalfHourly(pd.DataFrame(columns=["timestamp", "tech", "supplier", "supply_mwh"]))
 
-    grid_hh = grid_mix_hh.df.copy()
+    grid_df = grid_mix.df
     scaling = scaling_df.copy()
 
     # Extract year and month from the timestamp index to enable joining
-    grid_hh = grid_hh.reset_index()
+    grid_df = grid_df.reset_index()
     # Convert to first day of month to match GridMixByTechMonth schema
-    grid_hh["month"] = pd.to_datetime(grid_hh["datetime"].dt.to_period("M").astype(str))
-    grid_hh = grid_hh.rename(columns={"datetime": "timestamp"})
+    grid_df["month"] = pd.to_datetime(grid_df["datetime"].dt.to_period("M").astype(str))
+    grid_df = grid_df.rename(columns={"datetime": "timestamp"})
 
     # Identify technology columns
-    tech_columns = [col for col in grid_hh.columns if col.endswith("_mwh")]
+    tech_columns = [col for col in grid_df.columns if col.endswith("_mwh")]
 
     # Melt the dataframe to convert from wide to long format
     grid_long = pd.melt(
-        grid_hh,
+        grid_df,
         id_vars=["timestamp", "month"],
         value_vars=tech_columns,
         var_name="tech_col",
@@ -133,21 +131,23 @@ def _scale_hh_with_fraction_of_grid(
 def _validate_date_ranges(
     start_datetime: pd.Timestamp,
     end_datetime: pd.Timestamp,
-    grid_mix_hh: GridMixProcessed,
-    regos_data: RegosProcessed,
+    grid_mix: GridMixProcessed,
+    regos: RegosProcessed,
 ) -> bool:
     """
     Validates that the requested date range is available in both grid mix and REGOS data.
+    Uses half-open intervals [start_datetime, end_datetime) that are inclusive of start
+    and exclusive of end.
 
     Parameters
     ----------
     start_datetime : pd.Timestamp
-        The start date for the analysis
+        The start date for the analysis (inclusive)
     end_datetime : pd.Timestamp
         The end date for the analysis (exclusive)
-    grid_mix_hh : GridMixProcessed
+    grid_mix : GridMixProcessed
         The half-hourly grid mix data with DatetimeIndex
-    regos_data : RegosProcessed
+    regos : RegosProcessed
         The REGOS certificate data with a 'month' column
 
     Returns
@@ -158,30 +158,41 @@ def _validate_date_ranges(
     error_messages = []
 
     # Check REGOS data range
-    regos = regos_data.df.copy()
-    regos_period_starts = pd.to_datetime(regos["start_year_month"])
-    regos_period_ends = pd.to_datetime(regos["end_year_month"])
+    regos_df = regos.df
+    regos_period_starts = pd.to_datetime(regos_df["start_year_month"])
+    regos_period_ends = pd.to_datetime(regos_df["end_year_month"])
     regos_min_date = regos_period_starts.min()
     regos_max_date = regos_period_ends.max()
 
+    # For half-open intervals [start_datetime, end_datetime)
     if start_datetime < regos_min_date:
         error_messages.append("Start date is before the earliest date in the REGOS data.")
+    # For exclusive end - end_datetime should be <= regos_max_date
     if end_datetime > regos_max_date:
         error_messages.append("End date is after the latest date in the REGOS data.")
 
-    if start_datetime < grid_mix_hh.df.index.min():
+    # Check grid mix data range with half-open interval handling
+    grid_min_date = grid_mix.df.index.min()
+    grid_max_date = grid_mix.df.index.max()
+
+    # Calculate the next timestamp after the last available data point
+    # This represents the first invalid timestamp in a half-open interval
+    next_timestamp_after_max = grid_max_date + pd.Timedelta(minutes=30)
+
+    # For half-open intervals [start_datetime, end_datetime)
+    if start_datetime < grid_min_date:
         error_messages.append("Start date is before the earliest date in the grid mix data.")
-    if end_datetime > grid_mix_hh.df.index.max() + pd.Timedelta(minutes=30):
+    # For exclusive end - end_datetime must be <= next_timestamp_after_max
+    if end_datetime > next_timestamp_after_max:
         error_messages.append("End date is after the latest date in the grid mix data.")
 
-    filtered_grid_mix = grid_mix_hh.df[(grid_mix_hh.df.index >= start_datetime) & (grid_mix_hh.df.index < end_datetime)]
+    # Apply half-open interval [start_datetime, end_datetime) for filtering
+    filtered_grid_mix = grid_mix.df[(grid_mix.df.index >= start_datetime) & (grid_mix.df.index < end_datetime)]
     if len(filtered_grid_mix) == 0:
         error_messages.append("No grid mix data available within the specified date range.")
 
-    # Check for missing half-hourly data points
-    expected_periods = pd.date_range(
-        start=start_datetime, periods=((end_datetime - start_datetime) // pd.Timedelta(minutes=30)), freq="30min"
-    )
+    # Check for missing half-hourly data points using half-open interval
+    expected_periods = pd.date_range(start=start_datetime, end=end_datetime, freq="30min", inclusive="left")
     if len(filtered_grid_mix) != len(expected_periods):
         # Find the missing timestamps
         actual_timestamps = set(filtered_grid_mix.index)
@@ -203,7 +214,7 @@ def upsample_supplier_monthly_supply_to_hh(
     rego_holder_reference: str,
     start_datetime: pd.Timestamp,
     end_datetime: pd.Timestamp,
-    grid_mix_hh: GridMixProcessed,
+    grid_mix: GridMixProcessed,
     regos_processed: RegosProcessed,
     output_path: Optional[Path] = None,
 ) -> UpsampledSupplyHalfHourly:
@@ -218,20 +229,20 @@ def upsample_supplier_monthly_supply_to_hh(
         The start date for the analysis
     end_datetime : pd.Timestamp
         The end date for the analysis (exclusive)
-    grid_mix_hh : GridMixProcessed
+    grid_mix : GridMixProcessed
         The half-hourly grid mix data with DatetimeIndex
     regos_processed : RegosProcessed
         The REGOS certificate data with a 'month' column
     """
     try:
-        _validate_date_ranges(start_datetime, end_datetime, grid_mix_hh, regos_processed)
+        _validate_date_ranges(start_datetime, end_datetime, grid_mix, regos_processed)
     except ValueError as e:
         click.echo(f"Error: {e}", err=True)
         sys.exit(1)
 
     # Step 1: Load and prepare the half-hourly grid mix data
-    filtered_grid_mix_hh = grid_mix_hh.filter(start_datetime, end_datetime)
-    grid_mix_tech_month = filtered_grid_mix_hh.groupby_tech_and_month()
+    filtered_grid_mix = grid_mix.filter(start_datetime, end_datetime)
+    grid_mix_tech_month = filtered_grid_mix.transform_to_grid_mix_by_tech_month()
 
     # Step 2: Prepare data for scaling calculation (convert units, align column names, extract year and month)
     regos_by_tech_month_holder = regos_processed.transform_to_regos_by_tech_month_holder().filter(
@@ -243,17 +254,17 @@ def upsample_supplier_monthly_supply_to_hh(
     scaling_df = _calculate_scaling_factors(grid_mix_tech_month, regos_by_tech_month_holder)
 
     # Step 4: Apply scaling to half-hourly data
-    result_df = _scale_hh_with_fraction_of_grid(grid_mix_hh, scaling_df)
+    result = _scale_hh_with_fraction_of_grid(grid_mix, scaling_df)
 
     # Set timestamp as index to make subsequent operations easier
 
     if output_path:
-        result_df.to_csv(output_path)
+        result.df.to_csv(output_path)
         click.echo(f"Results saved to {output_path}")
     else:
         click.echo("Results calculated but not saved (no output path provided)")
 
-    return result_df
+    return result
 
 
 @click.command()
@@ -291,7 +302,7 @@ def cli(
         rego_holder_reference=rego_holder_reference,
         start_datetime=pd.Timestamp(start_date),
         end_datetime=pd.Timestamp(end_date),
-        grid_mix_hh=GridMixRaw(grid_mix_path).transform_grid_mix_schema(),
+        grid_mix=GridMixRaw(grid_mix_path).transform_to_grid_mix_processed(),
         regos_processed=RegosRaw(regos_path).transform_to_regos_processed(),
         output_path=output_path,
     )
