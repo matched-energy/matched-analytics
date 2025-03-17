@@ -1,5 +1,3 @@
-# Get a subset of the NEOS data
-
 from data.register import NESO_FUEL_CKAN_CSV_SUBSET_FEB2023_MAR2023
 import pandas as pd
 from pathlib import Path
@@ -7,10 +5,12 @@ import argparse
 
 
 def get_subset(path: Path, output_path: Path) -> None:
-    df = pd.read_csv(path)
-    df["DATETIME"] = pd.to_datetime(df["DATETIME"])
-    filtered_df = df[(df["DATETIME"] >= pd.Timestamp("2024-01-01")) & (df["DATETIME"] < pd.Timestamp("2024-01-04"))]
-    filtered_df.to_csv(output_path, index=False)
+    start_date = pd.Timestamp("2023-02-01")
+    end_date = pd.Timestamp("2023-04-01")
+    neso_df = pd.read_csv(path)
+    neso_df["DATETIME"] = pd.to_datetime(neso_df["DATETIME"])
+    neso_df = neso_df[(neso_df["DATETIME"] >= start_date) & (neso_df["DATETIME"] < end_date)]
+    neso_df.to_csv(output_path, index=False)
 
 
 if __name__ == "__main__":
