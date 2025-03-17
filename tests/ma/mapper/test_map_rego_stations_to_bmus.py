@@ -7,9 +7,9 @@ from pandas import Timestamp
 from pandas.testing import assert_frame_equal
 
 import data.register
-import ma.elexon.bmus
 import ma.mapper.map_rego_stations_to_bmus
 import ma.ofgem.stations
+from ma.elexon.bmus import Bmus
 from ma.ofgem.enums import RegoStatus
 from ma.ofgem.regos import RegosRaw
 
@@ -127,7 +127,7 @@ def test_end_to_end() -> None:
             accredited_stations=ma.ofgem.stations.load_rego_stations_processed_from_dir(
                 data.register.REGO_ACCREDITED_STATIONS_DIR
             ),
-            bmus=ma.elexon.bmus.load(data.register.BMUNITS_SUBSET),
+            bmus=Bmus(data.register.BMUNITS_SUBSET),
             bmu_vol_dir=Path("/mocked"),
         )
 

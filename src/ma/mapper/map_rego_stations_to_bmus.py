@@ -5,9 +5,9 @@ from typing import Optional
 import click
 import pandas as pd
 
-import ma.elexon.bmus
 import ma.ofgem.regos
 import ma.ofgem.stations
+from ma.elexon.bmus import Bmus
 from ma.mapper.bmu_helpers import get_matching_bmus_dict, validate_matching_bmus
 from ma.mapper.common import MappingException
 from ma.mapper.filter_on_aggregate_data import appraise_energy_volumes, appraise_rated_power
@@ -26,7 +26,7 @@ def map_station(
     rego_station_name: str,
     regos: RegosProcessed,
     accredited_stations: RegoStationsProcessed,
-    bmus: pd.DataFrame,
+    bmus: Bmus,
     S0142_csv_dir: Path,
     expected_mappings: Optional[dict] = None,
 ) -> pd.DataFrame:
@@ -41,7 +41,7 @@ def map_station(
         generator_profile.update(get_generator_profile(rego_station_name, regos, accredited_stations))
 
         # Add matching BMUs
-        matching_bmus = get_matching_bmus(generator_profile, bmus, expected_mapping)
+        matching_bmus = get_matching_bmus(generator_profile, bmus.df, expected_mapping)
         validate_matching_bmus(matching_bmus)
         generator_profile.update(get_matching_bmus_dict(matching_bmus))
 
@@ -66,7 +66,7 @@ def map_station_range(
     stop: int,
     regos: RegosProcessed,
     accredited_stations: RegoStationsProcessed,
-    bmus: pd.DataFrame,
+    bmus: Bmus,
     bmu_vol_dir: Path,
     expected_mappings: Optional[dict] = None,
     mappings_path: Optional[Path] = None,
@@ -120,7 +120,7 @@ def cli(
         stop,
         RegosRaw(regos_path).transform_to_regos_processed().filter(statuses=[RegoStatus.REDEEMED]),
         ma.ofgem.stations.load_rego_stations_processed_from_dir(accredited_stations_dir),
-        ma.elexon.bmus.load(bmus_path),
+        Bmus(bmus_path),
         bmu_vol_dir,
         (from_yaml_file(expected_mappings_file) if expected_mappings_file else {}),
         mappings_path,
