@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import Dict, Optional
 
 import numpy as np
@@ -10,6 +12,31 @@ from ma.utils.misc import truncate_string
 from ma.utils.pandas import ColumnSchema as CS
 from ma.utils.pandas import DataFrameAsset
 from ma.utils.pandas import DateTimeEngine as DTE
+
+
+def _segregate_import_exports(half_hourly_by_bmu: pd.DataFrame) -> pd.DataFrame:
+    updated = half_hourly_by_bmu.copy()
+    updated["bm_unit_metered_volume_+ve_mwh"] = updated["bm_unit_metered_volume_mwh"].clip(lower=0)
+    updated["bm_unit_metered_volume_-ve_mwh"] = updated["bm_unit_metered_volume_mwh"].clip(upper=0)
+    return updated
+
+
+def _rollup_bmus(half_hourly_by_bmu: pd.DataFrame) -> pd.DataFrame:
+    grouped = half_hourly_by_bmu.groupby("settlement_datetime")[
+        [
+            "period_bm_unit_balancing_services_volume",
+            "period_information_imbalance_volume",
+            "period_expected_metered_volume",
+            "bm_unit_metered_volume_mwh",
+            "bm_unit_applicable_balancing_services_volume",
+            "period_supplier_bm_unit_delivered_volume",
+            "period_supplier_bm_unit_non_bm_absvd_volume",
+            "bm_unit_metered_volume_+ve_mwh",
+            "bm_unit_metered_volume_-ve_mwh",
+        ]
+    ].sum()
+    grouped["bmu_count"] = len(half_hourly_by_bmu["bm_unit_id"].unique())
+    return grouped
 
 
 class MeteringDataHalfHourlyByBmu(DataFrameAsset):
@@ -41,44 +68,18 @@ class MeteringDataHalfHourlyByBmu(DataFrameAsset):
     from_file_skiprows=1
     # fmt: on
 
-    @classmethod
     def filter(
-        cls,
-        half_hourly_by_bmu: pd.DataFrame,
+        self,
         bm_regex: Optional[str] = None,
         bm_ids: Optional[list] = None,
-    ) -> pd.DataFrame:
-        mask = np.ones(len(half_hourly_by_bmu), dtype=bool)
+    ) -> MeteringDataHalfHourlyByBmu:
+        df = self.df
+        mask = np.ones(len(df), dtype=bool)
         if bm_ids:
-            mask &= half_hourly_by_bmu["bm_unit_id"].isin(bm_ids)
+            mask &= df["bm_unit_id"].isin(bm_ids)
         if bm_regex:
-            mask &= half_hourly_by_bmu["bm_unit_id"].str.contains(bm_regex, regex=True)
-        return half_hourly_by_bmu[mask]
-
-    @classmethod
-    def segregate_import_exports(cls, half_hourly_by_bmu: pd.DataFrame) -> pd.DataFrame:
-        updated = half_hourly_by_bmu.copy()
-        updated["bm_unit_metered_volume_+ve_mwh"] = updated["bm_unit_metered_volume_mwh"].clip(lower=0)
-        updated["bm_unit_metered_volume_-ve_mwh"] = updated["bm_unit_metered_volume_mwh"].clip(upper=0)
-        return updated
-
-    @classmethod
-    def rollup_bmus(cls, half_hourly_by_bmu: pd.DataFrame) -> pd.DataFrame:
-        grouped = half_hourly_by_bmu.groupby("settlement_datetime")[
-            [
-                "period_bm_unit_balancing_services_volume",
-                "period_information_imbalance_volume",
-                "period_expected_metered_volume",
-                "bm_unit_metered_volume_mwh",
-                "bm_unit_applicable_balancing_services_volume",
-                "period_supplier_bm_unit_delivered_volume",
-                "period_supplier_bm_unit_non_bm_absvd_volume",
-                "bm_unit_metered_volume_+ve_mwh",
-                "bm_unit_metered_volume_-ve_mwh",
-            ]
-        ].sum()
-        grouped["bmu_count"] = len(half_hourly_by_bmu["bm_unit_id"].unique())
-        return grouped
+            mask &= df["bm_unit_id"].str.contains(bm_regex, regex=True)
+        return MeteringDataHalfHourlyByBmu(df[mask])
 
     def transform_to_half_hourly(
         self,
@@ -86,18 +87,16 @@ class MeteringDataHalfHourlyByBmu(DataFrameAsset):
         bm_ids: Optional[list] = None,
     ) -> MeteringDataHalfHourly:
         """Return daily_by_bsc metering data"""
-        output = self.df
-        output = type(self).segregate_import_exports(output)
-        output = type(self).filter(output, bm_regex=bm_regex, bm_ids=bm_ids)
-        output = type(self).rollup_bmus(output)
-        return MeteringDataHalfHourly(output)
+        result_df = self.filter(bm_regex=bm_regex, bm_ids=bm_ids).df
+        result_df = _segregate_import_exports(result_df)
+        result_df = _rollup_bmus(result_df)
+        return MeteringDataHalfHourly(result_df)
 
-    @classmethod
-    def get_fig(cls, half_hourly_by_bmu: pd.DataFrame) -> go.Figure:
+    def get_fig(self) -> go.Figure:
         fig = go.Figure()
 
-        for bm_unit_id in half_hourly_by_bmu["bm_unit_id"].unique():
-            bm_unit_data = half_hourly_by_bmu[half_hourly_by_bmu["bm_unit_id"] == bm_unit_id]
+        for bm_unit_id in self.df["bm_unit_id"].unique():
+            bm_unit_data = self.df[self.df["bm_unit_id"] == bm_unit_id]
 
             fig.add_trace(
                 go.Scatter(
