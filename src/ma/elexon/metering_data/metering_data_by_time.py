@@ -6,6 +6,7 @@ from typing import Any, Dict, List, Type
 import pandas as pd
 import pandera as pa
 
+from ma.upsampled_supply_hh.consumption import ConsumptionMonthly
 from ma.utils.enums import TemporalGranularity
 from ma.utils.pandas import ColumnSchema as CS
 from ma.utils.pandas import DataFrameAsset
@@ -101,6 +102,16 @@ class MeteringDataMonthly(DataFrameAsset):
             "day_count",
             MeteringDataYearly,
         )
+
+    def transform_to_consumption_monthly(self) -> ConsumptionMonthly:
+        df = self.df
+        consumption_monthly = pd.DataFrame(
+            dict(
+                consumption_mwh=-df["bm_unit_metered_volume_mwh"],  # inversion of sign
+            ),
+            index=df.index,
+        )
+        return ConsumptionMonthly(consumption_monthly)
 
 
 class MeteringDataYearly(DataFrameAsset):
