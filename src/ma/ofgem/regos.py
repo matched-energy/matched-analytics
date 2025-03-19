@@ -58,7 +58,7 @@ class RegosRaw(DataFrameAsset):
         regos = self.df
         regos["rego_gwh"] = regos["mwh_per_certificate"] * regos["certificate_count"] / 1e3
         regos["tech"] = regos["technology_group"].map(self.tech_categories)
-        # TODO - quantify how much volume has status 'unknown'
+        # TODO #19 - quantify how much volume has status 'unknown'
         regos["tech"] = regos["technology_group"].map(self.tech_categories).fillna("unknown")
         regos = self.add_output_period_columns(regos)
         return RegosProcessed(regos)
