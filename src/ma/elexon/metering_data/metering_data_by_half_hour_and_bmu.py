@@ -12,6 +12,7 @@ from ma.utils.misc import truncate_string
 from ma.utils.pandas import ColumnSchema as CS
 from ma.utils.pandas import DataFrameAsset
 from ma.utils.pandas import DateTimeEngine as DTE
+from ma.utils.plotly import DEFAULT_PLOTLY_LAYOUT
 
 
 def _segregate_import_exports(half_hourly_by_bmu: pd.DataFrame) -> pd.DataFrame:
@@ -107,11 +108,8 @@ class MeteringDataHalfHourlyByBmu(DataFrameAsset):
                 )
             )
 
+        fig.update_layout(**DEFAULT_PLOTLY_LAYOUT)
         fig.update_layout(
-            plot_bgcolor="white",
-            paper_bgcolor="white",
-            xaxis=dict(showgrid=False),
-            yaxis=dict(showgrid=False),
             title="bm_unit_metered_volume vs settlement_datetime",
             showlegend=True,
         )
