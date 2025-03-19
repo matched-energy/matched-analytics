@@ -14,7 +14,7 @@ from ma.utils.pandas import DateTimeEngine as DTE
 from ma.utils.plotly import DEFAULT_PLOTLY_LAYOUT
 
 
-class MonthlyMatching(DataFrameAsset):
+class MatchMonthly(DataFrameAsset):
     # fmt: off
     schema: Dict[str, CS] = dict(
         # TODO #27 - derive schema from SupplyTechEnum 
@@ -77,9 +77,7 @@ class MonthlyMatching(DataFrameAsset):
         return fig
 
 
-def calculate_monthly_matching_scores(
-    consumption: ConsumptionMonthly, supply: RegosByTechMonthHolder
-) -> MonthlyMatching:
+def make_match_monthly(consumption: ConsumptionMonthly, supply: RegosByTechMonthHolder) -> MatchMonthly:
     supply_df = supply.df
     supply_df["supply_mwh"] = supply_df["rego_gwh"] * 1000
     supply_df["current_holder_count"] = supply_df.groupby("month")["current_holder"].transform("nunique")
@@ -98,4 +96,4 @@ def calculate_monthly_matching_scores(
     df["deficit_mwh"] = (df["consumption_mwh"] - df["supply_mwh_total"]).clip(lower=0)
     df["surplus_mwh"] = (df["supply_mwh_total"] - df["consumption_mwh"]).clip(lower=0)
     df["matching_score"] = 1 - df["deficit_mwh"] / df["consumption_mwh"]
-    return MonthlyMatching(df)
+    return MatchMonthly(df)
