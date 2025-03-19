@@ -1,6 +1,6 @@
-from enum import StrEnum
-from typing import Tuple
 from datetime import date
+from enum import StrEnum
+from typing import List, Tuple
 
 
 class RegoStatus(StrEnum):
@@ -32,3 +32,13 @@ class RegoCompliancePeriod(StrEnum):
             self.CP23: (date(2024, 4, 1), date(2025, 4, 1)),
         }
         return mappings[self]
+
+    @property
+    def months(self) -> List[date]:
+        start_date, end_date = self.date_range
+        return [
+            date(year, month, 1)
+            for year in range(start_date.year, end_date.year + 1)
+            for month in range(1, 13)
+            if date(year, month, 1) >= start_date and date(year, month, 1) < end_date
+        ]
