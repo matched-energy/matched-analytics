@@ -7,7 +7,7 @@ import pandera as pa
 import plotly.graph_objects as go
 
 from ma.ofgem.regos import RegosByTechMonthHolder
-from ma.upsampled_supply_hh.consumption import ConsumptionMonthly
+from ma.retailer.consumption import ConsumptionMonthly
 from ma.utils.enums import SupplyTechEnum
 from ma.utils.pandas import ColumnSchema as CS
 from ma.utils.pandas import DataFrameAsset

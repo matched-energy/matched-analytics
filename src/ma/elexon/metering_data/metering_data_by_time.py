@@ -6,7 +6,7 @@ from typing import Any, Dict, List, Type
 import pandas as pd
 import pandera as pa
 
-from ma.upsampled_supply_hh.consumption import ConsumptionMonthly
+from ma.retailer.consumption import ConsumptionMonthly
 from ma.utils.enums import TemporalGranularity
 from ma.utils.pandas import ColumnSchema as CS
 from ma.utils.pandas import DataFrameAsset
