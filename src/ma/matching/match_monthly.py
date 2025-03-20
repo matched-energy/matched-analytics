@@ -106,7 +106,7 @@ class MatchMonthly(DataFrameAsset):
         )
         return fig
 
-    def transform_to_match_monthly_aggregate(self) -> MatchMonthlyAggregate:
+    def transform_to_match_monthly_annualised(self) -> MatchMonthlyAnnualised:
         # fmt: off
         agg = (self.df.reset_index()
             .groupby(lambda _: 0)
@@ -133,10 +133,10 @@ class MatchMonthly(DataFrameAsset):
         agg["matching_score"] = 1 - agg["supply_deficit_mwh"] / agg["consumption_mwh"]
         # fmt: on
 
-        return MatchMonthlyAggregate(agg)
+        return MatchMonthlyAnnualised(agg)
 
 
-class MatchMonthlyAggregate(DataFrameAsset):
+class MatchMonthlyAnnualised(DataFrameAsset):
     # fmt: off
     schema: Dict[str, CS] = dict(
         timestamp                   =CS(check=pa.Index(DTE(dayfirst=False))),
