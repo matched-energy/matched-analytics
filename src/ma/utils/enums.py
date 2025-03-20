@@ -1,4 +1,5 @@
 from enum import StrEnum
+from typing import List
 
 
 class TemporalGranularity(StrEnum):
@@ -55,3 +56,13 @@ class SupplyTechEnum(StrEnum):
     OTHER = "other"
     SOLAR = "solar"
     STORAGE = "storage"
+
+    @classmethod
+    def alphabetical_renewables(cls) -> List:
+        return [
+            cls.BIOMASS,
+            cls.HYDRO,
+            cls.OTHER,
+            cls.SOLAR,
+            cls.WIND,
+        ]
