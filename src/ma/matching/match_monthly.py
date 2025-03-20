@@ -64,7 +64,6 @@ class MatchMonthly(DataFrameAsset):
     # fmt: on
     from_file_skiprows = 1
     from_file_with_index = True
-    validate_column_names = True
 
     def plot(self) -> go.Figure:
         fig = go.Figure()
@@ -160,4 +159,3 @@ class MatchMonthlyAnnualised(DataFrameAsset):
     # fmt: on
     from_file_skiprows = 1
     from_file_with_index = True
-    validate_column_names = True

@@ -26,7 +26,6 @@ class DataFrameAsset(ABC):
     schema: Dict[str, ColumnSchema]
     from_file_with_index: bool = True
     from_file_skiprows: int = 0
-    validate_column_names = False
 
     def __init__(self, input: Union[pd.DataFrame, Path]):
         self._set_schema()
@@ -68,12 +67,7 @@ class DataFrameAsset(ABC):
             raise AssertionError(
                 f"Dataframe has wrong number of columns: schema has {len(column_names)}, dataframe has {len(dataframe.columns)}"
             )
-        if self.validate_column_names:
-            assert list(dataframe.columns) == list(column_names), (
-                f"Expected identical column names: schema has {list(column_names)}, dataframe has{list(dataframe.columns)}"
-            )
-        else:
-            dataframe.columns = column_names
+        dataframe.columns = column_names
 
         # Name index
         if index_name := self._index.get("name"):

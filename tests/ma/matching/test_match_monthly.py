@@ -4,7 +4,7 @@ import pandas as pd
 from pytest import approx
 
 import data.register
-from ma.matching.match_monthly import MatchMonthly, make_match_monthly
+from ma.matching.match_monthly import MatchMonthly, MatchMonthlyAnnualised, make_match_monthly
 from ma.ofgem.regos import RegosByTechMonthHolder
 from ma.retailer.consumption import ConsumptionMonthly
 
@@ -57,6 +57,7 @@ def test_match_monthly_annualised() -> None:
     match_annualised_df = match_annualised.df
 
     assert len(match_annualised_df) == 1
+    assert list(match_annualised_df.reset_index().columns) == list(MatchMonthlyAnnualised.schema.keys())
     assert match_annualised_df["consumption_mwh"].iloc[0] == match["consumption_mwh"].sum()
     assert match_annualised_df["supply_biomass_station_max"].iloc[0] == match["supply_biomass_station_count"].max()
     assert match_annualised_df["matching_score"].iloc[0] == approx(0.6864, rel=1e-4)

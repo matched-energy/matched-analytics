@@ -155,20 +155,3 @@ def test_from_file_skiprows() -> None:
 
     df = Asset(Path(f"{Path(__file__).parent}/test.csv"))
     assert len(df.df) == 1
-
-
-def test_validate_column_names() -> None:
-    class Asset(DataFrameAsset):
-        schema = dict(
-            col_a=CS(check=pa.Column(int)),
-            col_b=CS(check=pa.Column(str)),
-        )
-        validate_column_names = False
-
-    class AssetWithColumnValidation(Asset):
-        validate_column_names = True
-
-    df_raw = copy.deepcopy(DF_RAW)
-    Asset(df_raw)
-    with pytest.raises(AssertionError, match="Expected identical column names"):
-        AssetWithColumnValidation(df_raw)
