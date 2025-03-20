@@ -58,8 +58,8 @@ class RegosRaw(DataFrameAsset):
         regos = self.df
         regos["rego_gwh"] = regos["mwh_per_certificate"] * regos["certificate_count"] / 1e3
         regos["tech"] = regos["technology_group"].map(self.tech_categories)
-        # TODO #19 - quantify how much volume has status 'unknown'
-        regos["tech"] = regos["technology_group"].map(self.tech_categories).fillna("unknown")
+        # TODO #19 - quantify how much volume has status 'other'
+        regos["tech"] = regos["technology_group"].map(self.tech_categories).fillna(SupplyTechEnum.OTHER)
         regos = self.add_output_period_columns(regos)
         return RegosProcessed(regos)
 
@@ -134,7 +134,7 @@ class RegosProcessed(DataFrameAsset):
         current_holder              =CS(check=pa.Column(str)),
         company_registration_number =CS(check=pa.Column(str, nullable=True)),
         rego_gwh                    =CS(check=pa.Column(float)),
-        tech                        =CS(check=pa.Column(str)),
+        tech                        =CS(check=pa.Column(str, checks=pa.Check.isin([e.value for e in SupplyTechEnum]))),
         start_year_month            =CS(check=pa.Column(DTE(dayfirst=False))),
         end_year_month              =CS(check=pa.Column(DTE(dayfirst=False))),
         period_months               =CS(check=pa.Column(int)),
@@ -271,7 +271,7 @@ class RegosByTechMonthHolder(DataFrameAsset):
     # fmt: off
     schema: Dict[str, CS] = dict( 
         month             =CS(check=pa.Index(DTE(dayfirst=False))),
-        tech              =CS(check=pa.Column(str)),
+        tech              =CS(check=pa.Column(str, checks=pa.Check.isin([e.value for e in SupplyTechEnum]))),
         current_holder    =CS(check=pa.Column(str)),
         rego_gwh          =CS(check=pa.Column(float)),
         station_count     =CS(check=pa.Column(int)),
