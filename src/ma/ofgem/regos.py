@@ -134,7 +134,7 @@ class RegosProcessed(DataFrameAsset):
         current_holder              =CS(check=pa.Column(str)),
         company_registration_number =CS(check=pa.Column(str, nullable=True)),
         rego_gwh                    =CS(check=pa.Column(float)),
-        tech                        =CS(check=pa.Column(str, checks=pa.Check.isin([e.value for e in SupplyTechEnum]))),
+        tech                        =CS(check=pa.Column(str, checks=pa.Check.isin(SupplyTechEnum.alphabetical_renewables()))),
         start_year_month            =CS(check=pa.Column(DTE(dayfirst=False))),
         end_year_month              =CS(check=pa.Column(DTE(dayfirst=False))),
         period_months               =CS(check=pa.Column(int)),
@@ -272,7 +272,7 @@ class RegosByTechMonthHolder(DataFrameAsset):
     # fmt: off
     schema: Dict[str, CS] = dict( 
         month             =CS(check=pa.Index(DTE(dayfirst=False))),
-        tech              =CS(check=pa.Column(str, checks=pa.Check.isin([e.value for e in SupplyTechEnum]))),
+        tech              =CS(check=pa.Column(str, checks=pa.Check.isin(SupplyTechEnum.alphabetical_renewables()))),
         current_holder    =CS(check=pa.Column(str)),
         rego_gwh          =CS(check=pa.Column(float)),
         station_count     =CS(check=pa.Column(int)),
