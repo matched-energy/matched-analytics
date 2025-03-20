@@ -49,3 +49,14 @@ def test_match_monthly() -> None:
 def test_match_plot() -> None:
     _, _, match = setup()
     match.plot()
+
+
+def test_match_monthly_aggregate() -> None:
+    _, _, match = setup()
+    match_aggregate = match.transform_to_match_monthly_aggregate()
+    match_aggregate_df = match_aggregate.df
+
+    assert len(match_aggregate_df) == 1
+    assert match_aggregate_df["consumption_mwh"].iloc[0] == match["consumption_mwh"].sum()
+    assert match_aggregate_df["supply_biomass_station_max"].iloc[0] == match["supply_biomass_station_count"].max()
+    assert match_aggregate_df["matching_score"].iloc[0] == approx(0.6864, rel=1e-4)
