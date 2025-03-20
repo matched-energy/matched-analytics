@@ -19,18 +19,18 @@ class MatchMonthly(DataFrameAsset):
     schema: Dict[str, CS] = dict(
         # TODO #27 - derive schema from SupplyTechEnum 
         timestamp             =CS(check=pa.Index(DTE(dayfirst=False))),
-        supply_mwh_biomass    =CS(check=pa.Column(float)),
-        supply_mwh_unknown    =CS(check=pa.Column(float)),
+        supply_mwh_biomass    =CS(check=pa.Column(float)),  # supply_biomass_mwh
+        supply_mwh_other      =CS(check=pa.Column(float)),
         supply_mwh_wind       =CS(check=pa.Column(float)),
-        station_count_biomass =CS(check=pa.Column(float)),
-        station_count_unknown =CS(check=pa.Column(float)),
+        station_count_biomass =CS(check=pa.Column(float)),  # supply_biomass_station_count
+        station_count_other   =CS(check=pa.Column(float)),
         station_count_wind    =CS(check=pa.Column(float)),
         supply_mwh_total      =CS(check=pa.Column(float)),
-        current_holder_count  =CS(check=pa.Column(float)),
-        consumption_mwh    =CS(check=pa.Column(float)),
-        deficit_mwh        =CS(check=pa.Column(float)),
-        surplus_mwh        =CS(check=pa.Column(float)),
-        matching_score     =CS(check=pa.Column(float)),
+        current_holder_count  =CS(check=pa.Column(float)),  # supply_rego_holder_count
+        consumption_mwh       =CS(check=pa.Column(float)),
+        deficit_mwh           =CS(check=pa.Column(float)),  # supply_deficit
+        surplus_mwh           =CS(check=pa.Column(float)),  # supply_surplus
+        matching_score        =CS(check=pa.Column(float)),
     )
     # fmt: on
     from_file_skiprows = 1
@@ -44,7 +44,7 @@ class MatchMonthly(DataFrameAsset):
         fig.add_trace(go.Scatter(x=df.index, y=df["consumption_mwh"], mode="lines", name="Consumption"))
 
         # Supply
-        for supply in ["biomass", "unknown", "wind"]:  # TODO #17
+        for supply in ["biomass", "other", "wind"]:  # TODO #17
             fig.add_trace(
                 go.Scatter(
                     x=df.index,
@@ -80,20 +80,20 @@ class MatchMonthly(DataFrameAsset):
 def make_match_monthly(consumption: ConsumptionMonthly, supply: RegosByTechMonthHolder) -> MatchMonthly:
     supply_df = supply.df
     supply_df["supply_mwh"] = supply_df["rego_gwh"] * 1000
-    supply_df["current_holder_count"] = supply_df.groupby("month")["current_holder"].transform("nunique")
-    supply_df["supply_mwh_total"] = supply_df.groupby("month")["supply_mwh"].sum()
 
     supply_pivoted = supply_df.reset_index().pivot(
         index="month", columns="tech", values=["supply_mwh", "station_count"]
     )
     supply_pivoted.columns = pd.Index([f"{col[0]}_{col[1]}" for col in supply_pivoted.columns])
-
-    supply_pivoted = supply_pivoted.merge(
-        supply_df[["supply_mwh_total", "current_holder_count"]], left_index=True, right_on="month"
+    supply_pivoted = supply_pivoted.join(
+        supply_df.groupby("month").agg(
+            supply_mwh_total=("supply_mwh", "sum"),
+            current_holder_count=("current_holder", "nunique"),
+        )
     )
 
-    df = pd.merge(supply_pivoted, consumption.df, left_index=True, right_index=True)
-    df["deficit_mwh"] = (df["consumption_mwh"] - df["supply_mwh_total"]).clip(lower=0)
-    df["surplus_mwh"] = (df["supply_mwh_total"] - df["consumption_mwh"]).clip(lower=0)
-    df["matching_score"] = 1 - df["deficit_mwh"] / df["consumption_mwh"]
-    return MatchMonthly(df)
+    match = supply_pivoted.join(consumption.df)
+    match["deficit_mwh"] = (match["consumption_mwh"] - match["supply_mwh_total"]).clip(lower=0)
+    match["surplus_mwh"] = (match["supply_mwh_total"] - match["consumption_mwh"]).clip(lower=0)
+    match["matching_score"] = 1 - match["deficit_mwh"] / match["consumption_mwh"]
+    return MatchMonthly(match)

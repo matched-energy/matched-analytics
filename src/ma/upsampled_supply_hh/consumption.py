@@ -13,4 +13,6 @@ class ConsumptionMonthly(DataFrameAsset):
         timestamp         =CS(check=pa.Index(DTE(dayfirst=False))),
         consumption_mwh   =CS(check=pa.Column(float)),
     )
+    from_file_skiprows = 1
+    from_file_with_index = True
     # fmt: on

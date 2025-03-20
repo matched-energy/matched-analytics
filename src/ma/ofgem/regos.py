@@ -141,6 +141,7 @@ class RegosProcessed(DataFrameAsset):
     )
     # fmt: on
     from_file_skiprows = 1
+    from_file_with_index = True
 
     def filter(
         self,
@@ -278,6 +279,7 @@ class RegosByTechMonthHolder(DataFrameAsset):
     )
     # fmt: on
     from_file_skiprows = 1
+    from_file_with_index = True
 
     def filter(
         self,
