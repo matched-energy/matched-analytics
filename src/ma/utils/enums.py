@@ -59,6 +59,7 @@ class SupplyTechEnum(StrEnum):
 
     @classmethod
     def alphabetical_renewables(cls) -> List:
+        """Ordering allows deterministic schema generation."""
         return [
             cls.BIOMASS,
             cls.HYDRO,
