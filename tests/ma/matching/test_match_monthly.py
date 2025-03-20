@@ -6,7 +6,7 @@ from pytest import approx
 import data.register
 from ma.matching.match_monthly import MatchMonthly, make_match_monthly
 from ma.ofgem.regos import RegosByTechMonthHolder
-from ma.upsampled_supply_hh.consumption import ConsumptionMonthly
+from ma.retailer.consumption import ConsumptionMonthly
 
 
 def setup() -> Tuple[RegosByTechMonthHolder, ConsumptionMonthly, MatchMonthly]:
