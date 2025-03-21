@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Dict
+from typing import Dict, Tuple
 
 import pandas as pd
 import pandera as pa
@@ -33,11 +33,27 @@ def make_match_monthly(consumption: ConsumptionMonthly, supply: RegosByTechMonth
             )
         ).fillna(0)
 
-    match = supply_pivoted.join(consumption.df)
-    match["supply_deficit_mwh"] = (match["consumption_mwh"] - match["supply_total_mwh"]).clip(lower=0)
-    match["supply_surplus_mwh"] = (match["supply_total_mwh"] - match["consumption_mwh"]).clip(lower=0)
-    match["matching_score"] = 1 - match["supply_deficit_mwh"] / match["consumption_mwh"]
-    return MatchMonthly(match)
+    match_df = supply_pivoted.join(consumption.df)
+
+    match_df["supply_surplus_mwh"], match_df["supply_deficit_mwh"] = _calculate_supply_surplus_deficit(
+        supply=match_df["supply_total_mwh"],
+        consumption=match_df["consumption_mwh"],
+    )
+    match_df["matching_score"] = _calculate_matching_score(
+        deficit=match_df["supply_deficit_mwh"], consumption=match_df["consumption_mwh"]
+    )
+
+    return MatchMonthly(match_df)
+
+
+def _calculate_supply_surplus_deficit(supply: pd.Series, consumption: pd.Series) -> Tuple[pd.Series, pd.Series]:
+    surplus = (supply - consumption).clip(lower=0)
+    deficit = (consumption - supply).clip(lower=0)
+    return surplus, deficit
+
+
+def _calculate_matching_score(deficit: pd.Series, consumption: pd.Series) -> pd.Series:
+    return 1 - deficit / consumption
 
 
 class MatchMonthly(DataFrameAsset):
@@ -57,8 +73,8 @@ class MatchMonthly(DataFrameAsset):
         supply_wind_mwh             =CS(check=pa.Column(float)),  
         supply_wind_station_count   =CS(check=pa.Column(int)),
         consumption_mwh             =CS(check=pa.Column(float)),
-        supply_deficit_mwh          =CS(check=pa.Column(float)),  
         supply_surplus_mwh          =CS(check=pa.Column(float)),  
+        supply_deficit_mwh          =CS(check=pa.Column(float)),  
         matching_score              =CS(check=pa.Column(float)),
     )
     # fmt: on
