@@ -1,10 +1,13 @@
 import logging
 import os
+import pickle
 import sys
 from pathlib import Path
-from typing import Dict, Union
+from typing import Any, Dict, Union
 
 import numpy as np
+import pandas as pd
+import xxhash
 import yaml
 from dotenv import load_dotenv
 from yaml import Dumper, ScalarNode
@@ -68,3 +71,15 @@ def get_dot_env(key: str) -> str:
     if value is None:
         raise Exception(f".env key {key} is None")
     return value
+
+
+def checksum(obj: Any) -> str:
+    hasher = xxhash.xxh64()
+    if isinstance(obj, (pd.DataFrame, pd.Series)):
+        obj = obj.to_numpy()  # Convert Pandas objects to NumPy arrays for fast processing
+    try:
+        hasher.update(pickle.dumps(obj, protocol=4))  # Protocol 4 is more efficient for large data
+    except Exception:
+        hasher.update(str(obj).encode())  # Fallback for unpickleable objects
+
+    return hasher.hexdigest()
