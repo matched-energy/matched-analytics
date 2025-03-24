@@ -149,8 +149,8 @@ class ProcessedS0142(DataFrameAsset):
         trading_unit_name                           =CS(check=pa.Column(str)),
         total_trading_unit_metered_volume           =CS(check=pa.Column(float)),
         bm_unit_applicable_balancing_services_volume=CS(check=pa.Column(float)),
-        period_supplier_bm_unit_delivered_volume    =CS(check=pa.Column(float)),
-        period_supplier_bm_unit_non_bm_absvd_volume =CS(check=pa.Column(float)),
+        period_retailer_bm_unit_delivered_volume    =CS(check=pa.Column(float)),
+        period_retailer_bm_unit_non_bm_absvd_volume =CS(check=pa.Column(float)),
     )
     # fmt: on
     from_file_with_index = False

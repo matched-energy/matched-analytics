@@ -23,7 +23,7 @@ class UpsampledSupplyHalfHourly(DataFrameAsset):
         timestamp         =CS(check=pa.Index(DTE(dayfirst=False))),
         supply_mwh        =CS(check=pa.Column(float)),
         tech              =CS(check=pa.Column(str)),
-        supplier          =CS(check=pa.Column(str)),
+        retailer          =CS(check=pa.Column(str)),
     )
     # fmt: on
 
@@ -32,10 +32,10 @@ def _calculate_scaling_factors(
     grid_mix_by_tech_by_month: GridMixByTechMonth, regos_by_tech_month_holder: RegosByTechMonthHolder
 ) -> pd.DataFrame:
     """
-    Calculate scaling factors for each technology, supplier and month using vectorized operations.
+    Calculate scaling factors for each technology, retailer and month using vectorized operations.
 
-    Takes prepared grid mix and supplier data and calculates the proportion
-    of grid generation that should be allocated to each supplier.
+    Takes prepared grid mix and retailer data and calculates the proportion
+    of grid generation that should be allocated to each retailer.
     """
 
     grid_mix_by_tech_month_df = grid_mix_by_tech_by_month.df
@@ -57,7 +57,7 @@ def _calculate_scaling_factors(
     rego_df = regos_by_tech_month_holder.df.reset_index()
     rego_df["rego_mwh"] = rego_df["rego_gwh"] * 1000  # Convert GWh to MWh
 
-    # Merge with supplier data
+    # Merge with retailer data
     merged_data = pd.merge(
         rego_df[["month", "tech", "current_holder", "rego_mwh"]],
         grid_mix_long[["month", "tech", "grid_total_mwh"]],
@@ -69,8 +69,8 @@ def _calculate_scaling_factors(
     merged_data["fraction_of_grid"] = merged_data["rego_mwh"] / merged_data["grid_total_mwh"]
 
     # Rename columns to match expected output format
-    result_df = merged_data.rename(columns={"current_holder": "supplier", "rego_mwh": "supplier_mwh"})
-    result = result_df[["month", "tech", "supplier", "supplier_mwh", "fraction_of_grid"]]
+    result_df = merged_data.rename(columns={"current_holder": "retailer", "rego_mwh": "retailer_mwh"})
+    result = result_df[["month", "tech", "retailer", "retailer_mwh", "fraction_of_grid"]]
 
     return result
 
@@ -82,12 +82,12 @@ def _scale_hh_with_fraction_of_grid(grid_mix: GridMixProcessed, scaling_df: pd.D
     Creates a long-format DataFrame with columns for:
     - timestamp: The datetime of the generation
     - tech: The technology type (wind, solar, etc.)
-    - supplier: The energy supplier
+    - retailer: The energy retailer
     - generation_mwh: The generation amount in MWh
     """
     # Return empty DataFrame with the right structure if scaling_df is empty
     if scaling_df.empty:
-        return UpsampledSupplyHalfHourly(pd.DataFrame(columns=["timestamp", "tech", "supplier", "supply_mwh"]))
+        return UpsampledSupplyHalfHourly(pd.DataFrame(columns=["timestamp", "tech", "retailer", "supply_mwh"]))
 
     grid_df = grid_mix.df
     scaling = scaling_df.copy()
@@ -121,10 +121,10 @@ def _scale_hh_with_fraction_of_grid(grid_mix: GridMixProcessed, scaling_df: pd.D
         how="inner",
     )
 
-    # Apply scaling factors to calculate supplier-specific generation
+    # Apply scaling factors to calculate retailer-specific generation
     result["supply_mwh"] = result["supply_mwh"] * result["fraction_of_grid"]
 
-    result = result.drop(columns=["month", "fraction_of_grid", "tech_col", "supplier_mwh"]).set_index("timestamp")
+    result = result.drop(columns=["month", "fraction_of_grid", "tech_col", "retailer_mwh"]).set_index("timestamp")
     return UpsampledSupplyHalfHourly(result)
 
 
@@ -210,7 +210,7 @@ def _validate_date_ranges(
     return True
 
 
-def upsample_supplier_monthly_supply_to_hh(
+def upsample_retailer_monthly_supply_to_hh(
     rego_holder_reference: str,
     start_datetime: pd.Timestamp,
     end_datetime: pd.Timestamp,
@@ -219,7 +219,7 @@ def upsample_supplier_monthly_supply_to_hh(
     output_path: Optional[Path] = None,
 ) -> UpsampledSupplyHalfHourly:
     """
-    Upsamples the monthly supply of a specific supplier using half-hourly grid mix data.
+    Upsamples the monthly supply of a specific retailer using half-hourly grid mix data.
 
     Parameters
     ----------
@@ -248,7 +248,7 @@ def upsample_supplier_monthly_supply_to_hh(
     regos_by_tech_month_holder = regos_processed.transform_to_regos_by_tech_month_holder().filter(
         holders=[rego_holder_reference]
     )
-    # regos_by_tech_month_holder = _prepare_supply_supplier_month(rego_holder_reference, regos_processed)
+    # regos_by_tech_month_holder = _prepare_supply_retailer_month(rego_holder_reference, regos_processed)
 
     # Step 3: Calculate scaling factors
     scaling_df = _calculate_scaling_factors(grid_mix_tech_month, regos_by_tech_month_holder)
@@ -298,7 +298,7 @@ def cli(
     end_date: pd.Timestamp,
     output_path: Optional[Path] = None,
 ) -> None:
-    upsample_supplier_monthly_supply_to_hh(
+    upsample_retailer_monthly_supply_to_hh(
         rego_holder_reference=rego_holder_reference,
         start_datetime=pd.Timestamp(start_date),
         end_datetime=pd.Timestamp(end_date),

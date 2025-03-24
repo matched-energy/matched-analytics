@@ -11,7 +11,7 @@ from ma.ofgem.regos import RegosProcessed, RegosRaw
 from ma.retailer.upsampled_supply_hh import (
     UpsampledSupplyHalfHourly,
     _validate_date_ranges,
-    upsample_supplier_monthly_supply_to_hh,
+    upsample_retailer_monthly_supply_to_hh,
 )
 
 
@@ -25,8 +25,8 @@ class UpsamplerIO(TypedDict):
     end_datetime: pd.Timestamp
     grid_mix_data: GridMixProcessed
     grid_mix: GridMixProcessed
-    supply_by_supplier_data: DataFrame
-    trimmed_supply_by_supplier_data: DataFrame
+    supply_by_retailer_data: DataFrame
+    trimmed_supply_by_retailer_data: DataFrame
     rego_holder_reference: str
 
 
@@ -43,7 +43,7 @@ def upsampler_io() -> UpsamplerIO:
     trimmed_regos_processed = RegosProcessed(regos_processed.df.head(26))
 
     # Get upsampled result
-    result = upsample_supplier_monthly_supply_to_hh(
+    result = upsample_retailer_monthly_supply_to_hh(
         rego_holder_reference=rego_holder_reference,
         start_datetime=start_datetime,
         end_datetime=end_datetime,
@@ -62,8 +62,8 @@ def upsampler_io() -> UpsamplerIO:
         "result": result,
         "grid_mix_data": grid_mix_data,
         "grid_mix": grid_mix,
-        "supply_by_supplier_data": regos_processed.df,
-        "trimmed_supply_by_supplier_data": trimmed_regos_processed.df,
+        "supply_by_retailer_data": regos_processed.df,
+        "trimmed_supply_by_retailer_data": trimmed_regos_processed.df,
         "rego_holder_reference": rego_holder_reference,
         "start_datetime": start_datetime,
         "end_datetime": end_datetime,
@@ -102,21 +102,21 @@ def test_monthly_aggregation_matches_original(upsampler_io: UpsamplerIO) -> None
 
 def test_march_biomass_total(upsampler_io: UpsamplerIO) -> None:
     """Verify total sum for March - the total upsampled generation
-    should match supplier's monthly total for biomass.
+    should match retailer's monthly total for biomass.
     """
     result = upsampler_io["result"]
 
     mar_start = pd.Timestamp("2023-03-01")
     mar_end = pd.Timestamp("2023-04-01")
 
-    supplier_biomass_total_mwh = 650422.0  # Drax Energy's biomass generation for March 2023
+    retailer_biomass_total_mwh = 650422.0  # Drax Energy's biomass generation for March 2023
 
     # Filter data for March biomass using timestamp comparison
     march_mask = (result.df.index >= mar_start) & (result.df.index < mar_end)
     march_biomass_results = result.df[march_mask & (result.df["tech"] == "biomass")]["supply_mwh"]
 
     # Verify total sum matches expected value
-    assert march_biomass_results.sum() == pytest.approx(supplier_biomass_total_mwh, rel=1e-5)
+    assert march_biomass_results.sum() == pytest.approx(retailer_biomass_total_mwh, rel=1e-5)
 
 
 def test_march_biomass_scaling_factor(upsampler_io: UpsamplerIO) -> None:
@@ -128,8 +128,8 @@ def test_march_biomass_scaling_factor(upsampler_io: UpsamplerIO) -> None:
     mar_end = pd.Timestamp("2023-04-01")
 
     grid_biomass_total_mwh = 1175050.5  # Total biomass in grid for March 2023
-    supplier_biomass_total_mwh = 650422.0  # Drax Energy's biomass generation for March 2023
-    expected_scaling_factor = supplier_biomass_total_mwh / grid_biomass_total_mwh
+    retailer_biomass_total_mwh = 650422.0  # Drax Energy's biomass generation for March 2023
+    expected_scaling_factor = retailer_biomass_total_mwh / grid_biomass_total_mwh
 
     # Filter data for March biomass using timestamp comparison
     march_mask = (result.df.index >= mar_start) & (result.df.index < mar_end)
