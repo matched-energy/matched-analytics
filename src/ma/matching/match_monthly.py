@@ -1,18 +1,19 @@
 from __future__ import annotations
 
-from typing import Dict, Tuple
+from typing import Dict
 
 import pandas as pd
 import pandera as pa
 import plotly.graph_objects as go
 
+from ma.matching.match_half_hourly import calculate_matching_score, calculate_supply_surplus_deficit
 from ma.ofgem.regos import RegosByTechMonthHolder
 from ma.retailer.consumption import ConsumptionMonthly
 from ma.utils.enums import SupplyTechEnum
+from ma.matching.utils import plot_supply_consumption_matching
 from ma.utils.pandas import ColumnSchema as CS
 from ma.utils.pandas import DataFrameAsset
 from ma.utils.pandas import DateTimeEngine as DTE
-from ma.utils.plotly import DEFAULT_PLOTLY_LAYOUT
 
 
 def make_match_monthly(consumption: ConsumptionMonthly, supply: RegosByTechMonthHolder) -> MatchMonthly:
@@ -35,25 +36,15 @@ def make_match_monthly(consumption: ConsumptionMonthly, supply: RegosByTechMonth
 
     match_df = supply_pivoted.join(consumption.df)
 
-    match_df["supply_surplus_mwh"], match_df["supply_deficit_mwh"] = _calculate_supply_surplus_deficit(
+    match_df["supply_surplus_mwh"], match_df["supply_deficit_mwh"] = calculate_supply_surplus_deficit(
         supply=match_df["supply_total_mwh"],
         consumption=match_df["consumption_mwh"],
     )
-    match_df["matching_score"] = _calculate_matching_score(
+    match_df["matching_score"] = calculate_matching_score(
         deficit=match_df["supply_deficit_mwh"], consumption=match_df["consumption_mwh"]
     )
 
     return MatchMonthly(match_df)
-
-
-def _calculate_supply_surplus_deficit(supply: pd.Series, consumption: pd.Series) -> Tuple[pd.Series, pd.Series]:
-    surplus = (supply - consumption).clip(lower=0)
-    deficit = (consumption - supply).clip(lower=0)
-    return surplus, deficit
-
-
-def _calculate_matching_score(deficit: pd.Series, consumption: pd.Series) -> pd.Series:
-    return 1 - deficit / consumption
 
 
 class MatchMonthly(DataFrameAsset):
@@ -75,51 +66,14 @@ class MatchMonthly(DataFrameAsset):
         consumption_mwh             =CS(check=pa.Column(float)),
         supply_surplus_mwh          =CS(check=pa.Column(float)),  
         supply_deficit_mwh          =CS(check=pa.Column(float)),  
-        matching_score              =CS(check=pa.Column(float)),
+        matching_score              =CS(check=pa.Column(float, checks=[pa.Check.greater_than_or_equal_to(0), pa.Check.less_than_or_equal_to(1)])),
     )
     # fmt: on
     from_file_skiprows = 1
     from_file_with_index = True
 
     def plot(self) -> go.Figure:
-        fig = go.Figure()
-        df = self.df
-
-        # Consumption
-        fig.add_trace(go.Scatter(x=df.index, y=df["consumption_mwh"], mode="lines", name="Consumption"))
-
-        # Supply
-        for tech in SupplyTechEnum.alphabetical_renewables():
-            fig.add_trace(
-                go.Scatter(
-                    x=df.index,
-                    y=df[f"supply_{tech}_mwh"],
-                    mode="lines",
-                    name=tech,
-                    stackgroup="supply-by-tech",
-                )
-            )
-        fig.add_trace(
-            go.Scatter(
-                x=df.index,
-                y=df["supply_total_mwh"],
-                mode="lines",
-                name="total",
-            )
-        )
-
-        # Matching score
-        fig.add_trace(go.Scatter(x=df.index, y=df["matching_score"], mode="lines", name="matching score", yaxis="y2"))
-
-        # Update fig
-        fig.update_layout(**DEFAULT_PLOTLY_LAYOUT)
-        fig.update_layout(
-            title="",
-            yaxis=dict(title="MWh"),
-            yaxis2=dict(title="Matching", overlaying="y", side="right", range=[0, 1]),
-            showlegend=True,
-        )
-        return fig
+        return plot_supply_consumption_matching(self.df)
 
     def transform_to_match_monthly_annualised(self) -> MatchMonthlyAnnualised:
         # fmt: off

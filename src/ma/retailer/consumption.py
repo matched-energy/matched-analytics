@@ -16,3 +16,14 @@ class ConsumptionMonthly(DataFrameAsset):
     from_file_skiprows = 1
     from_file_with_index = True
     # fmt: on
+
+
+class ConsumptionHourly(DataFrameAsset):
+    # fmt: off
+    schema: Dict[str, CS] = dict(
+        timestamp         =CS(check=pa.Index(DTE(dayfirst=False))),
+        consumption_mwh   =CS(check=pa.Column(float)),
+    )
+    from_file_skiprows = 1
+    from_file_with_index = True
+    # fmt: on

@@ -6,7 +6,7 @@ from typing import Any, Dict, List, Sequence, Type
 import pandas as pd
 import pandera as pa
 
-from ma.retailer.consumption import ConsumptionMonthly
+from ma.retailer.consumption import ConsumptionHourly, ConsumptionMonthly
 from ma.utils.enums import TemporalGranularity
 from ma.utils.pandas import ColumnSchema as CS
 from ma.utils.pandas import DataFrameAsset
@@ -30,6 +30,16 @@ class MeteringDataHalfHourly(DataFrameAsset):
     }
     # fmt: on
     from_file_skiprows = 1
+
+    def transform_to_consumption_half_hourly(self) -> ConsumptionHourly:
+        df = self.df
+        consumption_half_hourly = pd.DataFrame(
+            dict(
+                consumption_mwh=-df["bm_unit_metered_volume_mwh"],  # inversion of sign
+            ),
+            index=df.index,
+        )
+        return ConsumptionHourly(consumption_half_hourly)
 
     def transform_to_daily(self) -> MeteringDataDaily:
         """Rollup a single, half-hourly dataframe to a daily dataframe"""

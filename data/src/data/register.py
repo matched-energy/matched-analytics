@@ -32,3 +32,5 @@ NESO_FUEL_CKAN_CSV_SUBSET_FEB2023_MAR2023 = DIR_NESO / "df_fuel_ckan_feb2023_mar
 DIR_PROCESSED = DATA_DIR_ROOT / "processed"
 REGOS_BY_TECH_MONTH_HOLDER = DIR_PROCESSED / "watts_up_cp22_regos_by_tech_month_holder.csv"
 CONSUMPTION_BY_MONTH = DIR_PROCESSED / "watts_up_cp22_consumption_by_month.csv"
+CONSUMPTION_BY_HOUR = DIR_PROCESSED / "watts_up_feb_1_consumption_by_hour.csv"  # This contains dummy data for now
+SUPPLY_BY_HOUR = DIR_PROCESSED / "watts_up_feb_1_supply_by_hour.csv"
