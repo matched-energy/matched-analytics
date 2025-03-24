@@ -30,8 +30,8 @@ def _rollup_bmus(half_hourly_by_bmu: pd.DataFrame) -> pd.DataFrame:
             "period_expected_metered_volume",
             "bm_unit_metered_volume_mwh",
             "bm_unit_applicable_balancing_services_volume",
-            "period_supplier_bm_unit_delivered_volume",
-            "period_supplier_bm_unit_non_bm_absvd_volume",
+            "period_retailer_bm_unit_delivered_volume",
+            "period_retailer_bm_unit_non_bm_absvd_volume",
             "bm_unit_metered_volume_+ve_mwh",
             "bm_unit_metered_volume_-ve_mwh",
         ]
@@ -62,8 +62,8 @@ class MeteringDataHalfHourlyByBmu(DataFrameAsset):
         trading_unit_name                              =CS(check=pa.Column(str)),
         total_trading_unit_metered_volume              =CS(check=pa.Column(float)),
         bm_unit_applicable_balancing_services_volume   =CS(check=pa.Column(float)),
-        period_supplier_bm_unit_delivered_volume       =CS(check=pa.Column(float)),
-        period_supplier_bm_unit_non_bm_absvd_volume    =CS(check=pa.Column(float)),
+        period_retailer_bm_unit_delivered_volume       =CS(check=pa.Column(float)),
+        period_retailer_bm_unit_non_bm_absvd_volume    =CS(check=pa.Column(float)),
         settlement_datetime                            =CS(check=pa.Index(DTE(dayfirst=False))), 
     )
     from_file_skiprows=1
