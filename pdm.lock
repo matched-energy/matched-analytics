@@ -5,7 +5,7 @@
 groups = ["default", "dev"]
 strategy = ["inherit_metadata"]
 lock_version = "4.5.0"
-content_hash = "sha256:5ab9ba1ca071909f99701fa39ec8dd64891ad037b14697fbbd881941575a2e4c"
+content_hash = "sha256:82bb77c41c89ab2ef3f9d006262f2d306bec2dcf5d39527be40d10c9eea0607b"
 
 [[metadata.targets]]
 requires_python = ">=3.12"
@@ -1027,6 +1027,34 @@ files = [
     {file = "ruff-0.9.9-py3-none-win_amd64.whl", hash = "sha256:837982ea24091d4c1700ddb2f63b7070e5baec508e43b01de013dc7eff974ff1"},
     {file = "ruff-0.9.9-py3-none-win_arm64.whl", hash = "sha256:3ac78f127517209fe6d96ab00f3ba97cafe38718b23b1db3e96d8b2d39e37ddf"},
     {file = "ruff-0.9.9.tar.gz", hash = "sha256:0062ed13f22173e85f8f7056f9a24016e692efeea8704d1a5e8011b8aa850933"},
+]
+
+[[package]]
+name = "setuptools"
+version = "78.0.2"
+requires_python = ">=3.9"
+summary = "Easily download, build, install, upgrade, and uninstall Python packages"
+groups = ["default"]
+files = [
+    {file = "setuptools-78.0.2-py3-none-any.whl", hash = "sha256:4a612c80e1f1d71b80e4906ce730152e8dec23df439f82731d9d0b608d7b700d"},
+    {file = "setuptools-78.0.2.tar.gz", hash = "sha256:137525e6afb9022f019d6e884a319017f9bf879a0d8783985d32cbc8683cab93"},
+]
+
+[[package]]
+name = "setuptools-scm"
+version = "8.2.0"
+requires_python = ">=3.8"
+summary = "the blessed package to manage your versions by scm tags"
+groups = ["default"]
+dependencies = [
+    "packaging>=20",
+    "setuptools>=61",
+    "tomli>=1; python_version < \"3.11\"",
+    "typing-extensions; python_version < \"3.10\"",
+]
+files = [
+    {file = "setuptools_scm-8.2.0-py3-none-any.whl", hash = "sha256:136e2b1d393d709d2bcf26f275b8dec06c48b811154167b0fd6bb002aad17d6d"},
+    {file = "setuptools_scm-8.2.0.tar.gz", hash = "sha256:a18396a1bc0219c974d1a74612b11f9dce0d5bd8b1dc55c65f6ac7fd609e8c28"},
 ]
 
 [[package]]
