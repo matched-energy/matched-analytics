@@ -9,7 +9,7 @@ import pandera as pa
 import xxhash
 from pandera.engines import pandas_engine
 
-from ma.utils.misc import get_code_version
+from ma.utils.conf import get_code_version
 
 
 def select_columns(df: pd.DataFrame, exclude: list) -> pd.DataFrame:
