@@ -5,11 +5,12 @@ from pathlib import Path
 import httpx
 import pandas as pd
 
+import ma.utils.conf
 import ma.utils.io
 
 LOG = ma.utils.io.get_logger(__name__)
 
-API_KEY = ma.utils.io.get_dot_env("ELEXON_API_KEY")
+API_KEY = ma.utils.conf.get_dot_env("ELEXON_API_KEY")
 BASE_URL = "https://downloads.elexonportal.co.uk/p114"
 
 
