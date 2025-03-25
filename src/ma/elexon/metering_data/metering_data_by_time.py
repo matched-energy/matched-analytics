@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import copy
-from typing import Any, Dict, List, Type
+from typing import Any, Dict, List, Sequence, Type
 
 import pandas as pd
 import pandera as pa
@@ -72,12 +72,12 @@ class MeteringDataDaily(DataFrameAsset):
     from_file_skiprows = 1
 
     @classmethod
-    def aggregate_to_monthly(cls, metering_data_dataframes: List[pd.DataFrame]) -> MeteringDataMonthly:
+    def aggregate_to_monthly(cls, metering_data_list: List[MeteringDataDaily]) -> MeteringDataMonthly:
         """Rollup a list of daily dataframes to a single monthly dataframe.
 
         All inputs must be in a single month."""
         return _transform_to_monthly_or_yearly(
-            metering_data_dataframes, TemporalGranularity.MONTHLY, "settlement_period_count", MeteringDataMonthly
+            metering_data_list, TemporalGranularity.MONTHLY, "settlement_period_count", MeteringDataMonthly
         )
 
 
@@ -91,13 +91,13 @@ class MeteringDataMonthly(DataFrameAsset):
     @classmethod
     def aggregate_to_yearly(
         cls,
-        metering_data_dataframes: List[pd.DataFrame],
+        metering_data_list: List[MeteringDataMonthly],
     ) -> MeteringDataYearly:
         """Rollup a list of monthly dataframes to a single yearly dataframe.
 
         All inputs must be in a single year."""
         return _transform_to_monthly_or_yearly(
-            metering_data_dataframes,
+            metering_data_list,
             TemporalGranularity.YEARLY,
             "day_count",
             MeteringDataYearly,
@@ -141,13 +141,14 @@ def _check_time_range(dfs: List[pd.DataFrame], granularity: TemporalGranularity)
 
 
 def _transform_to_monthly_or_yearly(
-    metering_data_dataframes: List[pd.DataFrame],
+    metering_data_list: Sequence[MeteringDataDaily | MeteringDataMonthly],
     granularity: TemporalGranularity,
     drop_column: str,
     output_class: Type,
 ) -> Any:  # Any so that can return MeteringDataMonthly/Yearly
     """Rollup a list of daily/monthly dataframes to a singly monthly/yearly dataframe"""
-    assert metering_data_dataframes, "Input list must not be empty"
+    assert metering_data_list, "Input list must not be empty"
+    metering_data_dataframes = [df.df for df in metering_data_list]
     _check_time_range(metering_data_dataframes, granularity)
 
     input = pd.concat(metering_data_dataframes)
