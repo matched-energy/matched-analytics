@@ -155,3 +155,14 @@ def test_from_file_skiprows() -> None:
 
     df = Asset(Path(f"{Path(__file__).parent}/test.csv"))
     assert len(df.df) == 1
+
+
+def test_metadata() -> None:
+    class Asset(DataFrameAsset):
+        schema = dict(col_a=CS(check=pa.Column(int)), col_b=CS(check=pa.Column(str)))
+
+    df = Asset(copy.deepcopy(DF_RAW))
+    metadata = df.metadata
+    assert set(metadata.keys()) == set(["type", "rows", "checksum", "ma_version"])
+    assert metadata["type"] == "Asset"
+    assert metadata["rows"] == "5"
