@@ -56,7 +56,7 @@ class RegosRaw(DataFrameAsset):
 
     def transform_to_regos_processed(self) -> RegosProcessed:
         regos = self.df
-        regos["rego_gwh"] = regos["mwh_per_certificate"] * regos["certificate_count"] / 1e3
+        regos["rego_mwh"] = regos["mwh_per_certificate"] * regos["certificate_count"]
         regos["tech"] = regos["technology_group"].map(self.tech_categories)
         # TODO #19 - quantify how much volume has status 'other'
         regos["tech"] = regos["technology_group"].map(self.tech_categories).fillna(SupplyTechEnum.OTHER)
@@ -133,7 +133,7 @@ class RegosProcessed(DataFrameAsset):
         status_date                 =CS(check=pa.Column(DTE(dayfirst=False))),
         current_holder              =CS(check=pa.Column(str)),
         company_registration_number =CS(check=pa.Column(str, nullable=True)),
-        rego_gwh                    =CS(check=pa.Column(float)),
+        rego_mwh                    =CS(check=pa.Column(float)),
         tech                        =CS(check=pa.Column(str, checks=pa.Check.isin(SupplyTechEnum.alphabetical_renewables()))),
         start_year_month            =CS(check=pa.Column(DTE(dayfirst=False))),
         end_year_month              =CS(check=pa.Column(DTE(dayfirst=False))),
@@ -198,17 +198,17 @@ class RegosProcessed(DataFrameAsset):
             .agg(
                 accredition_number=("accreditation_number", "first"),
                 company_registration_number=("company_registration_number", "first"),
-                rego_gwh=("rego_gwh", "sum"),
+                rego_mwh=("rego_mwh", "sum"),
                 technology_group=("technology_group", "first"),
                 generation_type=("generation_type", "first"),
                 tech=("tech", "first"),
             )
-            .sort_values(by="rego_gwh", ascending=False)
+            .sort_values(by="rego_mwh", ascending=False)
         )
 
         # Station output as a fraction of a whole
         regos_by_station["percentage_of_whole"] = (
-            regos_by_station["rego_gwh"] / regos_by_station["rego_gwh"].sum() * 100
+            regos_by_station["rego_mwh"] / regos_by_station["rego_mwh"].sum() * 100
         )
 
         return regos_by_station.reset_index()
@@ -230,14 +230,14 @@ class RegosProcessed(DataFrameAsset):
                 months_to_generate = row["period_months"]
 
                 # Calculate the per-month generation
-                per_month_gwh = row["rego_gwh"] / months_to_generate
+                per_month_mwh = row["rego_mwh"] / months_to_generate
 
                 # Generate rows for each month in the period
                 for month_offset in range(months_to_generate):
                     month_date = start_date + pd.DateOffset(months=month_offset)
                     new_row = row.to_dict().copy()
                     new_row["start_year_month"] = month_date  # Update start_year_month
-                    new_row["rego_gwh"] = per_month_gwh  # Distribute generation evenly
+                    new_row["rego_mwh"] = per_month_mwh  # Distribute generation evenly
                     expanded_rows.append(new_row)
 
         return pd.DataFrame(expanded_rows)
@@ -257,7 +257,7 @@ class RegosProcessed(DataFrameAsset):
         regos_by_tech_month_holder = (
             regos.groupby(["tech", "month", "current_holder"])
             .agg(
-                rego_gwh=("rego_gwh", "sum"),
+                rego_mwh=("rego_mwh", "sum"),
                 station_count=("station_name", "nunique"),
             )
             .sort_values(by=["tech", "month", "current_holder"])
@@ -274,7 +274,7 @@ class RegosByTechMonthHolder(DataFrameAsset):
         month             =CS(check=pa.Index(DTE(dayfirst=False))),
         tech              =CS(check=pa.Column(str, checks=pa.Check.isin(SupplyTechEnum.alphabetical_renewables()))),
         current_holder    =CS(check=pa.Column(str)),
-        rego_gwh          =CS(check=pa.Column(float)),
+        rego_mwh          =CS(check=pa.Column(float)),
         station_count     =CS(check=pa.Column(int)),
     )
     # fmt: on

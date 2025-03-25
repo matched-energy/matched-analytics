@@ -93,8 +93,8 @@ def test_monthly_aggregation_matches_original(upsampler_io: UpsamplerIO) -> None
     mar_2023_total = result.df[mar_mask]["supply_mwh"].sum()
 
     # Expected values, calculated in spreadsheet
-    drax_feb_biomass = 641467
-    drax_mar_biomass = 650422
+    drax_feb_biomass = 641467.0
+    drax_mar_biomass = 650422.0
 
     assert feb_2023_total == drax_feb_biomass
     assert mar_2023_total == drax_mar_biomass
