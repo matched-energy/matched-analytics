@@ -116,9 +116,9 @@ class DataFrameAsset(ABC):
         hasher = xxhash.xxh64()
         numpy_obj = df.to_numpy()  # improves performance
         hasher.update(pickle.dumps(numpy_obj, protocol=4))  # protocol 4 is more efficient for large data
-        checksum = hasher.hexdigest()
+        hash = hasher.hexdigest()
 
-        return dict(type=type(self).__name__, rows=str(len(df)), checksum=checksum, ma_version=get_code_version())
+        return dict(type=type(self).__name__, rows=str(len(df)), hash=hash, ma_version=get_code_version())
 
     def write(self, filepath: Path) -> None:
         self.pandera_schema.validate(self._df_do_not_mutate).to_csv(filepath)
