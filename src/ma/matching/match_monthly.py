@@ -17,7 +17,7 @@ from ma.utils.plotly import DEFAULT_PLOTLY_LAYOUT
 
 def make_match_monthly(consumption: ConsumptionMonthly, supply: RegosByTechMonthHolder) -> MatchMonthly:
     supply_df = supply.df
-    supply_df["supply_mwh"] = supply_df["rego_gwh"] * 1000
+    supply_df["supply_mwh"] = supply_df["rego_mwh"]
 
     supply_pivoted = supply_df.groupby("month").agg(
         supply_total_mwh=("supply_mwh", "sum"),

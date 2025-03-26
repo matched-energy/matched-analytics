@@ -31,7 +31,7 @@ def test_regos_raw_load() -> None:
 def test_regos_raw_transform_to_regos_processed() -> None:
     regos = get_regos_processed()
     assert set(regos["tech"]) == set(["biomass", "wind"])
-    assert regos["rego_gwh"].sum() == approx(18549.931)
+    assert regos["rego_mwh"].sum() == approx(18549931.0)
 
 
 def test_regos_processed_filter() -> None:
@@ -58,7 +58,7 @@ def test_regos_processed_groupby_station() -> None:
     regos = get_regos_processed().filter(statuses=[Status.REDEEMED])
     regos_grouped = regos.groupby_station()
     assert len(regos_grouped) == 3
-    assert regos_grouped["rego_gwh"].sum() == approx(17114.284)
+    assert regos_grouped["rego_mwh"].sum() == approx(17114284.0)
     assert set(regos_grouped["tech"]) == set(["biomass", "wind"])
 
 
@@ -80,19 +80,19 @@ def test_regos_processed_transform_to_tech_month_holder() -> None:
     biomass_2022_04 = regos_by_tech_month_holder.df[
         (regos_by_tech_month_holder.df["tech"] == "biomass")
         & (regos_by_tech_month_holder.df.index == pd.Timestamp("2022-04"))
-    ]["rego_gwh"].values[0]
+    ]["rego_mwh"].values[0]
     biomass_2023_03 = regos_by_tech_month_holder.df[
         (regos_by_tech_month_holder.df["tech"] == "biomass")
         & (regos_by_tech_month_holder.df.index == pd.Timestamp("2023-03"))
-    ]["rego_gwh"].values[0]
+    ]["rego_mwh"].values[0]
     wind_2023_03 = regos_by_tech_month_holder.df[
         (regos_by_tech_month_holder.df["tech"] == "wind")
         & (regos_by_tech_month_holder.df.index == pd.Timestamp("2023-03"))
-    ]["rego_gwh"].values[0]
+    ]["rego_mwh"].values[0]
 
-    assert biomass_2022_04 == 37.199
-    assert biomass_2023_03 == 500.000
-    assert wind_2023_03 == 314.075
+    assert biomass_2022_04 == 37199.0
+    assert biomass_2023_03 == 500000.0
+    assert wind_2023_03 == 314075.0
 
 
 def test_regos_by_tech_month_holder_expand_multi_month_certificates() -> None:
@@ -102,7 +102,7 @@ def test_regos_by_tech_month_holder_expand_multi_month_certificates() -> None:
     test_regos_df.loc["tech"] = "biomass"
     test_regos_df.loc["current_holder"] = "Test Company"
     test_regos_df.loc["station_name"] = "Test Station"
-    test_regos_df.loc["rego_gwh"] = 3.0
+    test_regos_df.loc["rego_mwh"] = 3.0
     test_regos_df.loc["start_year_month"] = pd.Timestamp("2023-01-01")
     test_regos_df.loc["end_year_month"] = pd.Timestamp("2023-04-01")
     test_regos_df.loc["period_months"] = 3
@@ -118,7 +118,7 @@ def test_regos_by_tech_month_holder_expand_multi_month_certificates() -> None:
         assert not month_data.empty, f"Missing data for {month}"
         assert month_data["tech"].iloc[0] == "biomass"
         assert month_data["current_holder"].iloc[0] == "Test Company"
-        assert month_data["rego_gwh"].iloc[0] == 1
+        assert month_data["rego_mwh"].iloc[0] == 1
         assert month_data["station_count"].iloc[0] == 1
         assert month_data["station_count"].iloc[0] == 1
 

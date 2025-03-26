@@ -11,12 +11,11 @@ def get_rego_station_volume_stats(
     monthly_volumes: pd.DataFrame,
     station_dnc_mw: float,
 ) -> Dict:
-    total_gwh = monthly_volumes["rego_gwh"].sum()
-    total_mwh = total_gwh * 1e3
+    total_mwh = monthly_volumes["rego_mwh"].sum()
     months_count = len(monthly_volumes)
     nameplate_mwh = station_dnc_mw * 24 * 365 * months_count / 12
     return dict(
-        rego_total_volume=total_gwh,
+        rego_total_volume=total_mwh,
         rego_capacity_factor=total_mwh / nameplate_mwh,
         rego_sample_months=months_count,
     )
@@ -59,7 +58,7 @@ def get_rego_station_volume_by_month(
     rego_station_volumes_by_month = (
         regos.df[(regos["station_name"] == rego_station_name) & (regos["period_months"] == 1)]
         .groupby(["start_year_month", "end_year_month", "period_months"])
-        .agg(dict(rego_gwh="sum"))
+        .agg(dict(rego_mwh="sum"))
     )
 
     months_count = len(rego_station_volumes_by_month)

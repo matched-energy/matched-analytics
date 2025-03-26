@@ -44,17 +44,15 @@ def get_bmu_volumes_by_month(
         ]
     ).sort_index()
     metering_data_monthly = half_hourly_to_monthly_volumes(metering_data_half_hourly)
-    metering_data_monthly["bm_unit_metered_volume_gwh"] = metering_data_monthly["bm_unit_metered_volume_mwh"] / 1e3
-    return metering_data_monthly[["bm_unit_metered_volume_gwh"]]
+    return metering_data_monthly[["bm_unit_metered_volume_mwh"]]
 
 
 def get_bmu_volume_stats(monthly_vols: pd.DataFrame, bmus_total_net_capacity: float) -> Dict:
-    total_gwh = monthly_vols["bm_unit_metered_volume_gwh"].sum()
-    total_mwh = total_gwh * 1e3
+    total_mwh = monthly_vols["bm_unit_metered_volume_mwh"].sum()
     months_count = len(monthly_vols)
     nameplate_mwh = bmus_total_net_capacity * 24 * 365 * months_count / 12
     return dict(
-        bmu_total_volume=total_gwh, bmu_capacity_factor=total_mwh / nameplate_mwh, bmu_sample_months=months_count
+        bmu_total_volume=total_mwh, bmu_capacity_factor=total_mwh / nameplate_mwh, bmu_sample_months=months_count
     )
 
 

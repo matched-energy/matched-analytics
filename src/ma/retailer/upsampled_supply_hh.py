@@ -55,7 +55,6 @@ def _calculate_scaling_factors(
 
     # Reset index to get month as a column
     rego_df = regos_by_tech_month_holder.df.reset_index()
-    rego_df["rego_mwh"] = rego_df["rego_gwh"] * 1000  # Convert GWh to MWh
 
     # Merge with retailer data
     merged_data = pd.merge(
