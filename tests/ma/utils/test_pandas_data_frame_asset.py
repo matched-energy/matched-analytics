@@ -163,6 +163,6 @@ def test_metadata() -> None:
 
     df = Asset(copy.deepcopy(DF_RAW))
     metadata = df.metadata
-    assert set(metadata.keys()) == set(["type", "rows", "checksum", "ma_version"])
+    assert set(metadata.keys()) == set(["type", "rows", "hash", "ma_version"])
     assert metadata["type"] == "Asset"
     assert metadata["rows"] == "5"
