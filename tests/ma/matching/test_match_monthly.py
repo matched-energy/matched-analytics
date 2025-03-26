@@ -61,6 +61,7 @@ def test_match_monthly() -> None:
     )
 
     assert match_df["consumption_mwh"].sum() == approx(1257e3, rel=1e3)
+    # TODO: below assertions currently failing. Seems suspiciously like rego test data is still in gwh, despite the column name change.
     assert match_df["supply_total_mwh"].sum() == approx(868e3, rel=1e3)
     assert match_df["supply_deficit_mwh"].sum() == approx(394, rel=1e3)
     assert match_df["supply_surplus_mwh"].sum() == approx(5e3, rel=1e3)
@@ -79,5 +80,7 @@ def test_match_monthly_annualised() -> None:
 
     assert len(match_annualised_df) == 1
     assert match_annualised_df["consumption_mwh"].iloc[0] == match["consumption_mwh"].sum()
+
+    # TODO: Ditto. Failing test. See above.
     assert match_annualised_df["supply_biomass_station_max"].iloc[0] == match["supply_biomass_station_count"].max()
     assert match_annualised_df["matching_score"].iloc[0] == approx(0.6864, rel=1e-4)
