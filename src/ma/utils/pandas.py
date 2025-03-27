@@ -120,5 +120,9 @@ class DataFrameAsset(ABC):
 
         return dict(type=type(self).__name__, rows=str(len(df)), hash=hash, ma_version=get_code_version())
 
+    @classmethod
+    def schema_copy(cls) -> Dict[str, ColumnSchema]:
+        return copy.deepcopy(cls.schema)
+
     def write(self, filepath: Path) -> None:
         self.pandera_schema.validate(self._df_do_not_mutate).to_csv(filepath)

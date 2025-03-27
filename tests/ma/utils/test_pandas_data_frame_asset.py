@@ -166,3 +166,40 @@ def test_metadata() -> None:
     assert set(metadata.keys()) == set(["type", "rows", "hash", "ma_version"])
     assert metadata["type"] == "Asset"
     assert metadata["rows"] == "5"
+
+
+def test_derived_assets() -> None:
+    class Asset(DataFrameAsset):
+        schema = dict(col_a=CS(check=pa.Column(int)), col_b=CS(check=pa.Column(str)))
+
+    class NewAsset(Asset):
+        pass
+
+    NewAsset.schema["col_a"] = CS(check=pa.Column(str))
+
+    # Assert that col_a is a string for new assets
+    df_new = NewAsset(copy.deepcopy(DF_RAW))
+    assert pd.api.types.is_string_dtype(df_new["col_a"])
+
+    # Changing the schema in NewAsset changes schema in the original Asset too!
+    with pytest.raises(AssertionError):
+        df_original = Asset(copy.deepcopy(DF_RAW))
+        assert pd.api.types.is_integer_dtype(df_original["col_a"])
+
+
+def test_derived_schema() -> None:
+    class Asset(DataFrameAsset):
+        schema = dict(col_a=CS(check=pa.Column(int)), col_b=CS(check=pa.Column(str)))
+
+    class NewAsset(DataFrameAsset):
+        schema = Asset.schema_copy()
+
+    NewAsset.schema["col_a"] = CS(check=pa.Column(str))
+
+    # Assert that col_a is a string for new assets
+    df_new = NewAsset(copy.deepcopy(DF_RAW))
+    assert pd.api.types.is_string_dtype(df_new["col_a"])
+
+    # Assert that col_a is still an int for original assets
+    df_original = Asset(copy.deepcopy(DF_RAW))
+    assert pd.api.types.is_integer_dtype(df_original["col_a"])
