@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import copy
 from typing import Any, Dict, List, Sequence, Type
 
 import pandas as pd
@@ -75,10 +74,7 @@ class MeteringDataHalfHourly(DataFrameAsset):
 
 
 class MeteringDataDaily(DataFrameAsset):
-    schema: Dict[str, CS] = {
-        **copy.deepcopy(MeteringDataHalfHourly.schema),
-        "settlement_period_count": CS(check=pa.Column(int)),
-    }
+    schema: Dict[str, CS] = MeteringDataHalfHourly.schema_copy() | {"settlement_period_count": CS(check=pa.Column(int))}
     from_file_skiprows = 1
 
     @classmethod
@@ -92,10 +88,7 @@ class MeteringDataDaily(DataFrameAsset):
 
 
 class MeteringDataMonthly(DataFrameAsset):
-    schema: Dict[str, CS] = {
-        **copy.deepcopy(MeteringDataHalfHourly.schema),
-        "day_count": CS(check=pa.Column(int)),
-    }
+    schema: Dict[str, CS] = MeteringDataHalfHourly.schema_copy() | {"day_count": CS(check=pa.Column(int))}
     from_file_skiprows = 1
 
     @classmethod
@@ -125,10 +118,7 @@ class MeteringDataMonthly(DataFrameAsset):
 
 
 class MeteringDataYearly(DataFrameAsset):
-    schema: Dict[str, CS] = {
-        **copy.deepcopy(MeteringDataHalfHourly.schema),
-        "month_count": CS(check=pa.Column(int)),
-    }
+    schema: Dict[str, CS] = MeteringDataHalfHourly.schema_copy() | {"month_count": CS(check=pa.Column(int))}
     from_file_skiprows = 1
 
 

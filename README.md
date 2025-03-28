@@ -17,6 +17,3 @@ Using [PDM](https://pdm-project.org), or similar:
     pdm install                                      # instantiate venv and build package
     eval $(pdm venv activate)                        # now `import ma` ... 
     pdm run tests
-
-
-# Test comment
