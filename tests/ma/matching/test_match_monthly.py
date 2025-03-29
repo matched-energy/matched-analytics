@@ -2,33 +2,31 @@ from typing import Tuple
 
 import pandas as pd
 from pytest import approx
-
+import plotly.graph_objects as go
 import data.register
 from ma.matching.match_monthly import (
     MatchMonthly,
-    _calculate_matching_score,
-    _calculate_supply_surplus_deficit,
-    make_match_monthly,
 )
+from ma.matching.utils import calculate_matching_score, calculate_supply_surplus_deficit
 from ma.ofgem.regos import RegosByTechMonthHolder
 from ma.retailer.consumption import ConsumptionMonthly
 
 
 def test_calculate_supply_surplus_deficit() -> None:
-    surplus, deficit = _calculate_supply_surplus_deficit(supply=pd.Series([0, 1, 2]), consumption=pd.Series([2, 1, 0]))
+    surplus, deficit = calculate_supply_surplus_deficit(supply=pd.Series([0, 1, 2]), consumption=pd.Series([2, 1, 0]))
     assert list(surplus) == [0, 0, 2]
     assert list(deficit) == [2, 0, 0]
 
 
 def test_calculate_matching_score() -> None:
-    score = _calculate_matching_score(deficit=pd.Series([0, 1, 2]), consumption=pd.Series([2, 2, 2]))
+    score = calculate_matching_score(deficit=pd.Series([0, 1, 2]), consumption=pd.Series([2, 2, 2]))
     assert list(score) == [1, 0.5, 0]
 
 
 def setup() -> Tuple[RegosByTechMonthHolder, ConsumptionMonthly, MatchMonthly]:
     supply = RegosByTechMonthHolder(data.register.REGOS_BY_TECH_MONTH_HOLDER)
     consumption = ConsumptionMonthly(data.register.CONSUMPTION_BY_MONTH)
-    return supply, consumption, make_match_monthly(consumption=consumption, supply=supply)
+    return supply, consumption, MatchMonthly.make(consumption=consumption, supply=supply)
 
 
 def test_match_monthly() -> None:
@@ -69,7 +67,8 @@ def test_match_monthly() -> None:
 
 def test_match_plot() -> None:
     _, _, match = setup()
-    match.plot()
+    fig = match.plot()
+    assert isinstance(fig, go.Figure)
 
 
 def test_match_monthly_annualised() -> None:

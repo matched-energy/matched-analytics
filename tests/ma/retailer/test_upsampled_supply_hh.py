@@ -8,7 +8,7 @@ from pandas import DataFrame
 from data.register import NESO_FUEL_CKAN_CSV_SUBSET_FEB2023_MAR2023, REGOS_APR2022_MAR2023_SUBSET
 from ma.neso.grid_mix import GridMixProcessed, GridMixRaw
 from ma.ofgem.regos import RegosProcessed, RegosRaw
-from ma.retailer.upsampled_supply_hh import (
+from ma.retailer.supply_hh import (
     UpsampledSupplyHalfHourly,
     _validate_date_ranges,
     upsample_retailer_monthly_supply_to_hh,

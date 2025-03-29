@@ -7,7 +7,7 @@ from ma.utils.pandas import DataFrameAsset
 from ma.utils.pandas import DateTimeEngine as DTE
 
 
-class ConsumptionMonthly(DataFrameAsset):
+class ConsumptionHalfHourly(DataFrameAsset):
     # fmt: off
     schema: Dict[str, CS] = dict(
         timestamp         =CS(check=pa.Index(DTE(dayfirst=False))),
@@ -16,3 +16,7 @@ class ConsumptionMonthly(DataFrameAsset):
     from_file_skiprows = 1
     from_file_with_index = True
     # fmt: on
+
+
+class ConsumptionMonthly(ConsumptionHalfHourly):
+    pass
