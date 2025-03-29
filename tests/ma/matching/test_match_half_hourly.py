@@ -4,7 +4,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import pytest
 
-from ma.matching.match_half_hourly import MatchHalfHourly, make_match_half_hourly
+from ma.matching.match_half_hourly import MatchHalfHourly
 from ma.retailer.consumption import ConsumptionHalfHourly
 from ma.retailer.supply_hh import UpsampledSupplyHalfHourly
 
@@ -18,7 +18,7 @@ def setup_upsampled_supply() -> UpsampledSupplyHalfHourly:
 def setup() -> Tuple[UpsampledSupplyHalfHourly, ConsumptionHalfHourly, MatchHalfHourly]:
     hh_supply = setup_upsampled_supply()
     hh_consumption = ConsumptionHalfHourly(data.register.CONSUMPTION_BY_HOUR)
-    return hh_supply, hh_consumption, make_match_half_hourly(supply=hh_supply, consumption=hh_consumption)
+    return hh_supply, hh_consumption, MatchHalfHourly.make(supply=hh_supply, consumption=hh_consumption)
 
 
 def test_match_half_hourly_index_mismatch() -> None:
@@ -26,7 +26,7 @@ def test_match_half_hourly_index_mismatch() -> None:
     modified_df = consumption.df.drop(consumption.df.index[0])
     modified_consumption = ConsumptionHalfHourly(modified_df)
     with pytest.raises(ValueError):
-        make_match_half_hourly(supply=supply, consumption=modified_consumption)
+        MatchHalfHourly.make(supply=supply, consumption=modified_consumption)
 
 
 def test_match_half_hourly() -> None:
